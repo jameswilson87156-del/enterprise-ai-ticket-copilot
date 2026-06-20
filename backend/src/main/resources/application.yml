@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: enterprise-ai-ticket-copilot
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force-response: true
+
+logging:
+  level:
+    com.enterpriseai.ticketcopilot: INFO
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true

@@ -1,0 +1,15 @@
+target/
+node_modules/
+dist/
+.env
+.mysql-data/
+.mysql-run/
+.chrome-*/
+node-types/
+.idea/
+.vscode/
+*.iml
+*.log
+*.tsbuildinfo
+.DS_Store
+.agents/
