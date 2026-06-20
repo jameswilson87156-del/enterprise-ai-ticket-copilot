@@ -2,6 +2,7 @@ target/
 node_modules/
 dist/
 .env
+backend/src/main/resources/application-local.yml
 .mysql-data/
 .mysql-run/
 .chrome-*/

@@ -26,7 +26,7 @@ const filters: Array<{ label: string; value: FilterValue }> = [
       <input
         :value="keyword"
         type="search"
-        placeholder="搜索工单、客户问题、知识库关键词"
+        placeholder="搜索工单、问题描述、知识库关键词"
         @input="emit('update:keyword', ($event.target as HTMLInputElement).value)"
       />
     </label>
