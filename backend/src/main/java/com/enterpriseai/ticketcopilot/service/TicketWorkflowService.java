@@ -226,6 +226,9 @@ public class TicketWorkflowService {
         if (draft == null) {
             throw new ResponseStatusException(NOT_FOUND, "Knowledge draft not found: " + articleNo);
         }
+        if ("PUBLISHED".equals(draft.getStatus())) {
+            return toKnowledgeDraft(draft);
+        }
         SupportTicket ticket = supportTicketMapper.selectById(draft.getSourceTicketId());
         if (ticket == null) {
             throw new ResponseStatusException(NOT_FOUND, "Source ticket not found.");

@@ -11,6 +11,7 @@ import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
 import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +35,7 @@ public class TicketController {
     }
 
     @PostMapping
-    public TicketDetail createTicket(@RequestBody CreateTicketRequest request) {
+    public TicketDetail createTicket(@Valid @RequestBody CreateTicketRequest request) {
         return ticketWorkflowService.createTicket(request);
     }
 
@@ -54,12 +55,12 @@ public class TicketController {
     }
 
     @PostMapping("/{id}/status")
-    public TicketDetail updateStatus(@PathVariable String id, @RequestBody UpdateTicketStatusRequest request) {
+    public TicketDetail updateStatus(@PathVariable String id, @Valid @RequestBody UpdateTicketStatusRequest request) {
         return ticketWorkflowService.updateStatus(id, request);
     }
 
     @PostMapping("/{id}/knowledge-draft")
-    public KnowledgeDraft createKnowledgeDraft(@PathVariable String id, @RequestBody CreateKnowledgeDraftRequest request) {
+    public KnowledgeDraft createKnowledgeDraft(@PathVariable String id, @Valid @RequestBody CreateKnowledgeDraftRequest request) {
         return ticketWorkflowService.createKnowledgeDraft(id, request);
     }
 
