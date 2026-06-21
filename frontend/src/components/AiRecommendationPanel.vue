@@ -1,11 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { AiAnalysis, TicketDetail, TicketStatus } from '../types/ticket'
 
-defineProps<{
+const props = defineProps<{
   analysis: AiAnalysis | null
   ticket: TicketDetail | null
   busy: boolean
 }>()
+
+const confirmationLabel = computed(() => {
+  switch (props.ticket?.status) {
+    case 'IN_PROGRESS':
+      return '已人工接手'
+    case 'RESOLVED':
+      return '已人工确认'
+    case 'KNOWLEDGE_BASED':
+      return '已确认并沉淀'
+    default:
+      return props.analysis?.confirmationState ?? '待人工确认'
+  }
+})
 
 const emit = defineEmits<{
   status: [status: TicketStatus]
@@ -15,13 +29,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <aside class="ai-panel" data-screenshot="ai-analysis">
+  <aside class="ai-panel" data-screenshot="ai-analysis" :aria-busy="busy">
     <div class="ai-panel__top">
       <div>
         <p class="eyebrow">AI 建议</p>
         <h2>AI 辅助分析</h2>
       </div>
-      <span class="human-lock">{{ analysis?.confirmationState ?? '待人工确认' }}</span>
+      <span class="human-lock" role="status" aria-live="polite">{{ confirmationLabel }}</span>
     </div>
 
     <template v-if="analysis && ticket">
@@ -68,8 +82,22 @@ const emit = defineEmits<{
       </section>
 
       <div class="workflow-actions">
-        <button type="button" class="secondary-action" :disabled="busy" @click="emit('status', 'IN_PROGRESS')">确认接手处理</button>
-        <button type="button" class="primary-action" :disabled="busy" @click="emit('status', 'RESOLVED')">人工确认已解决</button>
+        <button
+          type="button"
+          class="secondary-action"
+          :disabled="busy || ['IN_PROGRESS', 'RESOLVED', 'KNOWLEDGE_BASED'].includes(ticket.status)"
+          @click="emit('status', 'IN_PROGRESS')"
+        >
+          确认接手处理
+        </button>
+        <button
+          type="button"
+          class="primary-action"
+          :disabled="busy || ['RESOLVED', 'KNOWLEDGE_BASED'].includes(ticket.status)"
+          @click="emit('status', 'RESOLVED')"
+        >
+          人工确认已解决
+        </button>
         <button type="button" class="secondary-action" :disabled="busy || ticket.status !== 'RESOLVED'" @click="emit('draft')">生成知识草稿</button>
         <button
           type="button"
@@ -83,8 +111,8 @@ const emit = defineEmits<{
     </template>
 
     <div v-else class="empty-state empty-state--center">
-      <strong>等待规则分析</strong>
-      <span>提交或选择工单后会展示分类、知识命中、排查步骤和回复建议。</span>
+      <strong>{{ busy ? '正在加载规则分析' : '等待规则分析' }}</strong>
+      <span>{{ busy ? '正在同步分类、知识命中与处理建议。' : '提交或选择工单后会展示分类、知识命中、排查步骤和回复建议。' }}</span>
     </div>
   </aside>
 </template>

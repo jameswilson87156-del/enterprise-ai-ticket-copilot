@@ -93,6 +93,23 @@ select:focus-visible {
   min-height: 100vh;
 }
 
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  background: var(--accent);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 .workbench-shell {
   width: 100%;
   max-width: 1240px;
@@ -231,6 +248,14 @@ select:focus-visible {
   color: var(--faint);
 }
 
+.search-field:focus-within {
+  box-shadow: 0 0 0 3px rgba(47, 111, 109, 0.22);
+}
+
+.search-field input:focus-visible {
+  outline: none;
+}
+
 .filter-tabs {
   display: grid;
   grid-template-columns: repeat(4, auto);
@@ -263,6 +288,27 @@ select:focus-visible {
 
 .filter-tab:active {
   transform: translateY(1px);
+}
+
+.operation-feedback {
+  margin-top: var(--space-3);
+}
+
+.operation-feedback__message {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(47, 111, 109, 0.22);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  background: var(--accent-subtle);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.operation-feedback__message--error {
+  border-color: rgba(160, 80, 67, 0.25);
+  color: var(--risk);
+  background: var(--risk-soft);
 }
 
 .metric-strip {
@@ -614,6 +660,25 @@ select:focus-visible {
 .intake-form select:focus {
   border-color: rgba(47, 111, 109, 0.42);
   background: var(--surface);
+}
+
+.intake-form input:focus-visible,
+.intake-form textarea:focus-visible,
+.intake-form select:focus-visible {
+  outline: 3px solid rgba(47, 111, 109, 0.2);
+  outline-offset: 2px;
+}
+
+.form-message {
+  min-height: 18px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.form-message--error {
+  color: var(--risk);
 }
 
 .intake-row {
@@ -1324,5 +1389,14 @@ select:focus-visible {
 
   .knowledge-table__row em {
     justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

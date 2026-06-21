@@ -4,6 +4,7 @@ import type { TicketSummary } from '../types/ticket'
 defineProps<{
   tickets: TicketSummary[]
   selectedId: string | null
+  loading: boolean
 }>()
 
 const emit = defineEmits<{
@@ -20,7 +21,7 @@ const statusLabel: Record<string, string> = {
 </script>
 
 <template>
-  <aside class="queue-panel">
+  <aside id="ticket-queue" class="queue-panel" aria-label="工单队列" :aria-busy="loading">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">工单队列</p>
@@ -36,6 +37,8 @@ const statusLabel: Record<string, string> = {
         class="ticket-row"
         :class="{ 'ticket-row--active': ticket.id === selectedId }"
         type="button"
+        :aria-current="ticket.id === selectedId ? 'true' : undefined"
+        :aria-label="`${ticket.id}，${ticket.title}，${statusLabel[ticket.status]}，规则置信度 ${ticket.aiConfidence}%`"
         @click="emit('select', ticket.id)"
       >
         <span class="ticket-row__rail" :class="`priority-${ticket.priority.toLowerCase()}`"></span>
@@ -60,9 +63,9 @@ const statusLabel: Record<string, string> = {
         </span>
       </button>
     </div>
-    <div v-else class="empty-state">
-      <strong>暂无匹配工单</strong>
-      <span>调整搜索词或筛选条件后继续查看。</span>
+    <div v-else class="empty-state" role="status" aria-live="polite">
+      <strong>{{ loading ? '正在加载工单' : '暂无匹配工单' }}</strong>
+      <span>{{ loading ? '正在读取工单队列，请稍候。' : '调整搜索词或筛选条件后继续查看。' }}</span>
     </div>
   </aside>
 </template>

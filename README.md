@@ -27,6 +27,24 @@
 
 > 当前实现是规则驱动的本地演示闭环，不等同于完整 RAG 平台，也不代表 AI 可自动处理全部工单。
 
+## 架构与核心流程
+
+```mermaid
+flowchart LR
+  employee["内部员工"] --> web["Vue 3 Copilot 工作台"]
+  web --> api["Spring Boot REST API"]
+  api --> workflow["TicketWorkflowService"]
+  workflow --> classify["规则分类"]
+  workflow --> match["知识关键词匹配"]
+  workflow --> recommend["建议模板"]
+  workflow --> mysql[("MySQL")]
+  recommend --> review{"人工确认"}
+  review --> status["状态流转"]
+  review --> knowledge["知识草稿与发布"]
+```
+
+完整架构、状态机和知识沉淀流程见 [docs/architecture.md](docs/architecture.md)。
+
 ## 页面截图
 
 以下截图由仓库内 Playwright 脚本从真实 Vue 前端页面生成，页面内容使用本地 Demo/Mock 数据，不包含真实企业或客户信息。
@@ -72,7 +90,13 @@ mysql -uroot -p < backend/src/main/resources/schema.sql
 mysql -uroot -p enterprise_ai_ticket_copilot < backend/src/main/resources/demo-data.sql
 ```
 
-2. 参考 `backend/src/main/resources/application-example.yml` 创建本地配置并修改数据库账号。
+2. 复制示例配置并修改本地数据库账号：
+
+```powershell
+Copy-Item backend/src/main/resources/application-example.yml backend/src/main/resources/application-local.yml
+```
+
+`application-local.yml` 已加入 `.gitignore`，不得提交真实本地密码。
 
 3. 启动后端：
 
@@ -91,24 +115,40 @@ npm run dev
 
 后端默认地址为 `http://localhost:8080`，前端默认地址为 `http://localhost:5173`。
 
+## API 概览
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/health` | 健康检查 |
+| `GET` | `/api/tickets` | 查询工单队列 |
+| `POST` | `/api/tickets` | 创建工单并生成规则建议 |
+| `GET` | `/api/tickets/metrics` | 查询工作台指标 |
+| `GET` | `/api/tickets/{id}` | 查询工单详情与状态历史 |
+| `GET` | `/api/tickets/{id}/ai-analysis` | 查询分类、知识命中和建议 |
+| `POST` | `/api/tickets/{id}/status` | 人工确认状态流转 |
+| `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决工单生成知识草稿 |
+| `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 |
+
 ## Demo 模式说明
 
 - `npm run dev:demo` 使用前端内置的本地 Demo/Mock 工单，不依赖后端和数据库。
-- Demo 数据仅用于展示分类、知识匹配、人工确认、状态流转和知识沉淀交互。
-- `npm run screenshots` 会启动 Demo 页面，通过真实浏览器自动生成 README 截图。
+- Demo 数据仅用于展示分类、知识匹配、人工确认、状态流转和知识沉淀交互；刷新页面后内存修改会重置。
+- 搜索会真实匹配工单标题、问题描述、错误日志和知识条目关键词，状态筛选也会实际改变队列结果。
+- `npm run screenshots` 会启动 Demo 页面，通过真实浏览器生成 README 截图，并验证搜索、筛选、知识沉淀交互及 1366/390 宽度无横向溢出。
 - Demo 中出现的团队、系统、日志和工单均为演示内容，不对应真实企业客户。
 
 ## 测试与验收结果
 
-2026-06-20 本地验收结果：
+2026-06-21 本地验收结果：
 
 | 检查项 | 结果 | 说明 |
 | --- | --- | --- |
 | `npm install` | 通过 | 依赖安装完成，审计结果为 0 个漏洞 |
-| `npm run build` | 通过 | Vue TypeScript 检查与 Vite 生产构建完成 |
-| `npm run screenshots` | 通过 | 生成 4 张标准截图和 4 张 `1920x1200` 截图 |
+| `npm run typecheck` | 通过 | Vue SFC 与 TypeScript 类型检查完成 |
+| `npm run build` | 通过 | 类型检查与 Vite 生产构建完成 |
+| `npm run screenshots` | 通过 | 生成 8 张截图，并完成 Demo 交互与响应式断言 |
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
-| `mvn test` | 通过 | Maven 生命周期与编译通过；当前没有后端测试源码，不能视为完整业务测试 |
+| `mvn test` | 通过 | 15 项 Controller/Service 单元测试全部通过；不宣称完整生产测试覆盖 |
 
 ## 项目边界
 
@@ -119,11 +159,20 @@ npm run dev
 - AI 只生成建议；工单状态变更、对外回复和知识发布需要人工确认。
 - Stitch Design Taste 仅作为本轮界面视觉设计参考，不属于项目业务功能或商业 UI 资产。
 
+## 后续可扩展方向
+
+- 在保留人工确认边界的前提下，评估企业私有模型或受控检索增强。
+- 增加鉴权、角色权限、审计日志和数据库集成测试。
+- 为真实部署补充可观测性、数据脱敏、限流和灾备方案。
+
+这些方向目前均未实现，不属于仓库现有能力。
+
 ## 简历亮点
 
 - 从工单录入到知识沉淀，设计并实现了具备人工确认边界的企业 AI 工单闭环。
 - 使用 Vue 3 + TypeScript 构建轻量企业 Copilot 工作台，并用 Playwright 固化真实页面截图验收。
 - 使用 Spring Boot + MyBatis-Plus + MySQL 组织工单、状态历史、建议记录与知识草稿的数据关系。
+- 使用 Bean Validation、幂等发布保护和 15 项自动化测试验证关键业务边界。
 - 在 README 中明确区分 Demo、规则能力、真实大模型与生产边界，避免将演示能力包装为生产能力。
 
 ## 项目文档
@@ -134,4 +183,3 @@ npm run dev
 - [演示脚本](docs/demo-script.md)
 - [面试讲解指南](docs/interview-guide.md)
 - [验收清单](docs/acceptance-checklist.md)
-

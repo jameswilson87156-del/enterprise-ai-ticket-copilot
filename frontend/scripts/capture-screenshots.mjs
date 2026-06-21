@@ -28,14 +28,14 @@ function startServer() {
   const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => key && !key.startsWith('=') && value !== undefined))
   if (process.platform === 'win32') {
-    return spawn(`${npmCommand} run dev:demo -- --host 127.0.0.1 --port 5173`, {
+    return spawn(`${npmCommand} run dev:demo -- --host 127.0.0.1 --port 5173 --strictPort`, {
       cwd: frontendRoot,
       env: { ...env, BROWSER: 'none' },
       shell: true,
       stdio: ['ignore', 'pipe', 'pipe']
     })
   }
-  return spawn(npmCommand, ['run', 'dev:demo', '--', '--host', '127.0.0.1', '--port', '5173'], {
+  return spawn(npmCommand, ['run', 'dev:demo', '--', '--host', '127.0.0.1', '--port', '5173', '--strictPort'], {
     cwd: frontendRoot,
     env: { ...env, BROWSER: 'none' },
     stdio: ['ignore', 'pipe', 'pipe']
@@ -53,9 +53,13 @@ function stopServer(serverProcess) {
   serverProcess.kill('SIGTERM')
 }
 
-async function waitForServer(url, timeoutMs = 30000) {
+async function waitForServer(url, serverProcess, timeoutMs = 30000) {
   const started = Date.now()
+  await new Promise((resolve) => setTimeout(resolve, 250))
   while (Date.now() - started < timeoutMs) {
+    if (serverProcess && serverProcess.exitCode !== null) {
+      throw new Error(`Demo server exited before becoming ready (exit code ${serverProcess.exitCode}).`)
+    }
     try {
       const response = await fetch(url)
       if (response.ok) {
@@ -67,6 +71,48 @@ async function waitForServer(url, timeoutMs = 30000) {
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
   throw new Error(`Timed out waiting for ${url}`)
+}
+
+async function assertNoHorizontalOverflow(page, viewport, label) {
+  await page.setViewportSize(viewport)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(150)
+  const dimensions = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    documentWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
+  }))
+  if (dimensions.documentWidth > dimensions.viewportWidth + 1) {
+    throw new Error(`${label} viewport has horizontal overflow: ${dimensions.documentWidth}px > ${dimensions.viewportWidth}px.`)
+  }
+}
+
+async function verifyDemoInteractions(page) {
+  await page.setViewportSize({ width: 1440, height: 1050 })
+  await page.evaluate(() => window.scrollTo(0, 0))
+
+  const search = page.getByRole('searchbox', { name: '搜索' })
+  await search.fill('KB-REDIS-CONN')
+  await page.waitForTimeout(100)
+  if (await page.getByRole('button', { name: /DEMO-0003/ }).count() !== 1) {
+    throw new Error('Knowledge keyword search did not return DEMO-0003.')
+  }
+
+  await search.fill('no-such-ticket-keyword')
+  await page.getByText('暂无匹配工单', { exact: true }).waitFor()
+  await search.fill('')
+
+  await page.getByRole('button', { name: '已沉淀', exact: true }).click()
+  if (await page.getByRole('button', { name: /DEMO-0008/ }).count() !== 1) {
+    throw new Error('Knowledge-based filter did not return DEMO-0008.')
+  }
+  await page.getByRole('button', { name: '全部', exact: true }).click()
+
+  await page.getByRole('button', { name: /DEMO-0007/ }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: '生成知识草稿', exact: true }).click()
+  await page.getByText('知识草稿已生成，发布前仍需人工审核。', { exact: true }).waitFor()
+  await page.getByRole('button', { name: '人工确认入库', exact: true }).click()
+  await page.getByText('知识草稿已由人工确认并完成沉淀。', { exact: true }).waitFor()
 }
 
 async function captureViewport(page, name) {
@@ -101,7 +147,7 @@ if (server) {
 }
 
 try {
-  await waitForServer(baseUrl)
+  await waitForServer(baseUrl, server)
   const executablePath = findBrowser()
   if (!executablePath) {
     throw new Error('No Chrome or Edge executable found. Set CHROME_PATH to a Chromium-based browser.')
@@ -133,6 +179,10 @@ try {
   await scrollTo(page, '[data-screenshot="knowledge-base"]')
   await captureViewport(page, 'knowledge-base')
   await captureLarge(page, 'knowledge-base')
+
+  await verifyDemoInteractions(page)
+  await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, '1366 desktop')
+  await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, '390 mobile')
 
   await browser.close()
   console.log(`Screenshots saved to ${outputRoot}`)

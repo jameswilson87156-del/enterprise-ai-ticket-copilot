@@ -11,6 +11,7 @@ export interface TicketSummary {
   category: string
   aiConfidence: number
   updatedAt: string
+  searchText?: string
 }
 
 export interface SystemContext {
