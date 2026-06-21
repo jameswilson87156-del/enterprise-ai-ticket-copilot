@@ -1,4 +1,4 @@
-# Claude / Codex 交接记录
+﻿# Claude / Codex 交接记录
 
 使用规则：每轮把新记录追加在"历史记录"顶部，不覆盖旧记录。没有证据时不要写"测试通过"。
 
@@ -103,7 +103,14 @@
   3. `curl http://localhost:8080/api/health` → 200
   4. `curl http://localhost:8080/api/tickets` → 含 DEMO-0001 的列表
 
-**Codex 实际结果**：（待填写）
+**Codex 实际结果**：
+
+- 2026-06-21，Codex：采用已有 `backend/src/main/resources/application-example.yml` 作为本地 MySQL 模板，未新增重复模板文件。
+- 已将模板账号密码改为 `your_username` / `your_password`，并补充复制为 `application-local.yml`、不要提交真实密码的说明。
+- 已补充 README 的本地运行前置条件、建库 SQL、schema/demo-data 导入说明、本地配置复制步骤、后端启动命令和接口验证命令。
+- 已补充 `.gitignore`，避免任意位置的 `application-local.yml` 和 `.env.*` 误提交。
+- 验证：在 `backend/` 执行 `mvn test`，结果为 `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 未修改 Java / Vue 业务代码，未写入真实数据库密码。
 
 ---
 
@@ -151,6 +158,14 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P0-1 本地 MySQL 配置闭环
+
+- 做了什么：完善 `backend/src/main/resources/application-example.yml` 示例配置，补充 README 本地 MySQL 启动说明，并最小补充 `.gitignore`。
+- 修改文件：`README.md`、`.gitignore`、`backend/src/main/resources/application-example.yml`、`TODO.md`、`HANDOFF.md`。
+- 验证证据：在 `backend/` 执行 `mvn test`，15 个测试通过，`BUILD SUCCESS`。
+- 未做事项：未修改 Java / Vue 业务代码；未修复 `knowledgeCoverage`；未添加 Swagger；未添加全局异常处理器；未安装 MySQL 或任何软件；未写入真实密码。
+- 下一步建议：处理 P0-2，修复 `knowledgeCoverage` 假指标。
 
 ### 2026-06-21 — Claude — 大三实习简历项目全量审查
 

@@ -69,6 +69,13 @@ flowchart LR
 
 ## 快速启动
 
+### 本地运行前置条件
+
+- Java 17
+- Maven 3.9+（或兼容版本）
+- MySQL 8.x 或兼容版本
+- Node.js / npm（运行前端时需要）
+
 ### 前端 Demo 模式
 
 无需启动后端或 MySQL，即可使用本地 Demo/Mock 数据体验完整界面：
@@ -83,29 +90,56 @@ npm run dev:demo
 
 ### 本地 MySQL 闭环
 
-1. 初始化数据库和演示数据：
+当前后端使用规则引擎辅助分类、关键词知识匹配和模板化建议草稿，不依赖真实 LLM API。MySQL 闭环用于验证后端 REST API、表结构、演示数据和前端真实接口调用。
+
+1. 创建数据库：
+
+```sql
+CREATE DATABASE enterprise_ai_ticket_copilot DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+仓库 SQL 当前使用 `enterprise_ai_ticket_copilot`，请保持数据库名与 `backend/src/main/resources/schema.sql`、`backend/src/main/resources/demo-data.sql` 一致。
+
+2. 导入表结构和演示数据：
 
 ```bash
 mysql -uroot -p < backend/src/main/resources/schema.sql
 mysql -uroot -p enterprise_ai_ticket_copilot < backend/src/main/resources/demo-data.sql
 ```
 
-2. 复制示例配置并修改本地数据库账号：
+`schema.sql` 会创建 5 张业务表并写入基础知识库数据；`demo-data.sql` 会写入 DEMO 工单、规则分析记录、状态历史和建议生成记录。
+
+3. 复制示例配置并修改本地数据库账号：
 
 ```powershell
 Copy-Item backend/src/main/resources/application-example.yml backend/src/main/resources/application-local.yml
 ```
 
-`application-local.yml` 已加入 `.gitignore`，不得提交真实本地密码。
+macOS / Linux 可使用：
 
-3. 启动后端：
+```bash
+cp backend/src/main/resources/application-example.yml backend/src/main/resources/application-local.yml
+```
+
+打开 `backend/src/main/resources/application-local.yml`，把 `your_username` 和 `your_password` 改成你本机 MySQL 用户名和密码。`application-local.yml` 已加入 `.gitignore`，不得提交真实本地密码。
+
+4. 启动后端：
 
 ```bash
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-4. 启动前端：
+5. 验证后端接口：
+
+```bash
+curl http://localhost:8080/api/health
+curl http://localhost:8080/api/tickets
+```
+
+`/api/health` 应返回 200；`/api/tickets` 应能看到 DEMO 工单列表。
+
+6. 启动前端真实后端模式：
 
 ```bash
 cd frontend
@@ -113,7 +147,7 @@ npm install
 npm run dev
 ```
 
-后端默认地址为 `http://localhost:8080`，前端默认地址为 `http://localhost:5173`。
+后端默认地址为 `http://localhost:8080`，前端默认地址为 `http://localhost:5173`。如果只想看界面演示，可以继续使用 `npm run dev:demo`，该模式不依赖后端或 MySQL。
 
 ## API 概览
 

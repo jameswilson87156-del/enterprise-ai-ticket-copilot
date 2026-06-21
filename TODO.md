@@ -1,4 +1,4 @@
-# Enterprise AI Ticket Copilot TODO 路线图
+﻿# Enterprise AI Ticket Copilot TODO 路线图
 
 > 本文件用于后续 Claude / Codex 本地协作交接。每轮只处理一个明确、可验收的小任务；不要把未验证能力写成已完成，也不要把规则引擎包装成真实大模型。
 
@@ -44,7 +44,7 @@
 
 ## 4. P0 待办
 
-### P0-1：补全数据库连接配置或说明文档
+### P0-1：补全数据库连接配置或说明文档（已完成）
 
 - 新增 backend/src/main/resources/application-local.yml.example，不包含真实密码。
 - README 增加或校准 MySQL 本地启动说明，覆盖建库、复制配置、填写账号密码、启用 local profile、健康检查和工单列表验收。
@@ -53,6 +53,7 @@
   - 复制 example 为本地配置文件后可启动后端。
   - GET /api/health 返回 200。
   - GET /api/tickets 返回演示工单数据。
+- 本轮结果（2026-06-21，Codex）：复用并完善 backend/src/main/resources/application-example.yml，补充 README 本地 MySQL 启动说明，并补充 .gitignore 防止真实本地配置误提交。
 
 ### P0-2：修复 knowledgeCoverage 假指标
 
@@ -90,9 +91,9 @@
 
 ## 7. 下一轮建议任务
 
-下一轮优先处理 P0-1：application-local.yml.example + README MySQL 配置说明。
+下一轮优先处理 P0-2：修复 knowledgeCoverage 假指标。
 
-不要同时修 coverage、Swagger、异常处理。下一轮仍然只做一个明确、可验收的小任务。
+不要同时处理 P0-3、Swagger、异常处理。下一轮仍然只做一个明确、可验收的小任务。
 
 ## 8. 任务记录格式
 
@@ -106,4 +107,3 @@
   - 不可破坏：
   - 验收方式：
   - 建议 commit message：
-

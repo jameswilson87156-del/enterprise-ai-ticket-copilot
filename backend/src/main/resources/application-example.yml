@@ -1,11 +1,18 @@
+﻿# 本文件是本地 MySQL 运行配置模板，只能保存示例值。
+# 使用方式：
+# 1. 复制为 backend/src/main/resources/application-local.yml。
+# 2. 将 your_username / your_password 替换为你本机 MySQL 账号和密码。
+# 3. application-local.yml 会包含本机密码，不要提交到 Git。
+# 数据库名需与 schema.sql / demo-data.sql 中的 enterprise_ai_ticket_copilot 保持一致。
+
 spring:
   application:
     name: enterprise-ai-ticket-copilot
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/enterprise_ai_ticket_copilot?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
-    username: ticket_copilot
-    password: change-me
+    username: your_username
+    password: your_password
   sql:
     init:
       mode: always
