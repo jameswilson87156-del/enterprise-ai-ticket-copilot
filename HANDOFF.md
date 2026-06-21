@@ -45,6 +45,7 @@
 - **影响**：面试官要求看测试报告时无法回应
 - **建议修改**：执行 `mvn test`，截图 BUILD SUCCESS（含 `Tests run` 行），存入 `docs/images/test-results.png`，README 引用该图
 - **验收**：README 中可见测试截图，图中 Tests run 数量与实际 @Test 用例数量一致
+- **Codex 实际结果**：2026-06-21 已新增 `docs/TEST_REPORT.md`，记录 `backend/` 下 `mvn test` 与 `frontend/` 下 `npm run build` 的真实输出摘要；README 已引用该报告。本轮未新增截图文件。
 
 ---
 
@@ -166,6 +167,15 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P0-3 测试执行证据
+
+- 任务：补充正式测试执行证据，让 README 的测试通过描述可追溯到 `docs/TEST_REPORT.md`。
+- 修改文件：`docs/TEST_REPORT.md`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- 运行命令：`mvn test`（目录：`backend/`）；`npm run build`（目录：`frontend/`）。
+- 结果摘要：后端 `Tests run: 16, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`；前端 `vue-tsc` 类型检查通过，Vite 生产构建通过。
+- 剩余风险：仍没有 CI badge、线上部署验收或生产级鉴权/压测证据；本报告不声明真实 LLM、向量检索或生产部署能力。
+- 下一轮建议：处理 P1-1，添加全局异常处理器。
 
 ### 2026-06-21 — Codex — P0-2 修复 knowledgeCoverage 假指标
 

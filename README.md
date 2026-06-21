@@ -184,6 +184,8 @@ npm run dev
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
 | `mvn test` | 通过 | 16 项 Controller/Service 单元测试全部通过；不宣称完整生产测试覆盖 |
 
+测试证据详见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
+
 ## 项目边界
 
 - 这是个人作品集 / 实习简历项目，不是已上线的生产系统。

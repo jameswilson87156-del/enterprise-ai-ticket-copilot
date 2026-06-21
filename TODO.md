@@ -29,7 +29,7 @@
 - Vue 3 + TypeScript 前端组件。
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
-- 当前存在 5 个后端测试文件，合计 16 个 @Test 用例；但正式测试报告或截图证据仍需后续补充。
+- 当前存在 5 个后端测试文件，合计 16 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 
 ## 3. 当前不能夸大的能力
 
@@ -65,7 +65,7 @@
   - 相关测试通过。
 - 本轮结果（2026-06-21，Codex）：新口径为“有知识库命中 matched_knowledge_nos，或有关联知识草稿/发布 source_ticket_id 的去重工单数 / 总工单数 * 100”。保留接口字段 knowledgeCoverage，但前端展示改为“知识关联率”。
 
-### P0-3：补充测试执行证据
+### P0-3：补充测试执行证据（已完成）
 
 - 运行 mvn test。
 - 保存 docs/TEST_REPORT.md 或 docs/images/test-results.png。
@@ -73,6 +73,7 @@
 - 验收方式：
   - 测试报告或截图能看到真实执行结果。
   - 如果测试失败，不能把 TODO 标记为完成。
+- 本轮结果（2026-06-21，Codex）：已新增 docs/TEST_REPORT.md，记录 backend 目录下的 mvn test 和 frontend 目录下的 npm run build 结果；README 已引用该报告。
 
 ## 5. P1 待办
 
@@ -92,9 +93,9 @@
 
 ## 7. 下一轮建议任务
 
-下一轮优先处理 P0-3：补充测试执行证据。
+下一轮优先处理 P1-1：添加 @ControllerAdvice / @RestControllerAdvice 全局异常处理器。
 
-不要同时处理 Swagger、异常处理或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
+不要同时处理 Swagger、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 
 ## 8. 任务记录格式
 
