@@ -30,6 +30,7 @@
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
 - SpringDoc OpenAPI / Swagger UI 接口文档。
+- README 与 docs 已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 
 ## 3. 当前不能夸大的能力
@@ -81,7 +82,7 @@
 - 添加 @ControllerAdvice / @RestControllerAdvice 全局异常处理器，统一 API 错误响应。（已完成：新增 ApiErrorResponse 和 GlobalExceptionHandler，统一参数校验与业务异常响应）
 - 添加 SpringDoc OpenAPI / Swagger，方便展示接口文档。（已完成：新增 SpringDoc 依赖、OpenApiConfig 和 Swagger UI 访问说明）
 - README 补齐或校准快速启动 MySQL 闭环步骤。
-- README 中把容易误导的 AI 描述改为“规则引擎辅助分类”“模板化建议草稿”等真实表述。
+- README 中把容易误导的 AI 描述改为“规则引擎辅助分类”“模板化建议草稿”等真实表述。（已完成：README、architecture、product-design、demo-script、interview-guide 已统一口径）
 - 补接口文档，例如 docs/API.md。
 
 ## 6. P2 待办
@@ -94,7 +95,7 @@
 
 ## 7. 下一轮建议任务
 
-下一轮优先处理 P1-4：README 中把容易误导的 AI 描述改为规则引擎辅助分类。
+下一轮优先处理 P1：补接口文档，例如 docs/API.md。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 

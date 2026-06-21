@@ -79,7 +79,8 @@
 - **文件/位置**：`README.md`
 - **当前问题**：多处使用"AI 分类"，实际是关键词规则引擎，易引起面试误解
 - **建议**：改为"规则引擎辅助分类（Rule-based Classification）"，正文补充说明设计取舍原因
-- **验收**：README 中无"LLM"、"AI 模型"等容易引发误解的表述
+- **验收**：README 中仅在说明“未接入真实 LLM / 未训练模型 / 非向量检索”时出现相关词，避免被误解为已实现能力
+- **Codex 实际结果**：2026-06-21 已校准 README 与 docs 中的 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配、模板化建议草稿和人工确认边界；保留 Copilot 作为产品名，并解释为辅助处理工作台。
 
 ---
 
@@ -175,6 +176,17 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P1-4 AI 表述校准
+
+- 任务：校准 README 和相关文档中容易误导的 AI / Copilot / 大模型 / 向量检索表述。
+- 修改文件：`README.md`、`docs/architecture.md`、`docs/product-design.md`、`docs/demo-script.md`、`docs/interview-guide.md`、`TODO.md`、`HANDOFF.md`。
+- 原风险：文档中存在“AI 分类”“AI 生成”“AI Agent”“向量召回”等表述，容易被误解为已经接入真实 LLM、模型训练或向量检索。
+- 新表述口径：Copilot 是辅助处理工作台；分类是规则引擎辅助分类；知识匹配是分类和关键词评分；建议是模板化处理建议草稿；所有动作需要人工确认。
+- 是否修改业务代码：否。
+- 验证方式：全文搜索 AI / LLM / embedding / 向量 / Agent 等风险关键词并人工复核；本轮只修改文档，未运行 `mvn test` 或 `npm run build`。
+- 剩余风险：前端页面源码仍保留部分 AI 文案，本轮按边界未改 Vue；如要彻底统一 UI 文案，需要单独任务并运行前端构建。
+- 下一轮建议：补接口文档，例如 `docs/API.md`。
 
 ### 2026-06-21 — Codex — P1-2 SpringDoc OpenAPI / Swagger
 
