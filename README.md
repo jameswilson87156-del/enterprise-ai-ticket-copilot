@@ -163,6 +163,12 @@ npm run dev
 | `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决工单生成知识草稿 |
 | `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 |
 
+后端启动后可访问 Swagger UI：[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+OpenAPI JSON：[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
+
 ## Demo 模式说明
 
 - `npm run dev:demo` 使用前端内置的本地 Demo/Mock 工单，不依赖后端和数据库。

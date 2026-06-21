@@ -66,6 +66,7 @@
 - **严重程度**：中
 - **建议**：加 `springdoc-openapi-starter-webmvc-ui` 依赖，启动后 `/swagger-ui/index.html` 可用
 - **验收**：浏览器可访问 Swagger UI，8 个接口全部可见
+- **Codex 实际结果**：2026-06-21 已添加 `springdoc-openapi-starter-webmvc-ui` 依赖、`OpenApiConfig` 和 Controller `@Tag` 分组；Swagger UI 地址为 `http://localhost:8080/swagger-ui/index.html`，OpenAPI JSON 地址为 `http://localhost:8080/v3/api-docs`。
 
 ### P1-3：README 快速启动步骤不完整
 
@@ -152,6 +153,12 @@
 
 **Codex 实际结果**：（待填写）
 
+- 2026-06-21，Codex：已添加 SpringDoc OpenAPI / Swagger UI。
+- 修改文件：`backend/pom.xml`、`backend/src/main/java/com/enterpriseai/ticketcopilot/api/OpenApiConfig.java`、`TicketController.java`、`HealthController.java`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- Swagger UI：`http://localhost:8080/swagger-ui/index.html`。
+- OpenAPI JSON：`http://localhost:8080/v3/api-docs`。
+- 验证：在 `backend/` 执行 `mvn test`，结果见本轮历史记录。
+
 ---
 
 ### Task-04：加 SpringDoc OpenAPI 依赖
@@ -168,6 +175,17 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P1-2 SpringDoc OpenAPI / Swagger
+
+- 任务：添加 SpringDoc OpenAPI / Swagger，让后端 REST API 可通过 Swagger UI 展示。
+- 修改文件：`backend/pom.xml`、`backend/src/main/java/com/enterpriseai/ticketcopilot/api/OpenApiConfig.java`、`backend/src/main/java/com/enterpriseai/ticketcopilot/api/TicketController.java`、`backend/src/main/java/com/enterpriseai/ticketcopilot/api/HealthController.java`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- Swagger UI 地址：`http://localhost:8080/swagger-ui/index.html`。
+- OpenAPI JSON 地址：`http://localhost:8080/v3/api-docs`。
+- 测试命令：在 `backend/` 执行 `mvn test`。
+- 测试结果：`Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 剩余风险：未实际长期启动服务访问 Swagger 页面；仅通过编译和测试确认依赖与配置可用。
+- 下一轮建议：处理 P1-4，校准 README 中容易误导的 AI 表述。
 
 ### 2026-06-21 — Codex — P1-1 全局异常处理
 
