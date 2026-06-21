@@ -177,6 +177,19 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — 前端 UI 文案校准
+
+- 任务：前端 UI 文案校准。
+- 修改文件：`frontend/src/App.vue`、`frontend/src/components/AiRecommendationPanel.vue`、`frontend/src/components/StatusTimeline.vue`、`frontend/src/components/TicketIntakePanel.vue`、`frontend/src/data/demoTickets.ts`、`TODO.md`、`HANDOFF.md`。
+- 原风险：页面中存在“企业 AI 工单 Copilot”“企业 AI 工单作战台”“AI 已分析”“AI 建议记录”“AI 辅助分析”等可见文案，容易被误解为已接入真实 LLM、AI 模型或自动决策。
+- 新口径：Copilot 保留为产品名，并在页面附近表述为企业工单辅助处理工作台；分类为规则引擎辅助分类；知识为知识库评分匹配；输出为模板化建议草稿；所有状态流转和知识入库均需人工确认。
+- 是否修改业务逻辑：否，未修改后端 Java 业务逻辑、数据库配置、Swagger 配置、全局异常处理或 `knowledgeCoverage` 逻辑。
+- 是否修改前端逻辑：否，仅修改前端可见文案和 Demo 展示文案，未改接口字段名、状态机或交互流程。
+- 构建命令：`npm run build`（目录：`frontend/`）。
+- 构建结果：通过，`vue-tsc` 类型检查完成，Vite 生产构建完成。
+- 剩余风险：源码中仍保留 `AiAnalysis`、`fetchAiAnalysis`、`aiConfidence` 等接口兼容字段和组件命名；UI 风险词复搜仅剩产品名 `Copilot` 与“未调用真实 LLM”的边界说明。
+- 下一轮建议：补接口文档，例如 `docs/API.md`。
+
 ### 2026-06-21 — Codex — P1-4 AI 表述校准
 
 - 任务：校准 README 和相关文档中容易误导的 AI / Copilot / 大模型 / 向量检索表述。

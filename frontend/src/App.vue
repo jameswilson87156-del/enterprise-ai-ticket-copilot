@@ -41,8 +41,8 @@ const aiAnalyzedCount = computed(() => tickets.value.filter((ticket) => ticket.a
 const metricItems = computed(() => [
   { label: '今日工单', value: String(tickets.value.length), delta: isDemoRuntime ? '本地演示数据' : 'MySQL 数据', tone: 'steel' as const },
   { label: '待处理', value: String(metrics.value?.pendingTickets ?? pendingConfirmationCount.value), delta: '人工队列', tone: 'warm' as const },
-  { label: 'AI 已分析', value: String(aiAnalyzedCount.value), delta: `${metrics.value?.aiHitRate ?? 0}% 规则命中`, tone: 'mint' as const },
-  { label: '待人工确认', value: String(pendingConfirmationCount.value), delta: '建议不自动执行', tone: 'danger' as const },
+  { label: '规则已分析', value: String(aiAnalyzedCount.value), delta: `${metrics.value?.aiHitRate ?? 0}% 规则命中`, tone: 'mint' as const },
+  { label: '待人工确认', value: String(pendingConfirmationCount.value), delta: '草稿不自动执行', tone: 'danger' as const },
   { label: '知识关联率', value: `${metrics.value?.knowledgeCoverage ?? 0}%`, delta: '命中或沉淀', tone: 'knowledge' as const }
 ])
 
@@ -232,10 +232,10 @@ onMounted(() => {
           <span class="pulse-dot"></span>
           {{ runtimeText }}
         </span>
-        <p class="eyebrow">企业 AI 工单 Copilot</p>
-        <h1>企业 AI 工单作战台</h1>
-        <p class="hero-lede">围绕工单分类、知识库匹配、处理建议和人工确认，构建可信的企业支持闭环。</p>
-        <p class="hero-note">AI 辅助分析，人工最终确认；当前页面使用本地演示数据进行预览。</p>
+        <p class="eyebrow">企业工单辅助处理 Copilot</p>
+        <h1>企业工单辅助处理工作台</h1>
+        <p class="hero-lede">围绕规则引擎辅助分类、知识库评分匹配、模板化建议草稿和人工确认，构建可信的企业支持闭环。</p>
+        <p class="hero-note">规则引擎辅助分析，人工最终确认；当前页面使用本地演示数据进行预览。</p>
       </div>
     </header>
 
@@ -277,8 +277,8 @@ onMounted(() => {
       <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
       <article class="ops-panel">
         <div class="ops-panel__heading">
-          <p class="eyebrow">AI 建议记录</p>
-          <h2>最近 AI 建议记录</h2>
+          <p class="eyebrow">建议草稿记录</p>
+          <h2>最近模板化建议草稿</h2>
         </div>
         <div class="ops-list">
           <div v-for="record in recentAiRecords" :key="record.id" class="ops-row">
@@ -326,7 +326,7 @@ onMounted(() => {
         </div>
         <div v-else class="empty-state">
           <strong>等待人工动作</strong>
-          <span>AI 建议不会自动改变工单状态。</span>
+          <span>建议草稿不会自动改变工单状态。</span>
         </div>
       </article>
       </section>

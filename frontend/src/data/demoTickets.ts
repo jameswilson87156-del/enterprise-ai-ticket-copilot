@@ -59,10 +59,10 @@ const seeds: DemoTicketSeed[] = [
         affectedUsers: '销售运营与客户成功团队'
       },
       errorLogs: ['HTTP 500 traceId=qc-20260620-500', 'NullPointerException at PricePolicyService.resolvePolicy'],
-      businessContext: ['P1 工单，影响报价链路和客户跟进时效。', '规则建议只作为排查草案，降级、回滚或补数据必须由人工确认。'],
+      businessContext: ['P1 工单，影响报价链路和客户跟进时效。', '模板化草稿只作为排查参考，降级、回滚或补数据必须由人工确认。'],
       timeline: [
         { time: '10:24', state: 'PENDING_CLASSIFICATION', actor: '系统', note: '工单进入规则分类队列。' },
-        { time: '10:29', state: 'PENDING_PROCESS', actor: '规则引擎', note: '完成分类、知识命中和建议草案生成。' },
+        { time: '10:29', state: 'PENDING_PROCESS', actor: '规则引擎', note: '完成分类、知识命中和模板化建议草稿。' },
         { time: '10:44', state: 'IN_PROGRESS', actor: '支持人员', note: '支持人员人工接手，关联 traceId 排查。' }
       ],
       knowledgeDraft: null
@@ -180,7 +180,7 @@ const seeds: DemoTicketSeed[] = [
       businessContext: ['发布验证阻塞，需要研发确认配置差异。', '回滚或补配置均需人工确认。'],
       timeline: [
         { time: '09:14', state: 'PENDING_CLASSIFICATION', actor: '系统', note: '工单提交，进入本地规则分类。' },
-        { time: '09:19', state: 'PENDING_PROCESS', actor: '规则引擎', note: '生成启动失败排查建议，等待人工确认。' }
+        { time: '09:19', state: 'PENDING_PROCESS', actor: '规则引擎', note: '生成启动失败排查草稿，等待人工确认。' }
       ],
       knowledgeDraft: null
     },
@@ -578,10 +578,10 @@ export function demoCreateTicket(payload: CreateTicketRequest) {
       affectedUsers: payload.urgency === 'P1' ? '多团队可能受影响' : '局部团队受影响'
     },
     errorLogs: payload.errorLog ? payload.errorLog.split('\n') : ['暂无错误日志。'],
-    businessContext: ['当前为前端 demo 模式，数据保存在浏览器内存中。', '建议草案仍需人工确认后才能执行。'],
+    businessContext: ['当前为前端 demo 模式，数据保存在浏览器内存中。', '模板化建议草稿仍需人工确认后才能执行。'],
     timeline: [
       { time: '刚刚', state: 'PENDING_CLASSIFICATION', actor: '系统', note: '工单提交，进入规则分类。' },
-      { time: '刚刚', state: 'PENDING_PROCESS', actor: '规则引擎', note: '完成规则分类和建议草案生成。' }
+      { time: '刚刚', state: 'PENDING_PROCESS', actor: '规则引擎', note: '完成规则分类和模板化建议草稿。' }
     ],
     knowledgeDraft: null
   }
