@@ -6,7 +6,7 @@ Enterprise AI Ticket Copilot 是一个面向企业内部员工、IT 支持、运
 
 ```mermaid
 flowchart LR
-  user["内部员工 / IT 支持 / 运维"] --> web["Vue 3 + Vite<br/>AI 工单指挥台"]
+  user["内部员工 / IT 支持 / 运维"] --> web["Vue 3 + Vite<br/>AI 工单 Copilot 工作台"]
 
   subgraph frontend["Frontend"]
     web --> queue["工单队列"]

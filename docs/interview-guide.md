@@ -7,6 +7,7 @@ Enterprise AI Ticket Copilot 是一个 Java + Vue 的企业内部 AI 工单 Copi
 ## 可以突出什么
 
 - 后端：Spring Boot 3、Java 17、MyBatis-Plus、MySQL 五表闭环。
+- 工程质量：Bean Validation、知识发布幂等保护、15 项 Controller/Service 自动化测试。
 - 前端：Vue 3 + Vite 双列 Copilot 工作台，不是普通 CRUD 表格后台。
 - AI 设计：当前不接真实 LLM，通过规则分类、关键词匹配和模板生成模拟企业可控 AI 流程。
 - 安全边界：不自动授权、不自动回滚、不调用外部系统，所有建议保留“待人工确认”。
