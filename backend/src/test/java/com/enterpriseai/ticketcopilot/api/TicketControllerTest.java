@@ -11,14 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +41,7 @@ class TicketControllerTest {
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders
             .standaloneSetup(new TicketController(ticketWorkflowService))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .setValidator(validator)
             .build();
     }
@@ -58,7 +62,11 @@ class TicketControllerTest {
                       "urgency": "P2"
                     }
                     """))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("title is required"))
+            .andExpect(jsonPath("$.path").value("/api/tickets"))
+            .andExpect(jsonPath("$.timestamp").exists());
 
         verifyNoInteractions(ticketWorkflowService);
     }
@@ -75,9 +83,26 @@ class TicketControllerTest {
                       "urgency": "P0"
                     }
                     """))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("urgency must be P1, P2 or P3"))
+            .andExpect(jsonPath("$.path").value("/api/tickets"))
+            .andExpect(jsonPath("$.timestamp").exists());
 
         verifyNoInteractions(ticketWorkflowService);
+    }
+
+    @Test
+    void responseStatusExceptionUsesUnifiedErrorResponse() throws Exception {
+        when(ticketWorkflowService.getTicket("NOTEXIST"))
+            .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found: NOTEXIST"));
+
+        mockMvc.perform(get("/api/tickets/NOTEXIST"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value(404))
+            .andExpect(jsonPath("$.message").value("Ticket not found: NOTEXIST"))
+            .andExpect(jsonPath("$.path").value("/api/tickets/NOTEXIST"))
+            .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test

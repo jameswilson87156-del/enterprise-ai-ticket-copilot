@@ -46,6 +46,19 @@
 - 没有真实线上部署验收，也不声明已完成生产部署。
 - 没有新增测试截图文件；本轮只新增 Markdown 测试报告。
 
+## 追加验证记录：P1-1 全局异常处理
+
+- 验证时间：2026-06-21 23:29:12 +08:00
+- 验证分支：resume-optimization-v1
+- 验证基准 commit：304fa60 docs: add test evidence report
+- 运行目录：D:\workhome\enterprise-ai-ticket-copilot\backend
+- 执行命令：`mvn test`
+- 执行结果：通过
+- 结果摘要：`Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`
+- 构建结论：`BUILD SUCCESS`
+- 覆盖新增内容：全局异常处理器统一参数校验错误和 `ResponseStatusException` 错误响应结构。
+- 说明：本轮未修改前端代码，未重新运行 `npm run build`；前端构建证据见上方“前端构建”章节。
+
 ## 结论
 
 本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。

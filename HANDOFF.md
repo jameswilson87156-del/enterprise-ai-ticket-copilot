@@ -58,6 +58,7 @@
 - **影响**：错误响应格式不统一，"企业级规范"印象减分
 - **建议**：新建 `GlobalExceptionHandler.java`，统一返回 `{ "status": 400, "message": "..." }` 结构
 - **验收**：`POST /api/tickets`（body 为 `{}`）返回 HTTP 400 且 body 含 `message` 字段
+- **Codex 实际结果**：2026-06-21 已新增 `ApiErrorResponse` 与 `GlobalExceptionHandler`，统一错误响应为 `{ code, message, path, timestamp }`；参数校验失败和 `ResponseStatusException` 已补 Controller 测试覆盖。
 
 ### P1-2：缺 Swagger / OpenAPI 文档
 
@@ -167,6 +168,17 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P1-1 全局异常处理
+
+- 任务：添加 `@RestControllerAdvice` 全局异常处理器，统一 API 错误响应格式。
+- 修改文件：`backend/src/main/java/com/enterpriseai/ticketcopilot/api/ApiErrorResponse.java`、`backend/src/main/java/com/enterpriseai/ticketcopilot/api/GlobalExceptionHandler.java`、`backend/src/test/java/com/enterpriseai/ticketcopilot/api/TicketControllerTest.java`、`README.md`、`TODO.md`、`HANDOFF.md`、`docs/TEST_REPORT.md`。
+- 错误响应结构：`{ code, message, path, timestamp }`，不返回 Java 堆栈。
+- 覆盖异常：`MethodArgumentNotValidException`、`BindException`、`ConstraintViolationException`、`ResponseStatusException`、`IllegalArgumentException`、`NoSuchElementException`、兜底 `Exception`。
+- 测试命令：在 `backend/` 执行 `mvn test`。
+- 测试结果：`Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 剩余风险：错误响应结构尚未形成独立 API 文档；前端没有针对错误弹窗做专项改造。
+- 下一轮建议：处理 P1-2，添加 SpringDoc OpenAPI / Swagger。
 
 ### 2026-06-21 — Codex — P0-3 测试执行证据
 
