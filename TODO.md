@@ -29,7 +29,7 @@
 - Vue 3 + TypeScript 前端组件。
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
-- 当前存在 5 个后端测试文件，合计 15 个 @Test 用例；但测试通过证据需要后续复核，不能直接写成“已全部通过”。
+- 当前存在 5 个后端测试文件，合计 16 个 @Test 用例；但正式测试报告或截图证据仍需后续补充。
 
 ## 3. 当前不能夸大的能力
 
@@ -38,7 +38,7 @@
 - 分类是关键词规则引擎，不是机器学习模型。
 - 知识匹配是评分公式，不是 embedding 向量检索。
 - 推荐内容是模板生成，不是生成式 AI。
-- knowledgeCoverage 指标当前存在虚假公式风险，P0 必须修。
+- knowledgeCoverage 已改为基于已有数据的真实知识关联率；不能再写成人为覆盖率、模型效果或向量检索能力。
 - 当前 application.yml 缺少 spring.datasource，仓库内可复现启动存在风险；虽然已有 application-example.yml 和 README 启动说明，但仍需统一本地配置样例与验收闭环。
 - 不能写成生产级鉴权系统，因为当前没有鉴权层。
 
@@ -55,7 +55,7 @@
   - GET /api/tickets 返回演示工单数据。
 - 本轮结果（2026-06-21，Codex）：复用并完善 backend/src/main/resources/application-example.yml，补充 README 本地 MySQL 启动说明，并补充 .gitignore 防止真实本地配置误提交。
 
-### P0-2：修复 knowledgeCoverage 假指标
+### P0-2：修复 knowledgeCoverage 假指标（已完成）
 
 - 将指标改成真实公式，例如“有知识命中的工单数 / 总工单数”。
 - 如果无法定义真实口径，则删除该指标或改为更诚实的字段。
@@ -63,6 +63,7 @@
 - 验收方式：
   - GET /api/tickets/metrics 返回的 knowledgeCoverage 可手工复核。
   - 相关测试通过。
+- 本轮结果（2026-06-21，Codex）：新口径为“有知识库命中 matched_knowledge_nos，或有关联知识草稿/发布 source_ticket_id 的去重工单数 / 总工单数 * 100”。保留接口字段 knowledgeCoverage，但前端展示改为“知识关联率”。
 
 ### P0-3：补充测试执行证据
 
@@ -91,9 +92,9 @@
 
 ## 7. 下一轮建议任务
 
-下一轮优先处理 P0-2：修复 knowledgeCoverage 假指标。
+下一轮优先处理 P0-3：补充测试执行证据。
 
-不要同时处理 P0-3、Swagger、异常处理。下一轮仍然只做一个明确、可验收的小任务。
+不要同时处理 Swagger、异常处理或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 
 ## 8. 任务记录格式
 

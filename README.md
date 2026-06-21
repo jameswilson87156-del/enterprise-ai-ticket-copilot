@@ -182,7 +182,7 @@ npm run dev
 | `npm run build` | 通过 | 类型检查与 Vite 生产构建完成 |
 | `npm run screenshots` | 通过 | 生成 8 张截图，并完成 Demo 交互与响应式断言 |
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
-| `mvn test` | 通过 | 15 项 Controller/Service 单元测试全部通过；不宣称完整生产测试覆盖 |
+| `mvn test` | 通过 | 16 项 Controller/Service 单元测试全部通过；不宣称完整生产测试覆盖 |
 
 ## 项目边界
 
@@ -206,7 +206,7 @@ npm run dev
 - 从工单录入到知识沉淀，设计并实现了具备人工确认边界的企业 AI 工单闭环。
 - 使用 Vue 3 + TypeScript 构建轻量企业 Copilot 工作台，并用 Playwright 固化真实页面截图验收。
 - 使用 Spring Boot + MyBatis-Plus + MySQL 组织工单、状态历史、建议记录与知识草稿的数据关系。
-- 使用 Bean Validation、幂等发布保护和 15 项自动化测试验证关键业务边界。
+- 使用 Bean Validation、幂等发布保护和 16 项自动化测试验证关键业务边界。
 - 在 README 中明确区分 Demo、规则能力、真实大模型与生产边界，避免将演示能力包装为生产能力。
 
 ## 项目文档

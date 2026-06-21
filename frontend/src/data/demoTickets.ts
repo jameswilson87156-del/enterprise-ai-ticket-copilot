@@ -526,12 +526,23 @@ export function demoFetchAiAnalysis(id: string) {
 export function demoFetchMetrics(): Promise<WorkbenchMetrics> {
   const pendingTickets = tickets.filter((ticket) => !['RESOLVED', 'KNOWLEDGE_BASED'].includes(ticket.status)).length
   const aiHitRate = Math.round((tickets.filter((ticket) => ticket.aiConfidence > 0).length / tickets.length) * 100)
-  const publishedKnowledge = tickets.filter((ticket) => ticket.status === 'KNOWLEDGE_BASED').length
+  const ticketsWithKnowledgeContext = new Set<string>()
+  Object.values(analyses).forEach((analysis) => {
+    if (analysis.knowledgeHits.length > 0) {
+      ticketsWithKnowledgeContext.add(analysis.ticketId)
+    }
+  })
+  Object.values(ticketDetails).forEach((ticket) => {
+    if (ticket.knowledgeDraft) {
+      ticketsWithKnowledgeContext.add(ticket.id)
+    }
+  })
+  const knowledgeCoverage = tickets.length === 0 ? 0 : Math.round((ticketsWithKnowledgeContext.size / tickets.length) * 100)
   const todayKnowledgeDrafts = Object.values(ticketDetails).filter((ticket) => ticket.knowledgeDraft?.status === 'DRAFT').length
   return wait({
     pendingTickets,
     aiHitRate,
-    knowledgeCoverage: Math.min(95, 72 + publishedKnowledge * 4),
+    knowledgeCoverage,
     todayKnowledgeDrafts
   })
 }

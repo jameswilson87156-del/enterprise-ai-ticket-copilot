@@ -41,10 +41,10 @@
 ### P0-3：缺少 mvn test 执行证据
 
 - **文件/位置**：`docs/images/`、`README.md`
-- **证据**：README 声称"15 项单元测试全部通过"，但无截图、无 CI badge、无 surefire report
+- **证据**：README 声称自动化测试通过，但无截图、无 CI badge、无 surefire report
 - **影响**：面试官要求看测试报告时无法回应
-- **建议修改**：执行 `mvn test`，截图 BUILD SUCCESS（含 `Tests run: 15` 行），存入 `docs/images/test-results.png`，README 引用该图
-- **验收**：README 中可见测试截图，图中 Tests run 数量与实际测试文件数量一致
+- **建议修改**：执行 `mvn test`，截图 BUILD SUCCESS（含 `Tests run` 行），存入 `docs/images/test-results.png`，README 引用该图
+- **验收**：README 中可见测试截图，图中 Tests run 数量与实际 @Test 用例数量一致
 
 ---
 
@@ -125,7 +125,15 @@
   1. `mvn test` 全部通过
   2. `GET /api/tickets/metrics`，`knowledgeCoverage` 值与 `hit * 100 / total` 手工计算一致
 
-**Codex 实际结果**：（待填写）
+**Codex 实际结果**：
+
+- 修复时间：2026-06-21，Codex。
+- 原问题：`TicketWorkflowService.metrics()` 使用 `Math.min(95, 40 + articles * 8)`，前端 Demo 使用 `Math.min(95, 72 + publishedKnowledge * 4)`，都属于没有业务依据的覆盖率。
+- 新口径：`knowledgeCoverage = 有知识库命中 matched_knowledge_nos，或有关联知识草稿/发布 source_ticket_id 的去重工单数 / 总工单数 * 100`。
+- 修改文件：`backend/src/main/java/com/enterpriseai/ticketcopilot/service/TicketWorkflowService.java`、`backend/src/test/java/com/enterpriseai/ticketcopilot/service/TicketWorkflowServiceTest.java`、`frontend/src/App.vue`、`frontend/src/data/demoTickets.ts`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- 测试命令：`mvn test`（在 `backend/`）、`npm run build`（在 `frontend/`）。
+- 测试结果：后端 `Tests run: 16, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`；前端 typecheck 与 Vite build 通过。
+- 剩余风险：字段名仍为 `knowledgeCoverage` 以保持接口兼容，但前端已展示为“知识关联率”；P0-3 的正式测试截图或报告仍未补。
 
 ---
 
@@ -158,6 +166,14 @@
 ---
 
 ## 历史记录
+
+### 2026-06-21 — Codex — P0-2 修复 knowledgeCoverage 假指标
+
+- 做了什么：移除后端和前端 Demo 中的人为覆盖率公式，改为基于 `matched_knowledge_nos` 与 `source_ticket_id` 的真实去重工单比例；前端指标卡改为“知识关联率”。
+- 修改文件：`backend/src/main/java/com/enterpriseai/ticketcopilot/service/TicketWorkflowService.java`、`backend/src/test/java/com/enterpriseai/ticketcopilot/service/TicketWorkflowServiceTest.java`、`frontend/src/App.vue`、`frontend/src/data/demoTickets.ts`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- 验证证据：`backend/` 下 `mvn test` 通过，16 个测试、0 失败；`frontend/` 下 `npm run build` 通过。
+- 未做事项：未处理 Swagger；未添加全局异常处理器；未处理 P0-3 测试截图；未修改数据库连接配置；未安装软件；未提交构建产物。
+- 下一步建议：处理 P0-3，补充正式测试执行证据。
 
 ### 2026-06-21 — Codex — P0-1 本地 MySQL 配置闭环
 

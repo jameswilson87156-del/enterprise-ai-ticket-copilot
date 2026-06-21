@@ -5,6 +5,7 @@ import java.util.List;
 import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
+import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
 import com.enterpriseai.ticketcopilot.entity.GenerationRecord;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
@@ -64,6 +65,28 @@ class TicketWorkflowServiceTest {
             recommendationTemplateService,
             new ObjectMapper()
         );
+    }
+
+    @Test
+    void metricsUseDistinctTicketsWithRealKnowledgeContext() {
+        when(supportTicketMapper.selectCount(any())).thenReturn(2L, 5L);
+        when(analysisMapper.selectList(any())).thenReturn(List.of(
+            analysisWithKnowledge(1L),
+            analysisWithKnowledge(1L),
+            analysisWithKnowledge(3L)
+        ));
+        when(knowledgeArticleMapper.selectList(any())).thenReturn(List.of(
+            linkedKnowledgeArticle(3L),
+            linkedKnowledgeArticle(4L)
+        ));
+        when(knowledgeArticleMapper.selectCount(any())).thenReturn(1L);
+
+        WorkbenchMetrics metrics = service.metrics();
+
+        assertThat(metrics.pendingTickets()).isEqualTo(2);
+        assertThat(metrics.aiHitRate()).isEqualTo(40);
+        assertThat(metrics.knowledgeCoverage()).isEqualTo(60);
+        assertThat(metrics.todayKnowledgeDrafts()).isEqualTo(1);
     }
 
     @Test
@@ -196,5 +219,19 @@ class TicketWorkflowServiceTest {
         draft.setStatus(status);
         draft.setSourceTicketId(10L);
         return draft;
+    }
+
+    private TicketAiAnalysisEntity analysisWithKnowledge(Long ticketId) {
+        TicketAiAnalysisEntity analysis = new TicketAiAnalysisEntity();
+        analysis.setTicketId(ticketId);
+        analysis.setMatchedKnowledgeNos("[\"KB-API-500\"]");
+        return analysis;
+    }
+
+    private KnowledgeArticle linkedKnowledgeArticle(Long sourceTicketId) {
+        KnowledgeArticle article = new KnowledgeArticle();
+        article.setSourceTicketId(sourceTicketId);
+        article.setStatus("PUBLISHED");
+        return article;
     }
 }

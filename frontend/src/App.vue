@@ -36,7 +36,6 @@ const activeFilter = ref<TicketFilter>('ALL')
 const formResetVersion = ref(0)
 
 const pendingConfirmationCount = computed(() => tickets.value.filter((ticket) => ['PENDING_PROCESS', 'IN_PROGRESS'].includes(ticket.status)).length)
-const knowledgeBasedCount = computed(() => tickets.value.filter((ticket) => ticket.status === 'KNOWLEDGE_BASED').length)
 const aiAnalyzedCount = computed(() => tickets.value.filter((ticket) => ticket.aiConfidence > 0).length)
 
 const metricItems = computed(() => [
@@ -44,7 +43,7 @@ const metricItems = computed(() => [
   { label: '待处理', value: String(metrics.value?.pendingTickets ?? pendingConfirmationCount.value), delta: '人工队列', tone: 'warm' as const },
   { label: 'AI 已分析', value: String(aiAnalyzedCount.value), delta: `${metrics.value?.aiHitRate ?? 0}% 规则命中`, tone: 'mint' as const },
   { label: '待人工确认', value: String(pendingConfirmationCount.value), delta: '建议不自动执行', tone: 'danger' as const },
-  { label: '已沉淀知识', value: String(knowledgeBasedCount.value), delta: `草稿 ${metrics.value?.todayKnowledgeDrafts ?? 0}`, tone: 'knowledge' as const }
+  { label: '知识关联率', value: `${metrics.value?.knowledgeCoverage ?? 0}%`, delta: '命中或沉淀', tone: 'knowledge' as const }
 ])
 
 const filteredTickets = computed(() => {
