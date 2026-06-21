@@ -177,6 +177,17 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — 补充 docs/API.md
+
+- 任务：补充 `docs/API.md` 人工整理版接口文档。
+- 修改文件：`docs/API.md`、`README.md`、`TODO.md`、`HANDOFF.md`。
+- 文档覆盖内容：本地访问地址、统一错误响应、核心接口列表、请求 DTO 字段、主要响应结构、创建工单 / 查询规则引擎辅助分析 / 状态流转 / 知识草稿 / 错误响应示例、业务边界和面试说明。
+- 是否修改业务代码：否，未修改 Java 业务代码、`pom.xml`、Swagger 配置、全局异常处理器、数据库配置或 `knowledgeCoverage` 逻辑。
+- 是否修改前端：否，未修改 Vue 前端代码。
+- 验证方式：本轮只修改 Markdown 文档；执行 `git diff --stat`、`git diff --check`、`git status`，并人工核对文档接口与 `TicketController`、DTO、响应模型、`ApiErrorResponse` 和 `GlobalExceptionHandler` 一致。
+- 剩余风险：未启动后端访问 Swagger UI；`ai-analysis` 路径保留历史命名，但文档明确说明当前含义是规则引擎辅助分析，不是真实 LLM。
+- 下一轮建议：处理 P2-1，增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。
+
 ### 2026-06-22 — Codex — 前端 UI 文案校准
 
 - 任务：前端 UI 文案校准。

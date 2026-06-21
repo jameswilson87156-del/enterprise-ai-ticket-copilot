@@ -167,6 +167,8 @@ npm run dev
 
 OpenAPI JSON：[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
+人工整理版接口文档详见 [docs/API.md](docs/API.md)；后端启动后也可以访问 Swagger UI。
+
 Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 
 ## Demo 模式说明
@@ -220,6 +222,7 @@ Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 ## 项目文档
 
 - [产品设计](docs/product-design.md)
+- [接口文档](docs/API.md)
 - [前端风格规范](docs/frontend-style.md)
 - [架构说明](docs/architecture.md)
 - [演示脚本](docs/demo-script.md)

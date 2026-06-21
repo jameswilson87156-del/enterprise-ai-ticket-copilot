@@ -30,6 +30,7 @@
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
 - SpringDoc OpenAPI / Swagger UI 接口文档。
+- docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 
@@ -84,7 +85,7 @@
 - README 补齐或校准快速启动 MySQL 闭环步骤。
 - README 中把容易误导的 AI 描述改为“规则引擎辅助分类”“模板化建议草稿”等真实表述。（已完成：README、architecture、product-design、demo-script、interview-guide 已统一口径）
 - 前端 UI 可见文案已校准为规则引擎辅助分类、知识库评分匹配、模板化建议草稿。（已完成：App.vue、AiRecommendationPanel、Demo 数据与相关展示组件已统一口径）
-- 补接口文档，例如 docs/API.md。
+- 补接口文档，例如 docs/API.md。（已完成：新增 docs/API.md，覆盖核心 REST API、DTO 字段、错误响应和边界说明）
 
 ## 6. P2 待办
 
@@ -96,7 +97,7 @@
 
 ## 7. 下一轮建议任务
 
-下一轮优先处理 P1：补接口文档，例如 docs/API.md。
+下一轮建议处理 P2-1：增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 
