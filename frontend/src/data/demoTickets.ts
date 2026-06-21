@@ -482,6 +482,21 @@ function syncSummary(detail: TicketDetail) {
   target.updatedAt = '刚刚'
 }
 
+function buildSearchText(ticket: TicketSummary) {
+  const detail = ticketDetails[ticket.id]
+  const analysis = analyses[ticket.id]
+  return [
+    detail?.description,
+    ...(detail?.errorLogs ?? []),
+    ...(detail?.businessContext ?? []),
+    analysis?.classificationReason,
+    ...(analysis?.knowledgeHits.flatMap((hit) => [hit.id, hit.title, hit.owner]) ?? []),
+    ...(analysis?.troubleshootingSteps ?? [])
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function classify(payload: CreateTicketRequest) {
   const text = `${payload.title} ${payload.description} ${payload.errorLog}`.toLowerCase()
   if (text.includes('权限') || text.includes('403') || text.includes('forbidden')) {
@@ -497,7 +512,7 @@ function classify(payload: CreateTicketRequest) {
 }
 
 export function demoFetchTickets() {
-  return wait(tickets)
+  return wait(tickets.map((ticket) => ({ ...ticket, searchText: buildSearchText(ticket) })))
 }
 
 export function demoFetchTicket(id: string) {

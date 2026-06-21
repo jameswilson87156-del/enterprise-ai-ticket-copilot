@@ -3,6 +3,7 @@ import type { TicketDetail } from '../types/ticket'
 
 defineProps<{
   ticket: TicketDetail | null
+  loading: boolean
 }>()
 
 const statusLabel: Record<string, string> = {
@@ -15,7 +16,7 @@ const statusLabel: Record<string, string> = {
 </script>
 
 <template>
-  <main class="detail-panel" data-screenshot="ticket-detail">
+  <article class="detail-panel" data-screenshot="ticket-detail" :aria-busy="loading">
     <template v-if="ticket">
       <div class="detail-header">
         <div>
@@ -110,8 +111,8 @@ const statusLabel: Record<string, string> = {
       </section>
     </template>
     <div v-else class="empty-state empty-state--center">
-      <strong>等待工单选择</strong>
-      <span>提交或选择工单后，这里会展示数据库详情、日志和上下文。</span>
+      <strong>{{ loading ? '正在加载工单详情' : '等待工单选择' }}</strong>
+      <span>{{ loading ? '正在同步详情与处理上下文。' : '提交或选择工单后，这里会展示数据库详情、日志和上下文。' }}</span>
     </div>
-  </main>
+  </article>
 </template>

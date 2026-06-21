@@ -30,8 +30,10 @@ const metrics = shallowRef<WorkbenchMetrics | null>(null)
 const loading = shallowRef(false)
 const submitting = shallowRef(false)
 const error = shallowRef('')
+const feedback = shallowRef('')
 const searchKeyword = ref('')
 const activeFilter = ref<TicketFilter>('ALL')
+const formResetVersion = ref(0)
 
 const pendingConfirmationCount = computed(() => tickets.value.filter((ticket) => ['PENDING_PROCESS', 'IN_PROGRESS'].includes(ticket.status)).length)
 const knowledgeBasedCount = computed(() => tickets.value.filter((ticket) => ticket.status === 'KNOWLEDGE_BASED').length)
@@ -50,7 +52,9 @@ const filteredTickets = computed(() => {
   return tickets.value.filter((ticket) => {
     const matchesKeyword =
       !keyword ||
-      [ticket.id, ticket.title, ticket.requester, ticket.team, ticket.category].some((value) => value.toLowerCase().includes(keyword))
+      [ticket.id, ticket.title, ticket.requester, ticket.team, ticket.category, ticket.searchText ?? ''].some((value) =>
+        value.toLowerCase().includes(keyword)
+      )
     const matchesFilter =
       activeFilter.value === 'ALL' ||
       (activeFilter.value === 'PENDING' && ['PENDING_CLASSIFICATION', 'PENDING_PROCESS'].includes(ticket.status)) ||
@@ -102,7 +106,10 @@ const humanRecords = computed(() =>
 
 const runtimeText = computed(() => {
   if (error.value) {
-    return error.value
+    return '操作失败 / 请检查运行环境'
+  }
+  if (loading.value && !tickets.value.length) {
+    return '正在加载工单数据'
   }
   return isDemoRuntime ? '本地 Demo 模式 / 演示数据' : 'MySQL 数据 / 人工确认闭环'
 })
@@ -122,6 +129,8 @@ const loadTickets = async () => {
 
 const selectTicket = async (id: string) => {
   selectedTicketId.value = id
+  selectedTicket.value = null
+  selectedAnalysis.value = null
   const [detail, analysis] = await Promise.all([fetchTicket(id), fetchAiAnalysis(id)])
   selectedTicket.value = detail
   selectedAnalysis.value = analysis
@@ -139,8 +148,10 @@ const run = async (task: () => Promise<void>) => {
   error.value = ''
   try {
     await task()
+    return true
   } catch (err) {
     error.value = err instanceof Error ? err.message : '操作失败'
+    return false
   } finally {
     loading.value = false
   }
@@ -148,12 +159,17 @@ const run = async (task: () => Promise<void>) => {
 
 const submitTicket = async (payload: CreateTicketRequest) => {
   submitting.value = true
+  feedback.value = ''
   try {
-    await run(async () => {
+    const succeeded = await run(async () => {
       const detail = await createTicket(payload)
       await loadTickets()
       await selectTicket(detail.id)
     })
+    if (succeeded) {
+      formResetVersion.value += 1
+      feedback.value = isDemoRuntime ? '演示工单已创建，数据仅保存在当前浏览器内存中。' : '工单已创建并进入人工处理队列。'
+    }
   } finally {
     submitting.value = false
   }
@@ -164,20 +180,28 @@ const changeStatus = async (status: TicketStatus) => {
     return
   }
   const note = status === 'RESOLVED' ? '人工确认处理完成，等待知识沉淀。' : '人工确认接手处理。'
-  await run(async () => {
+  feedback.value = ''
+  const succeeded = await run(async () => {
     await updateTicketStatus(selectedTicketId.value as string, status, note, status === 'RESOLVED' ? '已由支持人员确认解决。' : '')
     await refreshSelected()
   })
+  if (succeeded) {
+    feedback.value = status === 'RESOLVED' ? '已人工确认解决，可继续生成知识草稿。' : '支持人员已确认接手处理。'
+  }
 }
 
 const generateDraft = async () => {
   if (!selectedTicketId.value) {
     return
   }
-  await run(async () => {
+  feedback.value = ''
+  const succeeded = await run(async () => {
     await createKnowledgeDraft(selectedTicketId.value as string)
     await refreshSelected()
   })
+  if (succeeded) {
+    feedback.value = '知识草稿已生成，发布前仍需人工审核。'
+  }
 }
 
 const confirmDraft = async () => {
@@ -185,10 +209,14 @@ const confirmDraft = async () => {
   if (!articleNo) {
     return
   }
-  await run(async () => {
+  feedback.value = ''
+  const succeeded = await run(async () => {
     await confirmKnowledgeDraft(articleNo)
     await refreshSelected()
   })
+  if (succeeded) {
+    feedback.value = '知识草稿已由人工确认并完成沉淀。'
+  }
 }
 
 onMounted(() => {
@@ -197,10 +225,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="workbench-shell" data-screenshot="dashboard">
+  <div class="workbench-shell" data-screenshot="dashboard" :aria-busy="loading">
+    <a class="skip-link" href="#main">跳到主要内容</a>
     <header class="page-hero">
       <div class="hero-copy">
-        <span class="mode-chip" :class="{ 'mode-chip--error': error }">
+        <span class="mode-chip" :class="{ 'mode-chip--error': error }" role="status" aria-live="polite">
           <span class="pulse-dot"></span>
           {{ runtimeText }}
         </span>
@@ -211,29 +240,42 @@ onMounted(() => {
       </div>
     </header>
 
-    <SearchFilterBar v-model:keyword="searchKeyword" v-model:filter="activeFilter" />
+    <main id="main">
+      <SearchFilterBar v-model:keyword="searchKeyword" v-model:filter="activeFilter" />
 
-    <MetricStrip :metrics="metricItems" />
-
-    <section class="workspace-grid">
-      <div class="ticket-column">
-        <TicketQueue :tickets="filteredTickets" :selected-id="selectedTicketId" @select="(id) => run(() => selectTicket(id))" />
-        <TicketIntakePanel :submitting="submitting" @submit="submitTicket" />
+      <div v-if="error || feedback" class="operation-feedback" aria-live="polite" aria-atomic="true">
+        <p v-if="error" class="operation-feedback__message operation-feedback__message--error" role="alert" aria-live="assertive">
+          {{ error }}
+        </p>
+        <p v-else class="operation-feedback__message" role="status" aria-live="polite">{{ feedback }}</p>
       </div>
-      <div class="resolution-column">
-        <TicketDetailPanel :ticket="selectedTicket" />
-        <AiRecommendationPanel
-          :analysis="selectedAnalysis"
-          :ticket="selectedTicket"
-          :busy="loading"
-          @status="changeStatus"
-          @draft="generateDraft"
-          @confirm-draft="confirmDraft"
-        />
-      </div>
-    </section>
 
-    <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
+      <MetricStrip :metrics="metricItems" />
+
+      <section class="workspace-grid">
+        <div class="ticket-column">
+          <TicketQueue
+            :tickets="filteredTickets"
+            :selected-id="selectedTicketId"
+            :loading="loading && !tickets.length"
+            @select="(id) => run(() => selectTicket(id))"
+          />
+          <TicketIntakePanel :submitting="submitting" :reset-version="formResetVersion" @submit="submitTicket" />
+        </div>
+        <div class="resolution-column">
+          <TicketDetailPanel :ticket="selectedTicket" :loading="loading" />
+          <AiRecommendationPanel
+            :analysis="selectedAnalysis"
+            :ticket="selectedTicket"
+            :busy="loading"
+            @status="changeStatus"
+            @draft="generateDraft"
+            @confirm-draft="confirmDraft"
+          />
+        </div>
+      </section>
+
+      <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
       <article class="ops-panel">
         <div class="ops-panel__heading">
           <p class="eyebrow">AI 建议记录</p>
@@ -288,8 +330,9 @@ onMounted(() => {
           <span>AI 建议不会自动改变工单状态。</span>
         </div>
       </article>
-    </section>
+      </section>
 
-    <StatusTimeline :events="selectedTicket?.timeline ?? []" />
+      <StatusTimeline :events="selectedTicket?.timeline ?? []" />
+    </main>
   </div>
 </template>
