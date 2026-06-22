@@ -2,7 +2,7 @@
 
 ## 设计方向
 
-当前前端采用“浅色企业 AI Copilot 控制台”的视觉语言。页面应像一个克制的产品工作台：支持人员能快速扫读工单、查看 AI 建议、核验知识库命中，并明确知道所有处理动作都需要人工确认。
+当前前端采用“浅色企业 SaaS 控制台”的视觉语言。页面应像一个克制的产品工作台：支持人员能快速扫读工单、查看规则/模板建议草稿、核验知识库命中，并明确知道所有处理动作都需要人工确认。
 
 关键词：
 
@@ -16,19 +16,19 @@
 ## Design Tokens
 
 ```text
-Canvas: #f7f8fa
+Canvas: #f5f7f8
 Surface: #ffffff
-Soft Surface: #fbfcfd
-Primary Text: #202834
-Secondary Text: #667383
-Border: #e2e8ef
-Accent: #2f6f6d
-Warm State: #9a6a2f
-Success State: #3f7b63
-Risk State: #a05043
-Knowledge State: #516d93
-Radius: 12px / 16px / 22px / 28px
-Shadow: 0 18px 48px rgba(32, 40, 52, 0.07)
+Soft Surface: #f9fbfc
+Primary Text: #17212b
+Secondary Text: #657284
+Border: #dfe6ed
+Accent: #2d6f68
+Warm State: #96662a
+Success State: #3d765f
+Risk State: #a14d43
+Knowledge State: #4b6f96
+Radius: 8px / 12px / 16px / 20px
+Shadow: 0 14px 36px rgba(23, 33, 43, 0.07)
 ```
 
 避免：
@@ -40,12 +40,12 @@ Shadow: 0 18px 48px rgba(32, 40, 52, 0.07)
 
 ## 组件规范
 
-- 顶部标题区需要清楚说明本地 Demo 模式和“AI 辅助分析，人工最终确认”。
+- 顶部标题区需要清楚说明本地 Demo 模式、规则/模板辅助边界和人工最终确认。
 - 搜索与筛选栏使用大圆角输入和状态筛选，不做复杂表单。
 - 指标卡片只做轻量状态摘要，不做大屏化数字面板。
 - 工单队列使用插件列表式卡片，强调标题、来源、时间、状态和置信度。
 - 当前工单详情按原始问题、分类、优先级、状态、日志和处理记录分层。
-- AI 建议面板必须展示分类、置信度、知识命中、推荐步骤、回复草稿、风险提示与人工确认按钮。
+- 规则/模板建议面板必须展示分类、置信度、知识命中、推荐步骤、回复草稿、风险提示与人工确认按钮。
 - 知识库命中只展示当前工作台需要的信息，不虚构完整知识库管理页面。
 
 ## 交互原则

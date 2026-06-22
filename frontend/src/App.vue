@@ -39,11 +39,11 @@ const pendingConfirmationCount = computed(() => tickets.value.filter((ticket) =>
 const aiAnalyzedCount = computed(() => tickets.value.filter((ticket) => ticket.aiConfidence > 0).length)
 
 const metricItems = computed(() => [
-  { label: '今日工单', value: String(tickets.value.length), delta: isDemoRuntime ? '本地演示数据' : 'MySQL 数据', tone: 'steel' as const },
+  { label: '今日工单', value: String(tickets.value.length), delta: isDemoRuntime ? 'Demo 数据集' : 'MySQL 数据源', tone: 'steel' as const },
   { label: '待处理', value: String(metrics.value?.pendingTickets ?? pendingConfirmationCount.value), delta: '人工队列', tone: 'warm' as const },
-  { label: '规则已分析', value: String(aiAnalyzedCount.value), delta: `${metrics.value?.aiHitRate ?? 0}% 规则命中`, tone: 'mint' as const },
-  { label: '待人工确认', value: String(pendingConfirmationCount.value), delta: '草稿不自动执行', tone: 'danger' as const },
-  { label: '知识关联率', value: `${metrics.value?.knowledgeCoverage ?? 0}%`, delta: '命中或沉淀', tone: 'knowledge' as const }
+  { label: '规则已分析', value: String(aiAnalyzedCount.value), delta: `${metrics.value?.aiHitRate ?? 0}% 可解释命中`, tone: 'mint' as const },
+  { label: '知识关联率', value: `${metrics.value?.knowledgeCoverage ?? 0}%`, delta: '命中 / 已沉淀', tone: 'knowledge' as const },
+  { label: '待人工确认', value: String(pendingConfirmationCount.value), delta: '执行前复核', tone: 'danger' as const }
 ])
 
 const filteredTickets = computed(() => {
@@ -110,7 +110,7 @@ const runtimeText = computed(() => {
   if (loading.value && !tickets.value.length) {
     return '正在加载工单数据'
   }
-  return isDemoRuntime ? '本地 Demo 模式 / 演示数据' : 'MySQL 数据 / 人工确认闭环'
+  return isDemoRuntime ? '本地 Demo / 演示数据' : 'MySQL 数据 / 人工确认闭环'
 })
 
 const loadTickets = async () => {
@@ -227,19 +227,53 @@ onMounted(() => {
   <div class="workbench-shell" data-screenshot="dashboard" :aria-busy="loading">
     <a class="skip-link" href="#main">跳到主要内容</a>
     <header class="page-hero">
-      <div class="hero-copy">
+      <div class="hero-topbar">
+        <div class="product-mark" aria-label="Enterprise Ticket Copilot">
+          <span class="product-mark__glyph">ET</span>
+          <div>
+            <strong>Enterprise Ticket Copilot</strong>
+            <span>规则与模板辅助工作台</span>
+          </div>
+        </div>
         <span class="mode-chip" :class="{ 'mode-chip--error': error }" role="status" aria-live="polite">
           <span class="pulse-dot"></span>
           {{ runtimeText }}
         </span>
-        <p class="eyebrow">企业工单辅助处理 Copilot</p>
-        <h1>企业工单辅助处理工作台</h1>
-        <p class="hero-lede">围绕规则引擎辅助分类、知识库评分匹配、模板化建议草稿和人工确认，构建可信的企业支持闭环。</p>
-        <p class="hero-note">规则引擎辅助分析，人工最终确认；当前页面使用本地演示数据进行预览。</p>
+      </div>
+
+      <div class="hero-layout">
+        <div class="hero-copy">
+          <p class="eyebrow">Portfolio Showcase / Rule-based Support Workflow</p>
+          <h1>企业工单辅助处理工作台</h1>
+          <p class="hero-lede">规则引擎辅助分类、知识库评分匹配、模板化建议草稿，人工确认后沉淀知识库。</p>
+          <div class="capability-tags" aria-label="核心能力">
+            <span>规则引擎辅助分类</span>
+            <span>知识库评分匹配</span>
+            <span>模板化建议草稿</span>
+            <span>人工确认闭环</span>
+          </div>
+        </div>
+
+        <aside class="hero-trust-panel" aria-label="项目可信标签">
+          <p class="eyebrow">可信边界</p>
+          <div class="trust-list">
+            <span>CI workflow</span>
+            <span>OpenAPI documented</span>
+            <span>Frontend build</span>
+            <span>No real LLM</span>
+          </div>
+          <div class="hero-snapshot">
+            <span>当前样例</span>
+            <strong>{{ selectedTicket?.id ?? 'DEMO-0005' }}</strong>
+            <small>建议草稿只进入人工复核，不自动执行生产动作。</small>
+          </div>
+        </aside>
       </div>
     </header>
 
     <main id="main">
+      <MetricStrip :metrics="metricItems" />
+
       <SearchFilterBar v-model:keyword="searchKeyword" v-model:filter="activeFilter" />
 
       <div v-if="error || feedback" class="operation-feedback" aria-live="polite" aria-atomic="true">
@@ -249,8 +283,6 @@ onMounted(() => {
         <p v-else class="operation-feedback__message" role="status" aria-live="polite">{{ feedback }}</p>
       </div>
 
-      <MetricStrip :metrics="metricItems" />
-
       <section class="workspace-grid">
         <div class="ticket-column">
           <TicketQueue
@@ -259,10 +291,11 @@ onMounted(() => {
             :loading="loading && !tickets.length"
             @select="(id) => run(() => selectTicket(id))"
           />
-          <TicketIntakePanel :submitting="submitting" :reset-version="formResetVersion" @submit="submitTicket" />
         </div>
-        <div class="resolution-column">
+        <div class="detail-column">
           <TicketDetailPanel :ticket="selectedTicket" :loading="loading" />
+        </div>
+        <div class="assist-column">
           <AiRecommendationPanel
             :analysis="selectedAnalysis"
             :ticket="selectedTicket"
@@ -274,61 +307,68 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
-      <article class="ops-panel">
-        <div class="ops-panel__heading">
-          <p class="eyebrow">建议草稿记录</p>
-          <h2>最近模板化建议草稿</h2>
+      <section class="secondary-grid">
+        <div class="intake-column">
+          <TicketIntakePanel :submitting="submitting" :reset-version="formResetVersion" @submit="submitTicket" />
         </div>
-        <div class="ops-list">
-          <div v-for="record in recentAiRecords" :key="record.id" class="ops-row">
-            <div>
-              <span>{{ record.id }} / {{ record.category }}</span>
-              <strong>{{ record.title }}</strong>
-            </div>
-            <b>{{ record.confidence }}%</b>
-          </div>
-        </div>
-      </article>
+        <div class="operations-column">
+          <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
+            <article class="ops-panel">
+              <div class="ops-panel__heading">
+                <p class="eyebrow">建议草稿记录</p>
+                <h2>最近模板化建议草稿</h2>
+              </div>
+              <div class="ops-list">
+                <div v-for="record in recentAiRecords" :key="record.id" class="ops-row">
+                  <div>
+                    <span>{{ record.id }} / {{ record.category }}</span>
+                    <strong>{{ record.title }}</strong>
+                  </div>
+                  <b>{{ record.confidence }}%</b>
+                </div>
+              </div>
+            </article>
 
-      <article class="ops-panel ops-panel--wide">
-        <div class="ops-panel__heading">
-          <p class="eyebrow">知识库命中</p>
-          <h2>知识库命中与沉淀</h2>
-        </div>
-        <div v-if="knowledgeRows.length" class="knowledge-table">
-          <div v-for="row in knowledgeRows" :key="row.id" class="knowledge-table__row">
-            <span>{{ row.id }}</span>
-            <strong>{{ row.title }}</strong>
-            <small>{{ row.meta }}</small>
-            <em>{{ row.state }}</em>
-          </div>
-        </div>
-        <div v-else class="empty-state">
-          <strong>暂无知识命中</strong>
-          <span>处理完成后可以生成知识草稿，人工确认后再发布。</span>
-        </div>
-      </article>
+            <article class="ops-panel ops-panel--wide">
+              <div class="ops-panel__heading">
+                <p class="eyebrow">知识库命中</p>
+                <h2>知识库命中与沉淀</h2>
+              </div>
+              <div v-if="knowledgeRows.length" class="knowledge-table">
+                <div v-for="row in knowledgeRows" :key="row.id" class="knowledge-table__row">
+                  <span>{{ row.id }}</span>
+                  <strong>{{ row.title }}</strong>
+                  <small>{{ row.meta }}</small>
+                  <em>{{ row.state }}</em>
+                </div>
+              </div>
+              <div v-else class="empty-state">
+                <strong>暂无知识命中</strong>
+                <span>处理完成后可以生成知识草稿，人工确认后再发布。</span>
+              </div>
+            </article>
 
-      <article class="ops-panel">
-        <div class="ops-panel__heading">
-          <p class="eyebrow">人工确认</p>
-          <h2>人工确认记录</h2>
+            <article class="ops-panel">
+              <div class="ops-panel__heading">
+                <p class="eyebrow">人工确认</p>
+                <h2>人工确认记录</h2>
+              </div>
+              <div v-if="humanRecords.length" class="approval-list">
+                <div v-for="record in humanRecords" :key="`${record.time}-${record.actor}-${record.note}`" class="approval-row">
+                  <time>{{ record.time }}</time>
+                  <div>
+                    <strong>{{ record.actor }}</strong>
+                    <span>{{ record.note }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-state">
+                <strong>等待人工动作</strong>
+                <span>建议草稿不会自动改变工单状态。</span>
+              </div>
+            </article>
+          </section>
         </div>
-        <div v-if="humanRecords.length" class="approval-list">
-          <div v-for="record in humanRecords" :key="`${record.time}-${record.actor}-${record.note}`" class="approval-row">
-            <time>{{ record.time }}</time>
-            <div>
-              <strong>{{ record.actor }}</strong>
-              <span>{{ record.note }}</span>
-            </div>
-          </div>
-        </div>
-        <div v-else class="empty-state">
-          <strong>等待人工动作</strong>
-          <span>建议草稿不会自动改变工单状态。</span>
-        </div>
-      </article>
       </section>
 
       <StatusTimeline :events="selectedTicket?.timeline ?? []" />

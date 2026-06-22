@@ -49,21 +49,36 @@ flowchart LR
 
 以下截图由仓库内 Playwright 脚本从真实 Vue 前端页面生成，页面内容使用本地 Demo/Mock 数据，不包含真实企业或客户信息。
 
-### 企业工单辅助工作台
+主控制台：
 
-![企业工单辅助工作台](docs/images/dashboard.png)
+![企业工单辅助处理工作台](docs/images/dashboard.png)
 
-### 工单详情与处理上下文
-
-![工单详情](docs/images/ticket-detail.png)
-
-### 规则分析与人工确认
-
-![规则分析](docs/images/ai-analysis.png)
-
-### 知识匹配与知识沉淀
-
-![知识库](docs/images/knowledge-base.png)
+<table>
+<tr>
+<td width="50%">
+<img src="docs/images/ticket-detail.png" alt="工单详情与处理上下文" />
+<br />
+工单详情与处理上下文
+</td>
+<td width="50%">
+<img src="docs/images/ai-analysis.png" alt="规则引擎辅助分析与模板化建议草稿" />
+<br />
+规则引擎辅助分析与模板化建议草稿
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="docs/images/knowledge-base.png" alt="知识库评分匹配与人工确认" />
+<br />
+知识库评分匹配与人工确认
+</td>
+<td width="50%">
+<img src="docs/images/large/dashboard.png" alt="大尺寸控制台截图" />
+<br />
+大尺寸控制台截图
+</td>
+</tr>
+</table>
 
 `docs/images/large/` 保存对应的 `1920x1200` 大屏版本，适合演示或作品集排版。
 

@@ -11,6 +11,9 @@ const outputRoot = resolve(repoRoot, 'docs', 'images')
 const largeRoot = resolve(outputRoot, 'large')
 const baseUrl = process.env.SCREENSHOT_URL || 'http://127.0.0.1:5173'
 const shouldStartServer = !process.env.SCREENSHOT_URL
+const standardViewport = { width: 1440, height: 960 }
+const focusedViewport = { width: 1100, height: 960 }
+const largeViewport = { width: 1920, height: 1200 }
 
 const browserCandidates = [
   process.env.CHROME_PATH,
@@ -87,7 +90,7 @@ async function assertNoHorizontalOverflow(page, viewport, label) {
 }
 
 async function verifyDemoInteractions(page) {
-  await page.setViewportSize({ width: 1440, height: 1050 })
+  await page.setViewportSize(standardViewport)
   await page.evaluate(() => window.scrollTo(0, 0))
 
   const search = page.getByRole('searchbox', { name: '搜索' })
@@ -115,7 +118,8 @@ async function verifyDemoInteractions(page) {
   await page.getByText('知识草稿已由人工确认并完成沉淀。', { exact: true }).waitFor()
 }
 
-async function captureViewport(page, name) {
+async function captureViewport(page, name, viewport = standardViewport) {
+  await page.setViewportSize(viewport)
   await page.screenshot({
     path: resolve(outputRoot, `${name}.png`),
     animations: 'disabled'
@@ -123,12 +127,12 @@ async function captureViewport(page, name) {
 }
 
 async function captureLarge(page, name) {
-  await page.setViewportSize({ width: 1920, height: 1200 })
+  await page.setViewportSize(largeViewport)
   await page.screenshot({
     path: resolve(largeRoot, `${name}.png`),
     animations: 'disabled'
   })
-  await page.setViewportSize({ width: 1440, height: 1050 })
+  await page.setViewportSize(standardViewport)
 }
 
 async function scrollTo(page, selector) {
@@ -157,7 +161,7 @@ try {
     executablePath,
     headless: true
   })
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1050 }, deviceScaleFactor: 1 })
+  const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
   await page.waitForSelector('[data-screenshot="dashboard"]')
 
@@ -166,18 +170,21 @@ try {
 
   await page.getByRole('button', { name: /DEMO-0005/ }).click()
   await page.waitForTimeout(300)
+  await page.setViewportSize(focusedViewport)
   await scrollTo(page, '[data-screenshot="ticket-detail"]')
-  await captureViewport(page, 'ticket-detail')
+  await captureViewport(page, 'ticket-detail', focusedViewport)
   await captureLarge(page, 'ticket-detail')
 
+  await page.setViewportSize(focusedViewport)
   await scrollTo(page, '[data-screenshot="ai-analysis"]')
-  await captureViewport(page, 'ai-analysis')
+  await captureViewport(page, 'ai-analysis', focusedViewport)
   await captureLarge(page, 'ai-analysis')
 
   await page.getByRole('button', { name: /DEMO-0008/ }).click()
   await page.waitForTimeout(300)
+  await page.setViewportSize(focusedViewport)
   await scrollTo(page, '[data-screenshot="knowledge-base"]')
-  await captureViewport(page, 'knowledge-base')
+  await captureViewport(page, 'knowledge-base', focusedViewport)
   await captureLarge(page, 'knowledge-base')
 
   await verifyDemoInteractions(page)
