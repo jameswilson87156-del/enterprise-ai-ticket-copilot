@@ -177,6 +177,16 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — 刷新前端展示截图
+
+- 任务：刷新 README 使用的前端展示截图，确保截图文案与当前规则引擎辅助分类、知识库评分匹配、模板化建议草稿口径一致。
+- 修改文件：`docs/images/dashboard.png`、`docs/images/ticket-detail.png`、`docs/images/ai-analysis.png`、`docs/images/knowledge-base.png`、`docs/images/large/dashboard.png`、`docs/images/large/ticket-detail.png`、`docs/images/large/ai-analysis.png`、`docs/images/large/knowledge-base.png`、`HANDOFF.md`。
+- 源码复核：`frontend/src` 中未发现“企业 AI 工单作战台 / AI 已分析 / AI 建议 / 知识覆盖率”等旧 UI 文案；仅保留“不调用真实 LLM”的边界说明。
+- 构建命令：在 `frontend/` 执行 `npm run build`。
+- 截图命令：在 `frontend/` 执行 `npm run screenshots`，覆盖 `docs/images/` 和 `docs/images/large/` 下 README 使用截图。
+- 结果：构建通过，截图脚本通过；目视复核主截图与规则分析截图均为新口径。
+- 剩余风险：未运行后端测试；本轮未修改后端代码和前端逻辑，仅刷新截图与交接记录。
+
 ### 2026-06-22 — Codex — 最终 CI 收口
 
 - 任务：push `resume-optimization-v1` 到 GitHub，确认远端 GitHub Actions CI 两个 job 跑绿，并补充 CI 证据。
