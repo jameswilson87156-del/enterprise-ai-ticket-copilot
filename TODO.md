@@ -30,6 +30,7 @@
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
 - SpringDoc OpenAPI / Swagger UI 接口文档。
+- GitHub Actions CI workflow 已补充，覆盖后端测试和前端构建。
 - docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
@@ -90,14 +91,14 @@
 ## 6. P2 待办
 
 - 增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。（已完成：新增 `TicketWorkflowIntegrationTest`，使用 test profile + H2 覆盖创建工单、规则引擎辅助分析、状态流转和知识草稿确认）
-- 增加 GitHub Actions CI，至少自动执行后端测试。
+- 增加 GitHub Actions CI，至少自动执行后端测试。（已完成：新增 `.github/workflows/ci.yml`，在 `push` / `pull_request` 时运行后端 `mvn test` 和前端 `npm run build`）
 - 增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 - 优化前端体验与截图素材，保证作品集展示统一。
 - 补充面试 Q&A 文档，说明项目边界、规则引擎取舍、状态机设计和后续可扩展方向。
 
 ## 7. 下一轮建议任务
 
-下一轮建议处理 P2-2：增加 GitHub Actions CI，至少自动执行后端测试。
+下一轮建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 

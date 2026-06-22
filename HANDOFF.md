@@ -177,6 +177,18 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — P2-2 GitHub Actions CI
+
+- 任务：P2-2 GitHub Actions CI。
+- 修改文件：`.github/workflows/ci.yml`、`README.md`、`docs/TEST_REPORT.md`、`TODO.md`、`HANDOFF.md`。
+- CI 触发条件：`push`、`pull_request`。
+- CI job 内容：`backend-tests` 使用 Java 17 + Maven cache，在 `backend/` 执行 `mvn test`；`frontend-build` 使用 Node.js 20 + npm cache，在 `frontend/` 执行 `npm ci` 和 `npm run build`。
+- 本地验证命令：`mvn test`（目录：`backend/`）；`npm run build`（目录：`frontend/`）；`git diff --stat`、`git diff --check`、`git status`。
+- 本地验证结果：后端 `Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`；前端 `vue-tsc` 类型检查通过，Vite 生产构建完成。
+- 是否修改业务代码：否，未修改 Java / Vue 业务代码、数据库 schema、Swagger 配置、全局异常处理器或 `knowledgeCoverage` 逻辑。
+- 剩余风险：本地只能验证 workflow 文件和项目命令；尚未 push 到 GitHub，不能确认远端 GitHub Actions 已通过。
+- 下一轮建议：处理 P2-3，增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
+
 ### 2026-06-22 — Codex — P2-1 H2 集成测试
 
 - 任务：P2-1 H2 集成测试。

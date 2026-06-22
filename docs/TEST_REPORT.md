@@ -75,6 +75,17 @@
 - 覆盖场景：创建工单并查询、查询规则引擎辅助分析、人工状态流转、生成知识草稿、人工确认发布知识草稿。
 - 说明：本轮未修改前端代码，未重新运行 `npm run build`；H2 集成测试不依赖本地 MySQL、真实 LLM、Testcontainers 或外部服务。
 
+## 追加记录：P2-2 GitHub Actions CI workflow
+
+- 记录时间：2026-06-22 11:29:22 +08:00
+- 新增文件：`.github/workflows/ci.yml`
+- 触发条件：`push`、`pull_request`
+- 后端 job：`backend-tests`，使用 Java 17、Maven cache，在 `backend/` 执行 `mvn test`
+- 前端 job：`frontend-build`，使用 Node.js 20、npm cache，在 `frontend/` 执行 `npm ci` 和 `npm run build`
+- 本地后端验证：在 `backend/` 执行 `mvn test`，结果为 `Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`
+- 本地前端验证：在 `frontend/` 执行 `npm run build`，`vue-tsc` 类型检查通过，Vite 生产构建完成
+- 远端说明：本地新增 workflow 不等于 GitHub Actions 已通过；需要 push 到 GitHub 后，在 Actions 页面确认远端运行结果。
+
 ## 结论
 
 本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。最新后端验证已包含 H2 内存库集成测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
