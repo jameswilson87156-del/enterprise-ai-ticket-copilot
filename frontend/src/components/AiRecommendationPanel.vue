@@ -32,8 +32,8 @@ const emit = defineEmits<{
   <aside class="ai-panel" data-screenshot="ai-analysis" :aria-busy="busy">
     <div class="ai-panel__top">
       <div>
-        <p class="eyebrow">AI 建议</p>
-        <h2>AI 辅助分析</h2>
+        <p class="eyebrow">模板化建议草稿</p>
+        <h2>规则引擎辅助分析</h2>
       </div>
       <span class="human-lock" role="status" aria-live="polite">{{ confirmationLabel }}</span>
     </div>
@@ -50,7 +50,7 @@ const emit = defineEmits<{
       </section>
 
       <section class="ai-block">
-        <div class="mini-title">知识库建议</div>
+        <div class="mini-title">知识库评分匹配</div>
         <article v-for="hit in analysis.knowledgeHits" :key="hit.id" class="knowledge-hit">
           <div>
             <span>{{ hit.id }}</span>
@@ -59,18 +59,18 @@ const emit = defineEmits<{
           <b>{{ hit.relevance }}%</b>
           <small>{{ hit.owner }} / 已校验 {{ hit.lastVerifiedAt }}</small>
         </article>
-        <p v-if="!analysis.knowledgeHits.length" class="muted-line">暂无命中，建议处理完成后沉淀知识。</p>
+        <p v-if="!analysis.knowledgeHits.length" class="muted-line">暂无命中，处理完成后可沉淀知识。</p>
       </section>
 
       <section class="ai-block">
-        <div class="mini-title">下一步处理建议</div>
+        <div class="mini-title">模板化排查草稿</div>
         <ol class="step-list">
           <li v-for="step in analysis.troubleshootingSteps" :key="step">{{ step }}</li>
         </ol>
       </section>
 
       <section class="ai-block">
-        <div class="mini-title">回复建议</div>
+        <div class="mini-title">模板化回复草稿</div>
         <p class="reply-draft">{{ analysis.replySuggestion }}</p>
       </section>
 
@@ -112,7 +112,7 @@ const emit = defineEmits<{
 
     <div v-else class="empty-state empty-state--center">
       <strong>{{ busy ? '正在加载规则分析' : '等待规则分析' }}</strong>
-      <span>{{ busy ? '正在同步分类、知识命中与处理建议。' : '提交或选择工单后会展示分类、知识命中、排查步骤和回复建议。' }}</span>
+      <span>{{ busy ? '正在同步分类、知识命中与模板化处理草稿。' : '提交或选择工单后会展示分类、知识命中、排查步骤草稿和回复草稿。' }}</span>
     </div>
   </aside>
 </template>

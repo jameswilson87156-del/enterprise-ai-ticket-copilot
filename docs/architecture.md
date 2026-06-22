@@ -1,17 +1,17 @@
 ﻿# 架构说明
 
-Enterprise AI Ticket Copilot 是一个面向企业内部员工、IT 支持、运维和业务支持团队的 AI 工单与知识库助手。第 2 阶段仍不接真实 LLM，所有分析结果来自本地规则、关键词匹配和模板生成，并且必须经过人工确认后进入状态流转或知识沉淀。
+Enterprise AI Ticket Copilot 是一个面向企业内部员工、IT 支持、运维和业务支持团队的工单辅助处理与知识库工作台。Copilot 在本项目中表示辅助处理工作台，不代表接入真实大模型。第 2 阶段仍不接真实 LLM，所有分析结果来自本地规则、关键词匹配和模板生成，并且必须经过人工确认后进入状态流转或知识沉淀。
 
 ## 前后端架构图
 
 ```mermaid
 flowchart LR
-  user["内部员工 / IT 支持 / 运维"] --> web["Vue 3 + Vite<br/>AI 工单 Copilot 工作台"]
+  user["内部员工 / IT 支持 / 运维"] --> web["Vue 3 + Vite<br/>工单辅助处理 Copilot 工作台"]
 
   subgraph frontend["Frontend"]
     web --> queue["工单队列"]
     web --> detail["工单详情与时间线"]
-    web --> ai_panel["AI 建议与人工确认面板"]
+    web --> ai_panel["建议草稿与人工确认面板"]
   end
 
   subgraph backend["Spring Boot 3 Backend"]
@@ -53,7 +53,7 @@ stateDiagram-v2
   RESOLVED --> IN_PROGRESS: 复核发现仍需处理
 ```
 
-## AI 分析 + 人工确认流程图
+## 规则分析 + 人工确认流程图
 
 ```mermaid
 flowchart TD

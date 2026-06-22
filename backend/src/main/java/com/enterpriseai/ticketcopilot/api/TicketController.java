@@ -11,6 +11,7 @@ import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
 import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "/api/tickets", produces = "application/json;charset=UTF-8")
+@Tag(name = "Tickets", description = "工单录入、规则分类、知识匹配、状态流转和知识沉淀接口")
 public class TicketController {
 
     private final TicketWorkflowService ticketWorkflowService;

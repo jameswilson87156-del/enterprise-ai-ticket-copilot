@@ -3,7 +3,10 @@ package com.enterpriseai.ticketcopilot.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -105,17 +108,30 @@ public class TicketWorkflowService {
         long pending = supportTicketMapper.selectCount(new LambdaQueryWrapper<SupportTicket>()
             .in(SupportTicket::getStatus, STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_IN_PROGRESS));
         long total = supportTicketMapper.selectCount(new LambdaQueryWrapper<>());
-        long hit = analysisMapper.selectCount(new LambdaQueryWrapper<TicketAiAnalysisEntity>()
+        Set<Long> ticketsWithKnowledgeMatches = new HashSet<>(analysisMapper.selectList(new LambdaQueryWrapper<TicketAiAnalysisEntity>()
             .isNotNull(TicketAiAnalysisEntity::getMatchedKnowledgeNos)
-            .ne(TicketAiAnalysisEntity::getMatchedKnowledgeNos, "[]"));
-        long articles = knowledgeArticleMapper.selectCount(new LambdaQueryWrapper<KnowledgeArticle>()
-            .eq(KnowledgeArticle::getStatus, "PUBLISHED"));
+            .ne(TicketAiAnalysisEntity::getMatchedKnowledgeNos, "")
+            .ne(TicketAiAnalysisEntity::getMatchedKnowledgeNos, "[]")).stream()
+            .map(TicketAiAnalysisEntity::getTicketId)
+            .filter(Objects::nonNull)
+            .toList());
+        Set<Long> ticketsWithKnowledgeContext = new HashSet<>(ticketsWithKnowledgeMatches);
+        knowledgeArticleMapper.selectList(new LambdaQueryWrapper<KnowledgeArticle>()
+                .isNotNull(KnowledgeArticle::getSourceTicketId))
+            .stream()
+            .map(KnowledgeArticle::getSourceTicketId)
+            .filter(Objects::nonNull)
+            .forEach(ticketsWithKnowledgeContext::add);
         long draftsToday = knowledgeArticleMapper.selectCount(new LambdaQueryWrapper<KnowledgeArticle>()
             .eq(KnowledgeArticle::getStatus, "DRAFT")
             .ge(KnowledgeArticle::getCreatedAt, LocalDate.now().atStartOfDay()));
-        int hitRate = total == 0 ? 0 : (int) Math.round(hit * 100.0 / total);
-        int coverage = total == 0 ? 0 : (int) Math.min(95, 40 + articles * 8);
+        int hitRate = percentage(ticketsWithKnowledgeMatches.size(), total);
+        int coverage = percentage(ticketsWithKnowledgeContext.size(), total);
         return new WorkbenchMetrics(pending, hitRate, coverage, draftsToday);
+    }
+
+    private int percentage(long part, long total) {
+        return total == 0 ? 0 : (int) Math.round(part * 100.0 / total);
     }
 
     @Transactional

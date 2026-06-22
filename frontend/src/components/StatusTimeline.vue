@@ -21,7 +21,7 @@ const statusLabel: Record<string, string> = {
         <p class="eyebrow">状态历史</p>
         <h2>状态流转</h2>
       </div>
-      <span>规则建议不会直接改变工单状态</span>
+      <span>规则草稿不会直接改变工单状态</span>
     </div>
     <div v-if="events.length" class="timeline-track">
       <article v-for="event in events" :key="`${event.time}-${event.state}`" class="timeline-event">

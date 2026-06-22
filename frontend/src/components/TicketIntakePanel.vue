@@ -93,7 +93,7 @@ const submit = () => {
           </select>
         </label>
         <button class="primary-action" type="submit" :disabled="submitting">
-          {{ submitting ? '提交中' : '提交并生成建议' }}
+          {{ submitting ? '提交中' : '提交并生成草稿' }}
         </button>
       </div>
       <p
