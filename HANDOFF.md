@@ -177,6 +177,20 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — 重新制作前端作品集展示效果
+
+- 任务：重新制作前端作品集展示效果，并重做 README 截图展示区。
+- 修改文件：`frontend/src/App.vue`、`frontend/src/styles.css`、`frontend/scripts/capture-screenshots.mjs`、`README.md`、`docs/frontend-style.md`、`docs/acceptance-checklist.md`、`TODO.md`、`HANDOFF.md`、`docs/images/*.png`、`docs/images/large/*.png`。
+- 视觉改动摘要：首屏改为企业 SaaS 控制台风格，左上角展示项目名，右侧展示 CI workflow、OpenAPI documented、Frontend build、No real LLM 等可信标签；指标区调整为今日工单、待处理、规则已分析、知识关联率、待人工确认；主体改为三栏工作台，左侧工单队列、中间工单详情、右侧规则引擎辅助分析与模板化建议草稿。
+- README 截图区改动：保留 `docs/images/dashboard.png` 作为精选主图，辅助截图改为 HTML table 两列布局，展示工单详情、规则引擎辅助分析、知识库评分匹配和大尺寸控制台截图。
+- 截图脚本改动：普通主图使用 1440x960；辅助截图使用 1100x960 聚焦视口；`docs/images/large/` 继续生成 1920x1200 大图。
+- 构建命令：在 `frontend/` 执行 `npm run build`。
+- 截图命令：在 `frontend/` 执行 `npm run screenshots`，覆盖 `docs/images/` 和 `docs/images/large/` 下 README 使用截图。
+- 结果：前端构建通过，截图脚本通过；截图脚本完成 Demo 交互检查和 1366/390 宽度无横向溢出断言。
+- 旧文案复核：前端 UI 和新截图未出现“企业 AI 工单作战台 / AI 已分析 / AI 建议 / AI 生成 / 智能分类 / Agent 自动处理”等旧误导文案；保留项目名、兼容接口路径和“不接真实 LLM/大模型”的边界说明。
+- 是否修改后端业务代码：否。未修改 Java 后端、数据库 schema、Swagger、全局异常处理、knowledgeCoverage、Docker 或 CI workflow。
+- 剩余风险：本轮未运行后端 `mvn test`；README 中仍有项目名 `Enterprise AI Ticket Copilot` 和 `/ai-analysis` 兼容路径说明，但文档明确其不是真实 LLM 能力。
+
 ### 2026-06-22 — Codex — 刷新前端展示截图
 
 - 任务：刷新 README 使用的前端展示截图，确保截图文案与当前规则引擎辅助分类、知识库评分匹配、模板化建议草稿口径一致。
