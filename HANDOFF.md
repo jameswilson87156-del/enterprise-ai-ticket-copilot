@@ -177,6 +177,19 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — P2-1 H2 集成测试
+
+- 任务：P2-1 H2 集成测试。
+- 修改文件：`backend/pom.xml`、`backend/src/test/resources/application-test.yml`、`backend/src/test/resources/schema-h2.sql`、`backend/src/test/java/com/enterpriseai/ticketcopilot/TicketWorkflowIntegrationTest.java`、`docs/TEST_REPORT.md`、`TODO.md`、`HANDOFF.md`。
+- 覆盖链路：HTTP → `TicketController` → `TicketWorkflowService` → MyBatis-Plus Mapper → H2 内存数据库。
+- 覆盖场景：创建工单并查询、规则引擎辅助分析查询、人工状态流转、生成知识草稿、人工确认发布知识草稿。
+- 测试命令：在 `backend/` 执行 `mvn test`。
+- 测试结果：`Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 是否修改业务逻辑：否；仅新增 test-scope H2 依赖、测试 profile、H2 schema 和集成测试。
+- 是否依赖外部服务：否，不依赖本地 MySQL、真实 LLM、前端、Testcontainers 或外部 API。
+- 剩余风险：H2 schema 是为测试最小改写的 MySQL 兼容版本，能验证核心链路，但不能完全替代真实 MySQL 方言和性能验证。
+- 下一轮建议：处理 P2-2，增加 GitHub Actions CI，至少自动执行后端测试。
+
 ### 2026-06-22 — Codex — 补充 docs/API.md
 
 - 任务：补充 `docs/API.md` 人工整理版接口文档。

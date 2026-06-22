@@ -59,6 +59,22 @@
 - 覆盖新增内容：全局异常处理器统一参数校验错误和 `ResponseStatusException` 错误响应结构。
 - 说明：本轮未修改前端代码，未重新运行 `npm run build`；前端构建证据见上方“前端构建”章节。
 
+## 追加验证记录：P2-1 H2 内存库集成测试
+
+- 验证时间：2026-06-22 10:59:14 +08:00
+- 验证分支：resume-optimization-v1
+- 验证基准 commit：3a168a9 docs: add API reference
+- 运行目录：D:\workhome\enterprise-ai-ticket-copilot\backend
+- 执行命令：`mvn test`
+- 执行结果：通过
+- 结果摘要：`Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`
+- 构建结论：`BUILD SUCCESS`
+- 新增测试：`TicketWorkflowIntegrationTest`
+- 新增 H2 测试资源：`application-test.yml`、`schema-h2.sql`
+- 覆盖链路：HTTP 请求进入 `TicketController`，经过 `TicketWorkflowService`、MyBatis-Plus Mapper，最终读写 H2 内存数据库。
+- 覆盖场景：创建工单并查询、查询规则引擎辅助分析、人工状态流转、生成知识草稿、人工确认发布知识草稿。
+- 说明：本轮未修改前端代码，未重新运行 `npm run build`；H2 集成测试不依赖本地 MySQL、真实 LLM、Testcontainers 或外部服务。
+
 ## 结论
 
-本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
+本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。最新后端验证已包含 H2 内存库集成测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。

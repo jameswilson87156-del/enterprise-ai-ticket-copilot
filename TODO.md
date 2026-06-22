@@ -89,7 +89,7 @@
 
 ## 6. P2 待办
 
-- 增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。
+- 增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。（已完成：新增 `TicketWorkflowIntegrationTest`，使用 test profile + H2 覆盖创建工单、规则引擎辅助分析、状态流转和知识草稿确认）
 - 增加 GitHub Actions CI，至少自动执行后端测试。
 - 增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 - 优化前端体验与截图素材，保证作品集展示统一。
@@ -97,7 +97,7 @@
 
 ## 7. 下一轮建议任务
 
-下一轮建议处理 P2-1：增加 H2 内存库集成测试，验证 HTTP 到数据库的基础链路。
+下一轮建议处理 P2-2：增加 GitHub Actions CI，至少自动执行后端测试。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 
