@@ -194,7 +194,7 @@ Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 
 测试证据详见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
 
-本项目已新增 GitHub Actions CI workflow：[.github/workflows/ci.yml](.github/workflows/ci.yml)。CI 会在 `push` 和 `pull_request` 时自动运行后端 `mvn test` 与前端 `npm run build`；本地新增 workflow 不等于远端已经通过，推送到 GitHub 后请以 Actions 页面结果为准。
+本项目已新增 GitHub Actions CI workflow：[.github/workflows/ci.yml](.github/workflows/ci.yml)。CI 会在 `push` 和 `pull_request` 时自动运行后端 `mvn test` 与前端 `npm run build`；本轮已通过 GitHub CLI 确认远端 `backend-tests` 和 `frontend-build` 两个 job 均成功，后续提交仍以 GitHub Actions 页面结果为准。
 
 ## 项目边界
 

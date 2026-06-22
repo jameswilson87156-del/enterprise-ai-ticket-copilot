@@ -177,6 +177,18 @@
 
 ## 历史记录
 
+### 2026-06-22 — Codex — 最终 CI 收口
+
+- 任务：push `resume-optimization-v1` 到 GitHub，确认远端 GitHub Actions CI 两个 job 跑绿，并补充 CI 证据。
+- 本地最终验证：`backend/` 下 `mvn test` 通过，`Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`；`frontend/` 下 `npm run build` 通过，`vue-tsc` 类型检查和 Vite 生产构建完成。
+- push 结果：已执行 `git push -u origin resume-optimization-v1`，远端分支创建成功。
+- 远端 CI 结果：GitHub Actions run `27929741126` 已完成，`conclusion = success`。
+- 通过 job：`Backend tests`、`Frontend build`。
+- 修改文件：`README.md`、`docs/TEST_REPORT.md`、`TODO.md`、`HANDOFF.md`。
+- 是否新增截图：否；本轮通过 `gh run watch 27929741126 --exit-status` 和 `gh run view` 确认远端 CI 成功。
+- 剩余风险：GitHub Actions 输出包含 Node.js 20 deprecation annotation，不影响本次通过结果；后续如需消除提示，可单独评估升级 workflow 的 Node 版本。
+- 下一步建议：可以创建 PR 并合并回 `main`；合并前可在 PR 页面再次确认 CI 状态。
+
 ### 2026-06-22 — Codex — P2-2 GitHub Actions CI
 
 - 任务：P2-2 GitHub Actions CI。

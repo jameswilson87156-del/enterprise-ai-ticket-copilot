@@ -30,7 +30,7 @@
 - 前端 Demo 模式与真实后端切换。
 - Playwright 截图脚本和截图存档。
 - SpringDoc OpenAPI / Swagger UI 接口文档。
-- GitHub Actions CI workflow 已补充，覆盖后端测试和前端构建。
+- GitHub Actions CI workflow 已补充，覆盖后端测试和前端构建；远端 run `27929741126` 已确认通过。
 - docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。

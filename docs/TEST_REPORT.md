@@ -86,6 +86,19 @@
 - 本地前端验证：在 `frontend/` 执行 `npm run build`，`vue-tsc` 类型检查通过，Vite 生产构建完成
 - 远端说明：本地新增 workflow 不等于 GitHub Actions 已通过；需要 push 到 GitHub 后，在 Actions 页面确认远端运行结果。
 
+## 追加验证记录：最终 CI 远端确认
+
+- 验证时间：2026-06-22 12:32:48 +08:00
+- 验证分支：resume-optimization-v1
+- 验证 commit：10b51f4 ci: add GitHub Actions workflow
+- 远端 run：`27929741126`
+- 远端 run 地址：https://github.com/jameswilson87156-del/enterprise-ai-ticket-copilot/actions/runs/27929741126
+- 验证命令：`gh run watch 27929741126 --exit-status`、`gh run view 27929741126 --json databaseId,status,conclusion,headSha,url,jobs`
+- 远端结果：`status = completed`，`conclusion = success`
+- 通过 job：`Backend tests`、`Frontend build`
+- 本轮未新增截图文件；远端通过证据来自已登录 GitHub CLI 返回的 run 状态。
+- 说明：远端 workflow 输出中出现 Node.js 20 deprecation annotation，这是 GitHub Actions runner 对官方 action 运行时的提示，不影响本次 CI 结论；后续如需消除提示，可单独评估升级 workflow 的 Node 版本。
+
 ## 结论
 
 本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。最新后端验证已包含 H2 内存库集成测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
