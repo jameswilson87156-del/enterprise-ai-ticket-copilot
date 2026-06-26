@@ -22,6 +22,12 @@ const statusLabel: Record<string, string> = {
         <div>
           <p class="eyebrow">当前工单</p>
           <h1>{{ ticket.title }}</h1>
+          <div class="detail-subline">
+            <span>{{ ticket.id }}</span>
+            <span>Requester：{{ ticket.requester }}</span>
+            <span>Assignee：支持队列</span>
+            <span>Source：{{ ticket.systemContext.environment }}</span>
+          </div>
         </div>
         <div class="detail-badges">
           <span class="priority-badge" :class="`priority-badge--${ticket.priority.toLowerCase()}`">{{ ticket.priority }}</span>
@@ -39,6 +45,7 @@ const statusLabel: Record<string, string> = {
           <span>提交人：{{ ticket.requester }}</span>
           <span>部门：{{ ticket.department }}</span>
           <span>当前分类：{{ ticket.category }}</span>
+          <span>标签：{{ ticket.category }} / {{ ticket.systemContext.application }} / {{ ticket.priority }}</span>
         </div>
       </section>
 

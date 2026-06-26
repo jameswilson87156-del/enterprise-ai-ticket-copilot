@@ -21,6 +21,21 @@ const confirmationLabel = computed(() => {
   }
 })
 
+const priorityNote = computed(() => {
+  switch (props.ticket?.priority) {
+    case 'P1':
+      return '高风险，建议优先人工复核'
+    case 'P2':
+      return '中风险，按队列处理'
+    case 'P3':
+      return '低风险，可沉淀为知识条目'
+    default:
+      return '等待工单选择'
+  }
+})
+
+const knowledgeCountLabel = computed(() => `${props.analysis?.knowledgeHits.length ?? 0} 条引用`)
+
 const emit = defineEmits<{
   status: [status: TicketStatus]
   draft: []
@@ -39,6 +54,24 @@ const emit = defineEmits<{
     </div>
 
     <template v-if="analysis && ticket">
+      <section class="copilot-signal-grid" aria-label="Copilot 摘要">
+        <article>
+          <span>规则引擎辅助分类</span>
+          <strong>{{ analysis.classification }}</strong>
+          <small>local-rule fallback / 置信度 {{ analysis.confidence }}%</small>
+        </article>
+        <article>
+          <span>优先级判断</span>
+          <strong>{{ ticket.priority }}</strong>
+          <small>{{ priorityNote }}</small>
+        </article>
+        <article>
+          <span>关键词知识匹配</span>
+          <strong>{{ knowledgeCountLabel }}</strong>
+          <small>非向量检索，等待人工确认</small>
+        </article>
+      </section>
+
       <section class="ai-classification">
         <span>问题分类</span>
         <strong>{{ analysis.classification }}</strong>
@@ -50,7 +83,8 @@ const emit = defineEmits<{
       </section>
 
       <section class="ai-block">
-        <div class="mini-title">知识库评分匹配</div>
+        <div class="mini-title">Knowledge Base / RAG 引用视图</div>
+        <p class="boundary-copy">当前基于关键词匹配与知识引用，向量检索为后续扩展。</p>
         <article v-for="hit in analysis.knowledgeHits" :key="hit.id" class="knowledge-hit">
           <div>
             <span>{{ hit.id }}</span>
@@ -79,6 +113,32 @@ const emit = defineEmits<{
         <ul>
           <li v-for="note in analysis.riskNotes" :key="note">{{ note }}</li>
         </ul>
+      </section>
+
+      <section class="trace-entry">
+        <div>
+          <span>Trace 追踪入口</span>
+          <strong>状态历史 + 生成记录</strong>
+        </div>
+        <p>当前保留状态历史与生成记录，后续扩展 Workflow Step Trace。</p>
+      </section>
+
+      <section class="human-review-box" aria-label="Human Review 操作区">
+        <div class="mini-title">Human Review</div>
+        <div class="review-actions">
+          <button type="button" class="review-action review-action--approve" :disabled="busy || ['RESOLVED', 'KNOWLEDGE_BASED'].includes(ticket.status)" @click="emit('status', 'RESOLVED')">
+            Approve
+            <span>批准草稿</span>
+          </button>
+          <button type="button" class="review-action review-action--change" disabled>
+            Request Changes
+            <span>占位操作</span>
+          </button>
+          <button type="button" class="review-action review-action--reject" disabled>
+            Reject
+            <span>占位操作</span>
+          </button>
+        </div>
       </section>
 
       <div class="workflow-actions">

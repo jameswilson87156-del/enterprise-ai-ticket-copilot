@@ -177,6 +177,17 @@
 
 ## 历史记录
 
+### 2026-06-26 — Codex — 按 02 参考图改造真实前端工作台
+
+- 本轮任务：按 `docs/design/references/02-ticket-workbench-ai-concept-cn.png` 的视觉方向改造真实 Vue 前端工作台。
+- 修改文件：`frontend/src/App.vue`、`frontend/src/styles.css`、`frontend/src/components/AiRecommendationPanel.vue`、`frontend/src/components/TicketDetailPanel.vue`、`docs/frontend-style.md`、`TODO.md`、`HANDOFF.md`、`docs/images/*.png`、`docs/images/large/*.png`。
+- 前端视觉和结构改动：从浅色作品集控制台改为深色企业 RAG Copilot 工作台；新增左侧导航、顶部搜索与运行边界、指标卡、三栏工单队列 / 工单详情 / Copilot-RAG-Human Review 面板，并保留工单提交、状态流转和知识沉淀交互。
+- 保留真实能力边界：Provider 仍为 `local-rule fallback`；RAG 区域说明当前基于关键词匹配与知识引用；Trace 区域说明当前保留状态历史与生成记录；未声明真实 LLM、向量数据库、Tool Call Runtime、生产级权限或自动关闭工单已实现。
+- `npm run build` 结果：通过，`vue-tsc` 类型检查完成，Vite 生产构建完成。
+- `npm run screenshots` 结果：通过，重新生成 `docs/images/dashboard.png`、`ticket-detail.png`、`ai-analysis.png`、`knowledge-base.png` 及 `docs/images/large/` 对应大图；截图来自真实运行前端页面。
+- 剩余风险：本轮未修改后端，也未运行后端 `mvn test`；深色工作台中的 Provider、Trace、RAG、Human Review 仍是基于现有前端和后端真实能力的界面区域，不代表完整生产级平台能力。
+- 下一步建议：基于当前真实接口继续细化工单详情中的状态历史、生成记录和知识命中字段展示，或单独处理 P2-3 Docker Compose。
+
 ### 2026-06-26 — Codex — Enterprise RAG UI visual references
 
 * 分支：feat/enterprise-ticket-rag-copilot
