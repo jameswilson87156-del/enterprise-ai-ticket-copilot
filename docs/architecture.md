@@ -85,3 +85,4 @@ flowchart TD
 - 不自动执行授权、回滚、重启、通知、爬虫或外部系统操作。
 - 规则分析、处理建议、知识草稿都只作为人工确认前的辅助信息。
 - `generation_record` 保存规则或模板输出来源、输入摘要、输出摘要、耗时和状态，便于审计。
+- `/api/tickets/{id}/trace-evidence` 只读聚合 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`；其中 `runId/traceId` 是基于工单号派生的展示标识，不代表完整 Trace / Span Runtime。

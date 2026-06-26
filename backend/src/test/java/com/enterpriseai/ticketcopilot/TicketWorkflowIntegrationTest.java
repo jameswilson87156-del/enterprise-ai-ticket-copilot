@@ -73,6 +73,47 @@ class TicketWorkflowIntegrationTest {
     }
 
     @Test
+    void traceEvidenceExposesGenerationRecordsRagReferencesAndHumanReviewBoundary() throws Exception {
+        JsonNode created = createTicket();
+        String ticketId = created.path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/status", ticketId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "status", "IN_PROGRESS",
+                    "actor", "Support Desk",
+                    "note", "人工确认接手处理。",
+                    "resolvedSummary", ""
+                ))))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.ticketId").value(ticketId))
+            .andExpect(jsonPath("$.runId").value("RUN-" + ticketId))
+            .andExpect(jsonPath("$.traceId").value("TRACE-" + ticketId))
+            .andExpect(jsonPath("$.traceMode").value("derived-from-ticket-records; no distributed trace/span runtime"))
+            .andExpect(jsonPath("$.currentStep").value("HUMAN_PROCESSING"))
+            .andExpect(jsonPath("$.reviewRequired").value(true))
+            .andExpect(jsonPath("$.totalLatency", greaterThanOrEqualTo(0)))
+            .andExpect(jsonPath("$.aiAnalysis.analysisId").exists())
+            .andExpect(jsonPath("$.aiAnalysis.recordId").exists())
+            .andExpect(jsonPath("$.aiAnalysis.provider").value("local-rule fallback"))
+            .andExpect(jsonPath("$.aiAnalysis.model").value("N/A (no LLM)"))
+            .andExpect(jsonPath("$.generationRecords.length()").value(3))
+            .andExpect(jsonPath("$.generationRecords[0].businessType").value("CLASSIFICATION"))
+            .andExpect(jsonPath("$.generationRecords[0].provider").value("local-rule fallback"))
+            .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").exists())
+            .andExpect(jsonPath("$.ragReferences[0].sourcePath").value("knowledge_article/KB-OPS-003"))
+            .andExpect(jsonPath("$.ragReferences[0].usedInDraft").value(true))
+            .andExpect(jsonPath("$.ragReferences[0].linkedRunId").value("RUN-" + ticketId))
+            .andExpect(jsonPath("$.statusHistory.length()", greaterThanOrEqualTo(3)))
+            .andExpect(jsonPath("$.humanReview.reviewStatus").value("IN_PROGRESS"))
+            .andExpect(jsonPath("$.humanReview.reviewer").value("Support Desk"))
+            .andExpect(jsonPath("$.humanReview.decision").value("TAKE_OWNERSHIP"));
+    }
+
+    @Test
     void statusFlowAndKnowledgeDraftPersistThroughH2Database() throws Exception {
         JsonNode created = createTicket();
         String ticketId = created.path("id").asText();

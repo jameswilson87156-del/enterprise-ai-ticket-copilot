@@ -10,6 +10,7 @@ import com.enterpriseai.ticketcopilot.model.AiAnalysis;
 import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
+import com.enterpriseai.ticketcopilot.model.TraceEvidence;
 import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -54,6 +55,11 @@ public class TicketController {
     @GetMapping("/{id}/ai-analysis")
     public AiAnalysis getAiAnalysis(@PathVariable String id) {
         return ticketWorkflowService.getAiAnalysis(id);
+    }
+
+    @GetMapping("/{id}/trace-evidence")
+    public TraceEvidence getTraceEvidence(@PathVariable String id) {
+        return ticketWorkflowService.getTraceEvidence(id);
     }
 
     @PostMapping("/{id}/status")

@@ -3,11 +3,15 @@ package com.enterpriseai.ticketcopilot.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -32,6 +36,7 @@ import com.enterpriseai.ticketcopilot.model.SystemContext;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
 import com.enterpriseai.ticketcopilot.model.TimelineEvent;
+import com.enterpriseai.ticketcopilot.model.TraceEvidence;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -102,6 +107,65 @@ public class TicketWorkflowService {
         SupportTicket ticket = findTicket(ticketNo);
         TicketAiAnalysisEntity analysis = latestAnalysis(ticket.getId());
         return toAiAnalysis(ticket, analysis);
+    }
+
+    public TraceEvidence getTraceEvidence(String ticketNo) {
+        SupportTicket ticket = findTicket(ticketNo);
+        TicketAiAnalysisEntity analysis = latestAnalysis(ticket.getId());
+        List<GenerationRecord> generationRecords = generationRecordMapper.selectList(new LambdaQueryWrapper<GenerationRecord>()
+            .eq(GenerationRecord::getBusinessId, ticket.getId())
+            .orderByAsc(GenerationRecord::getCreatedAt)
+            .orderByAsc(GenerationRecord::getId));
+        List<TicketStatusHistory> statusHistories = statusHistoryMapper.selectList(new LambdaQueryWrapper<TicketStatusHistory>()
+            .eq(TicketStatusHistory::getTicketId, ticket.getId())
+            .orderByAsc(TicketStatusHistory::getOccurredAt)
+            .orderByAsc(TicketStatusHistory::getId));
+        String runId = "RUN-" + ticket.getTicketNo();
+        String traceId = "TRACE-" + ticket.getTicketNo();
+        List<TraceEvidence.GenerationRecordEvidence> recordEvidence = generationRecords.stream()
+            .map(this::toGenerationEvidence)
+            .toList();
+        List<TraceEvidence.TraceStep> stepTimeline = generationRecords.stream()
+            .map(record -> new TraceEvidence.TraceStep(
+                record.getBusinessType(),
+                record.getId(),
+                record.getSourceType(),
+                record.getStatus(),
+                record.getLatencyMs(),
+                record.getCreatedAt(),
+                record.getOutputSummary()
+            ))
+            .toList();
+        List<TraceEvidence.StatusHistoryEvidence> statusEvidence = statusHistories.stream()
+            .map(history -> new TraceEvidence.StatusHistoryEvidence(
+                history.getId(),
+                history.getFromStatus(),
+                history.getToStatus(),
+                history.getActor(),
+                history.getNote(),
+                history.getOccurredAt()
+            ))
+            .toList();
+        long totalLatency = generationRecords.stream()
+            .map(GenerationRecord::getLatencyMs)
+            .filter(Objects::nonNull)
+            .mapToLong(Long::longValue)
+            .sum();
+        return new TraceEvidence(
+            ticket.getTicketNo(),
+            runId,
+            traceId,
+            "derived-from-ticket-records; no distributed trace/span runtime",
+            currentStep(ticket.getStatus()),
+            stepTimeline,
+            statusEvidence,
+            totalLatency,
+            reviewRequired(ticket),
+            toAiAnalysisEvidence(analysis, generationRecords, totalLatency),
+            recordEvidence,
+            toRagReferences(ticket, analysis, runId),
+            toHumanReviewEvidence(ticket, statusHistories)
+        );
     }
 
     public WorkbenchMetrics metrics() {
@@ -335,6 +399,173 @@ public class TicketWorkflowService {
             analysis.getReplySuggestion(),
             fromJson(analysis.getRiskNotes())
         );
+    }
+
+    private TraceEvidence.AiAnalysisEvidence toAiAnalysisEvidence(TicketAiAnalysisEntity analysis, List<GenerationRecord> records, long totalLatency) {
+        GenerationRecord record = analysisRecord(records);
+        String status = analysisStatus(records);
+        return new TraceEvidence.AiAnalysisEvidence(
+            analysis.getId(),
+            record == null ? null : record.getId(),
+            "local-rule fallback",
+            "N/A (no LLM)",
+            defaultText(analysis.getSourceType(), record == null ? "RULE_TEMPLATE" : record.getSourceType()),
+            totalLatency,
+            status,
+            analysis.getCreatedAt(),
+            analysisErrorMessage(status, records),
+            record == null ? analysis.getClassificationReason() : record.getInputSummary(),
+            defaultText(analysis.getReplySuggestion(), record == null ? "" : record.getOutputSummary())
+        );
+    }
+
+    private GenerationRecord analysisRecord(List<GenerationRecord> records) {
+        GenerationRecord fallback = records.isEmpty() ? null : records.get(records.size() - 1);
+        return records.stream()
+            .filter(record -> "RECOMMENDATION".equals(record.getBusinessType()))
+            .reduce((first, second) -> second)
+            .orElse(fallback);
+    }
+
+    private String analysisStatus(List<GenerationRecord> records) {
+        if (records.isEmpty()) {
+            return "NO_GENERATION_RECORD";
+        }
+        return records.stream().allMatch(record -> "SUCCESS".equalsIgnoreCase(defaultText(record.getStatus(), ""))) ? "SUCCESS" : "PARTIAL";
+    }
+
+    private String analysisErrorMessage(String status, List<GenerationRecord> records) {
+        if ("SUCCESS".equals(status)) {
+            return null;
+        }
+        if (records.isEmpty()) {
+            return "No generation_record rows were found for this ticket.";
+        }
+        return "generation_record does not store a dedicated error_message column in the current schema.";
+    }
+
+    private TraceEvidence.GenerationRecordEvidence toGenerationEvidence(GenerationRecord record) {
+        return new TraceEvidence.GenerationRecordEvidence(
+            record.getId(),
+            record.getBusinessType(),
+            record.getSourceType(),
+            "local-rule fallback",
+            "N/A (no LLM)",
+            fallbackStrategy(record.getSourceType()),
+            record.getLatencyMs(),
+            record.getStatus(),
+            record.getCreatedAt(),
+            "SUCCESS".equalsIgnoreCase(defaultText(record.getStatus(), "")) ? null : "No error_message column exists in generation_record.",
+            record.getInputSummary(),
+            record.getOutputSummary()
+        );
+    }
+
+    private List<TraceEvidence.RagReference> toRagReferences(SupportTicket ticket, TicketAiAnalysisEntity analysis, String runId) {
+        List<String> articleNos = fromJson(analysis.getMatchedKnowledgeNos());
+        Map<String, Integer> relevanceByArticleNo = knowledgeMatchingService.match(ticket, analysis.getClassification()).stream()
+            .collect(Collectors.toMap(match -> match.article().getArticleNo(), KnowledgeMatch::relevance, Integer::max));
+        return articleNos.stream()
+            .map(articleNo -> knowledgeArticleMapper.selectOne(new LambdaQueryWrapper<KnowledgeArticle>()
+                .eq(KnowledgeArticle::getArticleNo, articleNo)))
+            .filter(Objects::nonNull)
+            .map(article -> new TraceEvidence.RagReference(
+                article.getArticleNo(),
+                article.getTitle(),
+                "knowledge_article/" + article.getArticleNo(),
+                matchedKeyword(article, ticket),
+                relevanceByArticleNo.get(article.getArticleNo()),
+                summarize(article.getContent()),
+                articleNos.contains(article.getArticleNo()),
+                ticket.getTicketNo(),
+                runId
+            ))
+            .toList();
+    }
+
+    private TraceEvidence.HumanReviewEvidence toHumanReviewEvidence(SupportTicket ticket, List<TicketStatusHistory> statusHistories) {
+        TicketStatusHistory latestHumanAction = statusHistories.stream()
+            .filter(history -> isHumanActor(history.getActor()))
+            .reduce((first, second) -> second)
+            .orElse(null);
+        return new TraceEvidence.HumanReviewEvidence(
+            reviewStatus(ticket.getStatus()),
+            latestHumanAction == null ? "未分配" : latestHumanAction.getActor(),
+            latestHumanAction == null ? "PENDING_REVIEW" : reviewDecision(latestHumanAction.getToStatus()),
+            latestHumanAction == null ? "等待人工确认建议草稿、状态流转或知识发布。" : latestHumanAction.getNote(),
+            latestHumanAction == null ? null : latestHumanAction.getOccurredAt(),
+            nextAction(ticket.getStatus())
+        );
+    }
+
+    private boolean isHumanActor(String actor) {
+        return actor != null && !List.of("System", "Rule Engine", "Rule Template", "系统", "规则引擎", "规则模板").contains(actor);
+    }
+
+    private String currentStep(String status) {
+        return switch (defaultText(status, "")) {
+            case STATUS_PENDING_CLASSIFICATION -> "LOCAL_RULE_CLASSIFICATION";
+            case STATUS_PENDING_PROCESS -> "HUMAN_REVIEW_REQUIRED";
+            case STATUS_IN_PROGRESS -> "HUMAN_PROCESSING";
+            case STATUS_RESOLVED -> "KNOWLEDGE_REVIEW_READY";
+            case STATUS_KNOWLEDGE_BASED -> "KNOWLEDGE_PUBLISHED";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private boolean reviewRequired(SupportTicket ticket) {
+        return List.of(STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_IN_PROGRESS).contains(ticket.getStatus());
+    }
+
+    private String reviewStatus(String status) {
+        return switch (defaultText(status, "")) {
+            case STATUS_PENDING_PROCESS -> "PENDING";
+            case STATUS_IN_PROGRESS -> "IN_PROGRESS";
+            case STATUS_RESOLVED, STATUS_KNOWLEDGE_BASED -> "COMPLETED";
+            default -> "WAITING_FOR_RULE_ANALYSIS";
+        };
+    }
+
+    private String reviewDecision(String toStatus) {
+        return switch (defaultText(toStatus, "")) {
+            case STATUS_IN_PROGRESS -> "TAKE_OWNERSHIP";
+            case STATUS_RESOLVED -> "APPROVED_RESOLUTION";
+            case STATUS_KNOWLEDGE_BASED -> "APPROVED_KNOWLEDGE";
+            default -> "STATUS_UPDATED";
+        };
+    }
+
+    private String nextAction(String status) {
+        return switch (defaultText(status, "")) {
+            case STATUS_PENDING_PROCESS -> "人工确认接手、补充信息或解决状态。";
+            case STATUS_IN_PROGRESS -> "人工复核处理结果，再确认解决或继续排查。";
+            case STATUS_RESOLVED -> "可生成知识草稿，并由知识审核人确认发布。";
+            case STATUS_KNOWLEDGE_BASED -> "已完成知识沉淀；不执行无人值守自动关闭。";
+            default -> "等待本地规则分类和模板化建议草稿生成。";
+        };
+    }
+
+    private String fallbackStrategy(String sourceType) {
+        return switch (defaultText(sourceType, "")) {
+            case "RULE_ENGINE" -> "keyword rule classification";
+            case "KEYWORD_MATCHER" -> "keyword-based RAG reference";
+            case "TEMPLATE_ENGINE", "RULE_TEMPLATE" -> "rule template draft";
+            default -> "local-rule fallback";
+        };
+    }
+
+    private String matchedKeyword(KnowledgeArticle article, SupportTicket ticket) {
+        String ticketText = normalizeForMatch(ticket.getTitle() + " " + ticket.getDescription() + " " + ticket.getErrorLog() + " " + ticket.getSystemName());
+        return Arrays.stream(defaultText(article.getKeywords(), "").split("[,，;；\\s]+"))
+            .map(String::trim)
+            .filter(keyword -> !keyword.isBlank())
+            .filter(keyword -> ticketText.contains(keyword.toLowerCase(Locale.ROOT)))
+            .findFirst()
+            .orElse("keyword not persisted");
+    }
+
+    private String normalizeForMatch(String value) {
+        return defaultText(value, "").toLowerCase(Locale.ROOT);
     }
 
     private TicketAiAnalysisEntity latestAnalysis(Long ticketId) {

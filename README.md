@@ -174,6 +174,7 @@ npm run dev
 | `GET` | `/api/tickets/metrics` | 查询工作台指标 |
 | `GET` | `/api/tickets/{id}` | 查询工单详情与状态历史 |
 | `GET` | `/api/tickets/{id}/ai-analysis` | 查询规则分类、知识命中和建议草稿 |
+| `GET` | `/api/tickets/{id}/trace-evidence` | 查询工单 Trace、生成记录、RAG 引用和 Human Review 证据链 |
 | `POST` | `/api/tickets/{id}/status` | 人工确认状态流转 |
 | `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决工单生成知识草稿 |
 | `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 |
@@ -205,7 +206,7 @@ Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 | `npm run build` | 通过 | 类型检查与 Vite 生产构建完成 |
 | `npm run screenshots` | 通过 | 生成 8 张截图，并完成 Demo 交互与响应式断言 |
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
-| `mvn test` | 通过 | 17 项 Controller/Service 单元测试全部通过；不宣称完整生产测试覆盖 |
+| `mvn test` | 通过 | 21 项 Controller/Service/H2 集成测试全部通过；不宣称完整生产测试覆盖 |
 
 测试证据详见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
 
@@ -217,6 +218,7 @@ Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 - 仓库与截图不包含真实客户数据，演示数据均为本地构造。
 - 当前分析结果由规则引擎、关键词评分和模板驱动，不承诺真实大模型稳定接入。
 - 当前知识匹配与沉淀用于展示业务闭环，不宣称为完整 RAG 知识库系统。
+- Trace Evidence 中的 `runId` / `traceId` 是基于工单记录派生的展示标识，不代表完整分布式 Trace / Span Runtime。
 - 系统只生成建议草稿；工单状态变更、对外回复和知识发布需要人工确认。
 - Stitch Design Taste 仅作为本轮界面视觉设计参考，不属于项目业务功能或商业 UI 资产。
 
@@ -240,6 +242,7 @@ Swagger 仅用于查看 REST API 文档，不代表项目接入真实 LLM。
 
 - [产品设计](docs/product-design.md)
 - [接口文档](docs/API.md)
+- [Trace Evidence 说明](docs/trace-evidence.md)
 - [前端风格规范](docs/frontend-style.md)
 - [架构说明](docs/architecture.md)
 - [演示脚本](docs/demo-script.md)
