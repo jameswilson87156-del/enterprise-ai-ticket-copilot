@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { AiAnalysis, TicketDetail, TicketStatus } from '../types/ticket'
+import type { AiAnalysis, TicketDetail, TicketStatus, TraceEvidence } from '../types/ticket'
 
 const props = defineProps<{
   analysis: AiAnalysis | null
   ticket: TicketDetail | null
+  evidence: TraceEvidence | null
   busy: boolean
 }>()
 
@@ -35,6 +36,10 @@ const priorityNote = computed(() => {
 })
 
 const knowledgeCountLabel = computed(() => `${props.analysis?.knowledgeHits.length ?? 0} 条引用`)
+const evidenceProvider = computed(() => props.evidence?.aiAnalysis.provider ?? 'local-rule fallback')
+const evidenceModel = computed(() => props.evidence?.aiAnalysis.model ?? 'N/A (no LLM)')
+const evidenceFallback = computed(() => props.evidence?.aiAnalysis.fallbackStrategy ?? 'RULE_TEMPLATE')
+const evidenceRecord = computed(() => props.evidence?.aiAnalysis.recordId ?? '-')
 
 const emit = defineEmits<{
   status: [status: TicketStatus]
@@ -120,7 +125,13 @@ const emit = defineEmits<{
           <span>Trace 追踪入口</span>
           <strong>状态历史 + 生成记录</strong>
         </div>
-        <p>当前保留状态历史与生成记录，后续扩展 Workflow Step Trace。</p>
+        <div class="trace-entry__meta">
+          <small>provider: {{ evidenceProvider }}</small>
+          <small>model: {{ evidenceModel }}</small>
+          <small>fallback: {{ evidenceFallback }}</small>
+          <small>recordId: {{ evidenceRecord }}</small>
+        </div>
+        <p>当前保留状态历史与 generation_record；不声明完整 Trace / Span Runtime。</p>
       </section>
 
       <section class="human-review-box" aria-label="Human Review 操作区">

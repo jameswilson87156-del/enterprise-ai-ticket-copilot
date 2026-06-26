@@ -99,6 +99,24 @@
 - 本轮未新增截图文件；远端通过证据来自已登录 GitHub CLI 返回的 run 状态。
 - 说明：远端 workflow 输出中出现 Node.js 20 deprecation annotation，这是 GitHub Actions runner 对官方 action 运行时的提示，不影响本次 CI 结论；后续如需消除提示，可单独评估升级 workflow 的 Node 版本。
 
+## 追加验证记录：Trace Evidence 证据链增强
+
+- 验证时间：2026-06-26 23:41:52 +08:00
+- 验证分支：feat/enterprise-ticket-rag-copilot
+- 验证基准 commit：27cb110 feat: redesign ticket workbench for enterprise rag copilot
+- 后端运行目录：D:\workhome\enterprise-ai-ticket-copilot\backend
+- 后端执行命令：`mvn test`
+- 后端执行结果：通过
+- 后端结果摘要：`Tests run: 21, Failures: 0, Errors: 0, Skipped: 0`
+- 后端构建结论：`BUILD SUCCESS`
+- 新增后端覆盖：`TicketWorkflowIntegrationTest.traceEvidenceExposesGenerationRecordsRagReferencesAndHumanReviewBoundary` 覆盖 `/api/tickets/{id}/trace-evidence`，验证 `generation_record`、RAG Reference、状态历史和 Human Review 推导字段。
+- 前端运行目录：D:\workhome\enterprise-ai-ticket-copilot\frontend
+- 前端执行命令：`npm run build`
+- 前端执行结果：通过，`vue-tsc` 类型检查完成，Vite 生产构建完成。
+- 截图执行命令：`npm run screenshots`
+- 截图执行结果：通过，重新生成 `docs/images/*.png` 和 `docs/images/large/*.png`。
+- 边界说明：本轮不接真实 LLM，不新增向量数据库，不新增 Tool Runtime，不实现完整 Multi-Agent Runtime，不做无人值守自动关闭工单。
+
 ## 结论
 
-本次本地验证中，后端 `mvn test` 与前端 `npm run build` 均真实运行并通过。最新后端验证已包含 H2 内存库集成测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
+本次本地验证中，后端 `mvn test`、前端 `npm run build` 与前端截图脚本均真实运行并通过。最新后端验证已包含 H2 内存库集成测试和 Trace Evidence 接口测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。

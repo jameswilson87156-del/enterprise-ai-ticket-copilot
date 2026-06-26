@@ -8,6 +8,7 @@ import {
   fetchMetrics,
   fetchTicket,
   fetchTickets,
+  fetchTraceEvidence,
   isDemoRuntime,
   updateTicketStatus
 } from './api/tickets'
@@ -18,7 +19,7 @@ import StatusTimeline from './components/StatusTimeline.vue'
 import TicketDetailPanel from './components/TicketDetailPanel.vue'
 import TicketIntakePanel from './components/TicketIntakePanel.vue'
 import TicketQueue from './components/TicketQueue.vue'
-import type { AiAnalysis, CreateTicketRequest, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from './types/ticket'
+import type { AiAnalysis, CreateTicketRequest, TicketDetail, TicketStatus, TicketSummary, TraceEvidence, WorkbenchMetrics } from './types/ticket'
 
 type TicketFilter = 'ALL' | 'PENDING' | 'REVIEW' | 'KNOWLEDGE'
 
@@ -26,6 +27,7 @@ const tickets = shallowRef<TicketSummary[]>([])
 const selectedTicketId = shallowRef<string | null>(null)
 const selectedTicket = shallowRef<TicketDetail | null>(null)
 const selectedAnalysis = shallowRef<AiAnalysis | null>(null)
+const selectedTraceEvidence = shallowRef<TraceEvidence | null>(null)
 const metrics = shallowRef<WorkbenchMetrics | null>(null)
 const loading = shallowRef(false)
 const submitting = shallowRef(false)
@@ -77,54 +79,123 @@ const filteredTickets = computed(() => {
   })
 })
 
-const recentAiRecords = computed(() =>
-  tickets.value.slice(0, 4).map((ticket) => ({
-    id: ticket.id,
-    title: ticket.title,
-    category: ticket.category,
-    confidence: ticket.aiConfidence,
-    status: ticket.status
-  }))
-)
+const formatEvidenceTime = (value?: string | null) => {
+  if (!value) {
+    return '-'
+  }
+  return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value
+}
+
+const generationRows = computed(() => selectedTraceEvidence.value?.generationRecords ?? [])
+
+const traceStepRows = computed(() => selectedTraceEvidence.value?.stepTimeline ?? [])
 
 const knowledgeRows = computed(() => {
-  const hits = selectedAnalysis.value?.knowledgeHits ?? []
+  const references = selectedTraceEvidence.value?.ragReferences ?? []
   const draft = selectedTicket.value?.knowledgeDraft
   return [
-    ...hits.map((hit) => ({
-      id: hit.id,
-      title: hit.title,
-      meta: `${hit.owner} / 命中 ${hit.relevance}% / 校验 ${hit.lastVerifiedAt}`,
-      state: '可参考'
+    ...references.map((reference) => ({
+      id: reference.articleNo,
+      title: reference.knowledgeTitle,
+      meta: `${reference.sourcePath} / keyword: ${reference.matchedKeyword}`,
+      state: reference.usedInDraft ? 'used in draft' : 'reference only',
+      score: reference.relevanceScore == null ? '-' : `${reference.relevanceScore}%`,
+      snippet: reference.snippet,
+      runId: reference.linkedRunId
     })),
+    ...(!references.length
+      ? (selectedAnalysis.value?.knowledgeHits ?? []).map((hit) => ({
+          id: hit.id,
+          title: hit.title,
+          meta: `${hit.owner} / 命中 ${hit.relevance}% / 校验 ${hit.lastVerifiedAt}`,
+          state: 'analysis fallback',
+          score: `${hit.relevance}%`,
+          snippet: '后端 trace-evidence 不可用时，回退展示 ai-analysis 中的知识命中。',
+          runId: selectedTicket.value?.id ?? '-'
+        }))
+      : []),
     ...(draft
       ? [
           {
             id: draft.articleNo,
             title: draft.title,
             meta: `${draft.owner} / 来源 ${selectedTicket.value?.id ?? '-'} / ${draft.category}`,
-            state: draft.status === 'PUBLISHED' ? '已发布' : '待审核'
+            state: draft.status === 'PUBLISHED' ? 'published' : 'review required',
+            score: '-',
+            snippet: '知识草稿来自已解决工单，发布前仍需 Human-in-the-loop review。',
+            runId: selectedTraceEvidence.value?.runId ?? selectedTicket.value?.id ?? '-'
           }
         ]
       : [])
   ]
 })
 
+const humanReview = computed(() => selectedTraceEvidence.value?.humanReview ?? null)
+
 const humanRecords = computed(() =>
-  (selectedTicket.value?.timeline ?? [])
+  (selectedTraceEvidence.value?.statusHistory ?? [])
     .filter((event) => !['System', 'Rule Engine', 'Rule Template', '系统', '规则引擎', '规则模板'].includes(event.actor))
     .slice(-4)
     .reverse()
 )
 
 const selectedTraceSummary = computed(() => {
-  const events = selectedTicket.value?.timeline ?? []
+  const evidence = selectedTraceEvidence.value
+  if (!evidence) {
+    const events = selectedTicket.value?.timeline ?? []
+    return {
+      steps: events.length,
+      source: selectedTicket.value ? 'ticket_status_history / generation_record' : '未选择工单',
+      latest: events.at(-1)?.note ?? '等待工单选择后展示状态历史。',
+      totalLatency: 0,
+      reviewRequired: false,
+      mode: '等待 trace-evidence 接口或 demo fallback'
+    }
+  }
   return {
-    steps: events.length,
-    latest: events.at(-1)?.note ?? '等待工单选择后展示状态历史。',
-    source: selectedTicket.value ? 'ticket_status_history / generation_record' : '未选择工单'
+    steps: evidence.stepTimeline.length,
+    source: `${evidence.runId} / ${evidence.traceId}`,
+    latest: evidence.currentStep,
+    totalLatency: evidence.totalLatency,
+    reviewRequired: evidence.reviewRequired,
+    mode: evidence.traceMode
   }
 })
+
+const aiEvidence = computed(() => selectedTraceEvidence.value?.aiAnalysis ?? null)
+
+const traceMetaCells = computed(() => [
+  { label: 'ticketId', value: selectedTraceEvidence.value?.ticketId ?? selectedTicket.value?.id ?? '-' },
+  { label: 'runId', value: selectedTraceEvidence.value?.runId ?? '-' },
+  { label: 'traceId', value: selectedTraceEvidence.value?.traceId ?? '-' },
+  { label: 'reviewRequired', value: selectedTraceEvidence.value ? String(selectedTraceEvidence.value.reviewRequired) : '-' }
+])
+
+const generationJsonSummary = computed(() => {
+  const evidence = aiEvidence.value
+  if (!evidence) {
+    return '{}'
+  }
+  return JSON.stringify(
+    {
+      analysisId: evidence.analysisId,
+      recordId: evidence.recordId,
+      provider: evidence.provider,
+      model: evidence.model,
+      fallbackStrategy: evidence.fallbackStrategy,
+      latencyMs: evidence.latencyMs,
+      status: evidence.status,
+      createdAt: evidence.createdAt,
+      errorMessage: evidence.errorMessage,
+      promptSummary: evidence.promptSummary,
+      responseSummary: evidence.responseSummary
+    },
+    null,
+    2
+  )
+})
+
+const statusHistoryRows = computed(() => selectedTraceEvidence.value?.statusHistory ?? [])
 
 const runtimeText = computed(() => {
   if (error.value) {
@@ -146,6 +217,7 @@ const loadTickets = async () => {
     selectedTicketId.value = null
     selectedTicket.value = null
     selectedAnalysis.value = null
+    selectedTraceEvidence.value = null
   }
 }
 
@@ -153,9 +225,11 @@ const selectTicket = async (id: string) => {
   selectedTicketId.value = id
   selectedTicket.value = null
   selectedAnalysis.value = null
-  const [detail, analysis] = await Promise.all([fetchTicket(id), fetchAiAnalysis(id)])
+  selectedTraceEvidence.value = null
+  const [detail, analysis, traceEvidence] = await Promise.all([fetchTicket(id), fetchAiAnalysis(id), fetchTraceEvidence(id)])
   selectedTicket.value = detail
   selectedAnalysis.value = analysis
+  selectedTraceEvidence.value = traceEvidence
 }
 
 const refreshSelected = async () => {
@@ -338,6 +412,7 @@ onMounted(() => {
             <AiRecommendationPanel
               :analysis="selectedAnalysis"
               :ticket="selectedTicket"
+              :evidence="selectedTraceEvidence"
               :busy="loading"
               @status="changeStatus"
               @draft="generateDraft"
@@ -351,71 +426,110 @@ onMounted(() => {
             <TicketIntakePanel :submitting="submitting" :reset-version="formResetVersion" @submit="submitTicket" />
           </div>
           <div class="operations-column">
-            <section class="operations-grid" data-screenshot="knowledge-base" aria-label="知识库与人工确认记录">
-              <article class="ops-panel">
+            <section class="operations-grid operations-grid--evidence" data-screenshot="knowledge-base" aria-label="Trace、生成记录、RAG 引用和人工审核证据链">
+              <article class="ops-panel evidence-panel">
                 <div class="ops-panel__heading">
-                  <p class="eyebrow">Draft Reply</p>
-                  <h2>最近模板化建议草稿</h2>
-                </div>
-                <div class="ops-list">
-                  <div v-for="record in recentAiRecords" :key="record.id" class="ops-row">
-                    <div>
-                      <span>{{ record.id }} / {{ record.category }}</span>
-                      <strong>{{ record.title }}</strong>
-                    </div>
-                    <b>{{ record.confidence }}%</b>
-                  </div>
-                </div>
-              </article>
-
-              <article class="ops-panel ops-panel--wide">
-                <div class="ops-panel__heading">
-                  <p class="eyebrow">Knowledge Base / RAG 引用视图</p>
-                  <h2>关键词知识匹配与沉淀</h2>
-                </div>
-                <p class="ops-panel__note">当前基于关键词匹配与知识引用，向量检索为后续扩展。</p>
-                <div v-if="knowledgeRows.length" class="knowledge-table">
-                  <div v-for="row in knowledgeRows" :key="row.id" class="knowledge-table__row">
-                    <span>{{ row.id }}</span>
-                    <strong>{{ row.title }}</strong>
-                    <small>{{ row.meta }}</small>
-                    <em>{{ row.state }}</em>
-                  </div>
-                </div>
-                <div v-else class="empty-state">
-                  <strong>暂无知识命中</strong>
-                  <span>处理完成后可以生成知识草稿，人工确认后再发布。</span>
-                </div>
-              </article>
-
-              <article class="ops-panel">
-                <div class="ops-panel__heading">
-                  <p class="eyebrow">Trace 追踪入口</p>
-                  <h2>状态历史与生成记录</h2>
+                  <p class="eyebrow">Ticket Copilot Trace</p>
+                  <h2>Trace 摘要</h2>
                 </div>
                 <div class="trace-card">
                   <span>{{ selectedTraceSummary.source }}</span>
-                  <strong>{{ selectedTraceSummary.steps }} steps</strong>
+                  <strong>{{ selectedTraceSummary.steps }} steps / {{ selectedTraceSummary.totalLatency }}ms</strong>
                   <p>{{ selectedTraceSummary.latest }}</p>
-                  <small>后续可扩展 Workflow Step Trace，不代表当前已有完整 Trace / Span 数据模型。</small>
+                  <small>{{ selectedTraceSummary.mode }}</small>
+                </div>
+                <div class="trace-meta-grid">
+                  <div v-for="cell in traceMetaCells" :key="cell.label">
+                    <span>{{ cell.label }}</span>
+                    <strong>{{ cell.value }}</strong>
+                  </div>
+                </div>
+                <div v-if="traceStepRows.length" class="trace-step-list">
+                  <div v-for="step in traceStepRows" :key="`${step.recordId}-${step.stepName}`" class="trace-step-row">
+                    <span>{{ step.stepName }}</span>
+                    <strong>{{ step.status }}</strong>
+                    <small>{{ step.sourceType }} / {{ step.latencyMs ?? '-' }}ms / {{ formatEvidenceTime(step.createdAt) }}</small>
+                  </div>
                 </div>
               </article>
 
-              <article class="ops-panel">
+              <article class="ops-panel ops-panel--wide evidence-panel">
+                <div class="ops-panel__heading">
+                  <p class="eyebrow">AI Analysis / generation_record</p>
+                  <h2>生成记录证据</h2>
+                </div>
+                <p class="ops-panel__note">字段来自 `ticket_ai_analysis` 与 `generation_record`；Provider 为 local-rule fallback，Model 为 N/A，不代表真实 LLM 调用。</p>
+                <div v-if="aiEvidence" class="provider-strip">
+                  <span>analysisId {{ aiEvidence.analysisId ?? '-' }}</span>
+                  <span>recordId {{ aiEvidence.recordId ?? '-' }}</span>
+                  <span>{{ aiEvidence.provider }}</span>
+                  <span>{{ aiEvidence.model }}</span>
+                  <span>{{ aiEvidence.fallbackStrategy }}</span>
+                </div>
+                <pre class="generation-json"><code>{{ generationJsonSummary }}</code></pre>
+                <div v-if="generationRows.length" class="generation-list">
+                  <div v-for="record in generationRows" :key="record.recordId" class="generation-row">
+                    <div>
+                      <span>#{{ record.recordId }} / {{ record.businessType }}</span>
+                      <strong>{{ record.sourceType }} · {{ record.status }}</strong>
+                      <small>{{ record.promptSummary }}</small>
+                    </div>
+                    <div>
+                      <b>{{ record.latencyMs }}ms</b>
+                      <small>{{ formatEvidenceTime(record.createdAt) }}</small>
+                    </div>
+                    <p>{{ record.responseSummary }}</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="ops-panel ops-panel--wide evidence-panel">
+                <div class="ops-panel__heading">
+                  <p class="eyebrow">RAG Reference</p>
+                  <h2>关键词知识引用</h2>
+                </div>
+                <p class="ops-panel__note">当前是 keyword-based RAG reference；`sourcePath` 来自知识条目编号，向量数据库和 embedding 检索尚未实现。</p>
+                <div v-if="knowledgeRows.length" class="rag-reference-list">
+                  <article v-for="row in knowledgeRows" :key="row.id" class="rag-reference-row">
+                    <div>
+                      <span>{{ row.id }}</span>
+                      <strong>{{ row.title }}</strong>
+                      <small>{{ row.meta }}</small>
+                    </div>
+                    <b>{{ row.score }}</b>
+                    <em>{{ row.state }}</em>
+                    <p>{{ row.snippet }}</p>
+                    <small>linkedRunId: {{ row.runId }}</small>
+                  </article>
+                </div>
+                <div v-else class="empty-state">
+                  <strong>暂无知识引用</strong>
+                  <span>后端没有匹配知识条目时保持空状态，不补写虚假 RAG 数据。</span>
+                </div>
+              </article>
+
+              <article class="ops-panel evidence-panel">
                 <div class="ops-panel__heading">
                   <p class="eyebrow">Human Review</p>
-                  <h2>人工确认记录</h2>
+                  <h2>人工审核状态</h2>
                 </div>
-                <div v-if="humanRecords.length" class="approval-list">
-                  <div v-for="record in humanRecords" :key="`${record.time}-${record.actor}-${record.note}`" class="approval-row">
-                    <time>{{ record.time }}</time>
+                <div v-if="humanReview" class="human-review-card">
+                  <span>{{ humanReview.reviewStatus }}</span>
+                  <strong>{{ humanReview.decision }}</strong>
+                  <p>{{ humanReview.comment }}</p>
+                  <small>{{ humanReview.reviewer }} / {{ formatEvidenceTime(humanReview.reviewedAt) }}</small>
+                  <em>{{ humanReview.nextAction }}</em>
+                </div>
+                <div class="status-history-list">
+                  <div v-for="record in statusHistoryRows.slice(-5)" :key="`${record.historyId}-${record.toStatus}`" class="status-history-row">
+                    <time>{{ formatEvidenceTime(record.occurredAt) }}</time>
                     <div>
-                      <strong>{{ record.actor }}</strong>
-                      <span>{{ record.note }}</span>
+                      <strong>{{ record.fromStatus ?? 'START' }} → {{ record.toStatus }}</strong>
+                      <span>{{ record.actor }} / {{ record.note }}</span>
                     </div>
                   </div>
                 </div>
-                <div v-else class="empty-state">
+                <div v-if="!humanReview && !humanRecords.length" class="empty-state">
                   <strong>等待人工动作</strong>
                   <span>建议草稿不会自动改变工单状态。</span>
                 </div>

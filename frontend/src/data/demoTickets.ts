@@ -5,6 +5,7 @@ import type {
   TicketDetail,
   TicketStatus,
   TicketSummary,
+  TraceEvidence,
   WorkbenchMetrics
 } from '../types/ticket'
 
@@ -464,6 +465,209 @@ let tickets = seeds.map((seed) => clone(seed.summary))
 let ticketDetails = Object.fromEntries(seeds.map((seed) => [seed.detail.id, clone(seed.detail)])) as Record<string, TicketDetail>
 let analyses = Object.fromEntries(seeds.map((seed) => [seed.analysis.ticketId, clone(seed.analysis)])) as Record<string, AiAnalysis>
 
+const evidenceKeywordCandidates = ['traceId', '500', 'Redis', 'BeanCreationException', 'SQL', '403', 'PAYMENT_GATEWAY_URL', 'FAQ', '8080']
+
+function summarizeText(value: string, maxLength = 150) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value
+}
+
+function toDemoTimestamp(time: string) {
+  return /^\d{2}:\d{2}$/.test(time) ? `2026-06-20T${time}:00` : '2026-06-20T12:00:00'
+}
+
+function currentStep(status: TicketStatus) {
+  switch (status) {
+    case 'PENDING_CLASSIFICATION':
+      return 'LOCAL_RULE_CLASSIFICATION'
+    case 'PENDING_PROCESS':
+      return 'HUMAN_REVIEW_REQUIRED'
+    case 'IN_PROGRESS':
+      return 'HUMAN_PROCESSING'
+    case 'RESOLVED':
+      return 'KNOWLEDGE_REVIEW_READY'
+    case 'KNOWLEDGE_BASED':
+      return 'KNOWLEDGE_PUBLISHED'
+    default:
+      return 'UNKNOWN'
+  }
+}
+
+function reviewStatus(status: TicketStatus) {
+  switch (status) {
+    case 'PENDING_PROCESS':
+      return 'PENDING'
+    case 'IN_PROGRESS':
+      return 'IN_PROGRESS'
+    case 'RESOLVED':
+    case 'KNOWLEDGE_BASED':
+      return 'COMPLETED'
+    default:
+      return 'WAITING_FOR_RULE_ANALYSIS'
+  }
+}
+
+function reviewDecision(status: string) {
+  switch (status) {
+    case 'IN_PROGRESS':
+      return 'TAKE_OWNERSHIP'
+    case 'RESOLVED':
+      return 'APPROVED_RESOLUTION'
+    case 'KNOWLEDGE_BASED':
+      return 'APPROVED_KNOWLEDGE'
+    default:
+      return 'STATUS_UPDATED'
+  }
+}
+
+function nextAction(status: TicketStatus) {
+  switch (status) {
+    case 'PENDING_PROCESS':
+      return '人工确认接手、补充信息或解决状态。'
+    case 'IN_PROGRESS':
+      return '人工复核处理结果，再确认解决或继续排查。'
+    case 'RESOLVED':
+      return '可生成知识草稿，并由知识审核人确认发布。'
+    case 'KNOWLEDGE_BASED':
+      return '已完成知识沉淀；不执行无人值守自动关闭。'
+    default:
+      return '等待本地规则分类和模板化建议草稿生成。'
+  }
+}
+
+function isHumanActor(actor: string) {
+  return !['System', 'Rule Engine', 'Rule Template', '系统', '规则引擎', '规则模板'].includes(actor)
+}
+
+function buildGenerationRecords(detail: TicketDetail, analysis: AiAnalysis): TraceEvidence['generationRecords'] {
+  const createdAt = toDemoTimestamp(detail.timeline[1]?.time ?? detail.timeline[0]?.time ?? '12:00')
+  const provider = 'local-rule fallback'
+  const model = 'N/A (no LLM)'
+  return [
+    {
+      recordId: `DEMO-${detail.id}-GEN-1`,
+      businessType: 'CLASSIFICATION',
+      sourceType: 'RULE_ENGINE',
+      provider,
+      model,
+      fallbackStrategy: 'keyword rule classification',
+      latencyMs: 12,
+      status: 'SUCCESS',
+      createdAt,
+      errorMessage: null,
+      promptSummary: summarizeText(detail.description),
+      responseSummary: analysis.classification
+    },
+    {
+      recordId: `DEMO-${detail.id}-GEN-2`,
+      businessType: 'KNOWLEDGE_MATCH',
+      sourceType: 'KEYWORD_MATCHER',
+      provider,
+      model,
+      fallbackStrategy: 'keyword-based RAG reference',
+      latencyMs: 9,
+      status: 'SUCCESS',
+      createdAt,
+      errorMessage: null,
+      promptSummary: analysis.classification,
+      responseSummary: `matched=${analysis.knowledgeHits.length}`
+    },
+    {
+      recordId: `DEMO-${detail.id}-GEN-3`,
+      businessType: 'RECOMMENDATION',
+      sourceType: 'TEMPLATE_ENGINE',
+      provider,
+      model,
+      fallbackStrategy: 'rule template draft',
+      latencyMs: 15,
+      status: 'SUCCESS',
+      createdAt,
+      errorMessage: null,
+      promptSummary: analysis.classification,
+      responseSummary: summarizeText(analysis.replySuggestion)
+    }
+  ]
+}
+
+function buildStatusHistory(detail: TicketDetail): TraceEvidence['statusHistory'] {
+  return detail.timeline.map((event, index) => ({
+    historyId: `DEMO-${detail.id}-H-${index + 1}`,
+    fromStatus: index === 0 ? null : detail.timeline[index - 1].state,
+    toStatus: event.state,
+    actor: event.actor,
+    note: event.note,
+    occurredAt: toDemoTimestamp(event.time)
+  }))
+}
+
+function buildRagReferences(detail: TicketDetail, analysis: AiAnalysis, runId: string): TraceEvidence['ragReferences'] {
+  const ticketText = [detail.title, detail.description, detail.systemContext.application, ...detail.errorLogs].join(' ').toLowerCase()
+  return analysis.knowledgeHits.map((hit) => ({
+    articleNo: hit.id,
+    knowledgeTitle: hit.title,
+    sourcePath: `knowledge_article/${hit.id}`,
+    matchedKeyword:
+      evidenceKeywordCandidates.find((keyword) => ticketText.includes(keyword.toLowerCase()) || hit.title.toLowerCase().includes(keyword.toLowerCase())) ??
+      'keyword not persisted in demo fallback',
+    relevanceScore: hit.relevance,
+    snippet: summarizeText(analysis.classificationReason),
+    usedInDraft: true,
+    linkedTicketId: detail.id,
+    linkedRunId: runId
+  }))
+}
+
+function buildHumanReview(detail: TicketDetail): TraceEvidence['humanReview'] {
+  const latestHumanAction = [...detail.timeline].reverse().find((event) => isHumanActor(event.actor))
+  return {
+    reviewStatus: reviewStatus(detail.status),
+    reviewer: latestHumanAction?.actor ?? '未分配',
+    decision: latestHumanAction ? reviewDecision(latestHumanAction.state) : 'PENDING_REVIEW',
+    comment: latestHumanAction?.note ?? '等待人工确认建议草稿、状态流转或知识发布。',
+    reviewedAt: latestHumanAction ? toDemoTimestamp(latestHumanAction.time) : null,
+    nextAction: nextAction(detail.status)
+  }
+}
+
+function buildTraceEvidence(detail: TicketDetail, analysis: AiAnalysis): TraceEvidence {
+  const runId = `RUN-${detail.id}`
+  const generationRecords = buildGenerationRecords(detail, analysis)
+  return {
+    ticketId: detail.id,
+    runId,
+    traceId: `TRACE-${detail.id}`,
+    traceMode: 'demo-fallback derived from local detail/analysis/timeline; no distributed trace/span runtime',
+    currentStep: currentStep(detail.status),
+    stepTimeline: generationRecords.map((record) => ({
+      stepName: record.businessType,
+      recordId: record.recordId,
+      sourceType: record.sourceType,
+      status: record.status,
+      latencyMs: record.latencyMs,
+      createdAt: record.createdAt,
+      summary: record.responseSummary
+    })),
+    statusHistory: buildStatusHistory(detail),
+    totalLatency: generationRecords.reduce((sum, record) => sum + record.latencyMs, 0),
+    reviewRequired: ['PENDING_CLASSIFICATION', 'PENDING_PROCESS', 'IN_PROGRESS'].includes(detail.status),
+    aiAnalysis: {
+      analysisId: `DEMO-ANALYSIS-${detail.id}`,
+      recordId: generationRecords[2].recordId,
+      provider: 'local-rule fallback',
+      model: 'N/A (no LLM)',
+      fallbackStrategy: 'RULE_TEMPLATE',
+      latencyMs: generationRecords.reduce((sum, record) => sum + record.latencyMs, 0),
+      status: 'SUCCESS',
+      createdAt: generationRecords[2].createdAt,
+      errorMessage: null,
+      promptSummary: generationRecords[2].promptSummary,
+      responseSummary: generationRecords[2].responseSummary
+    },
+    generationRecords,
+    ragReferences: buildRagReferences(detail, analysis, runId),
+    humanReview: buildHumanReview(detail)
+  }
+}
+
 function ensureTicket(id: string) {
   const detail = ticketDetails[id]
   if (!detail) {
@@ -521,6 +725,15 @@ export function demoFetchTicket(id: string) {
 
 export function demoFetchAiAnalysis(id: string) {
   return wait(analyses[id])
+}
+
+export function demoFetchTraceEvidence(id: string) {
+  const detail = ensureTicket(id)
+  const analysis = analyses[id]
+  if (!analysis) {
+    throw new Error(`Demo analysis not found: ${id}`)
+  }
+  return wait(buildTraceEvidence(detail, analysis))
 }
 
 export function demoFetchMetrics(): Promise<WorkbenchMetrics> {

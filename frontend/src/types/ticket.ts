@@ -65,6 +65,91 @@ export interface AiAnalysis {
   riskNotes: string[]
 }
 
+export interface AiAnalysisEvidence {
+  analysisId: string | number | null
+  recordId: string | number | null
+  provider: string
+  model: string
+  fallbackStrategy: string
+  latencyMs: number | null
+  status: string
+  createdAt: string | null
+  errorMessage: string | null
+  promptSummary: string
+  responseSummary: string
+}
+
+export interface GenerationRecordEvidence {
+  recordId: string | number
+  businessType: string
+  sourceType: string
+  provider: string
+  model: string
+  fallbackStrategy: string
+  latencyMs: number
+  status: string
+  createdAt: string
+  errorMessage: string | null
+  promptSummary: string
+  responseSummary: string
+}
+
+export interface TraceStepEvidence {
+  stepName: string
+  recordId: string | number | null
+  sourceType: string
+  status: string
+  latencyMs: number | null
+  createdAt: string | null
+  summary: string
+}
+
+export interface StatusHistoryEvidence {
+  historyId: string | number | null
+  fromStatus: string | null
+  toStatus: string
+  actor: string
+  note: string
+  occurredAt: string | null
+}
+
+export interface RagReferenceEvidence {
+  articleNo: string
+  knowledgeTitle: string
+  sourcePath: string
+  matchedKeyword: string
+  relevanceScore: number | null
+  snippet: string
+  usedInDraft: boolean
+  linkedTicketId: string
+  linkedRunId: string
+}
+
+export interface HumanReviewEvidence {
+  reviewStatus: string
+  reviewer: string
+  decision: string
+  comment: string
+  reviewedAt: string | null
+  nextAction: string
+}
+
+export interface TraceEvidence {
+  ticketId: string
+  runId: string
+  traceId: string
+  traceMode: string
+  currentStep: string
+  stepTimeline: TraceStepEvidence[]
+  statusHistory: StatusHistoryEvidence[]
+  totalLatency: number
+  reviewRequired: boolean
+  aiAnalysis: AiAnalysisEvidence
+  generationRecords: GenerationRecordEvidence[]
+  ragReferences: RagReferenceEvidence[]
+  humanReview: HumanReviewEvidence
+}
+
 export interface KnowledgeDraft {
   articleNo: string
   title: string

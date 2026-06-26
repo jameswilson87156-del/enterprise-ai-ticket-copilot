@@ -62,6 +62,7 @@
 | `GET` | `/api/tickets/metrics` | 查询工作台指标 | 无 | 返回 `WorkbenchMetrics` | `knowledgeCoverage` 是兼容字段名，前端展示为知识关联率 |
 | `GET` | `/api/tickets/{id}` | 查看工单详情、上下文、状态历史和知识草稿 | 路径参数 `id` | 返回 `TicketDetail` | 工单不存在返回统一 `404` |
 | `GET` | `/api/tickets/{id}/ai-analysis` | 查询规则引擎辅助分析结果 | 路径参数 `id` | 返回 `AiAnalysis` | 路径保留历史命名；当前不是 LLM 分析 |
+| `GET` | `/api/tickets/{id}/trace-evidence` | 查询 Trace、生成记录、RAG 引用和 Human Review 证据链 | 路径参数 `id` | 返回 `TraceEvidence` | 只读聚合已有表；不代表完整 Trace / Span Runtime |
 | `POST` | `/api/tickets/{id}/status` | 人工确认工单状态流转 | `UpdateTicketStatusRequest` | 返回更新后的 `TicketDetail` | 只接受源码允许的状态值 |
 | `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决或已沉淀工单生成知识草稿，可选直接发布 | `CreateKnowledgeDraftRequest` | 返回 `KnowledgeDraft` | 非已解决工单会返回统一 `400` |
 | `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 | 路径参数 `articleNo` | 返回 `KnowledgeDraft` | 已发布草稿重复确认会直接返回当前结果 |
@@ -215,7 +216,28 @@
 
 如果工单不存在，返回统一 `404`；如果工单存在但没有分析记录，也返回统一 `404`，message 为 `AI analysis not found.`。
 
-### 5.3 人工确认状态流转
+### 5.3 查询 Trace Evidence
+
+`GET /api/tickets/{id}/trace-evidence`
+
+该接口聚合返回当前工单的规则分析记录、生成记录、状态历史、关键词知识引用和人工审核状态。数据来源包括 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`。
+
+关键字段说明：
+
+| 字段 | 来源 / 说明 |
+| --- | --- |
+| `ticketId` | `support_ticket.ticket_no` |
+| `runId` / `traceId` | 基于工单号派生的展示标识，不是分布式 Trace / Span Runtime |
+| `aiAnalysis.analysisId` | `ticket_ai_analysis.id` |
+| `generationRecords[].recordId` | `generation_record.id` |
+| `generationRecords[].latencyMs` | `generation_record.latency_ms` |
+| `ragReferences[].sourcePath` | `knowledge_article/{articleNo}` |
+| `ragReferences[].relevanceScore` | 通过现有关键词匹配服务重算；历史表未持久化每次 score |
+| `humanReview` | 从状态历史中的人工 actor 推导，不是独立审核任务表 |
+
+接口边界：Provider 仍为 `local-rule fallback`，Model 返回 `N/A (no LLM)`；当前没有真实 LLM、向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
+
+### 5.4 人工确认状态流转
 
 `POST /api/tickets/{id}/status`
 
@@ -237,7 +259,7 @@
 
 传入其他状态会返回统一 `400`，例如 `Unsupported status: CLOSED`。
 
-### 5.4 生成知识草稿
+### 5.5 生成知识草稿
 
 `POST /api/tickets/{id}/knowledge-draft`
 
@@ -252,7 +274,7 @@
 
 只有状态为 `RESOLVED` 或 `KNOWLEDGE_BASED` 的工单可以生成知识草稿。`confirm` 为 `true` 时会在生成草稿后直接发布，并把工单状态更新为 `KNOWLEDGE_BASED`；该动作仍表示“人工确认后发布”，不是系统自动决策。
 
-### 5.5 统一错误响应示例
+### 5.6 统一错误响应示例
 
 `POST /api/tickets` 传入空对象：
 

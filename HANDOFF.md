@@ -177,6 +177,19 @@
 
 ## 历史记录
 
+### 2026-06-26 — Codex — 强化工单 Copilot Trace Evidence 证据链
+
+- 本轮任务：细化 Trace / generation_record / Human Review / RAG Reference 的展示证据链，不继续大改 UI，不处理 Docker Compose。
+- 后端改动：新增 `TraceEvidence` 响应模型和 `GET /api/tickets/{id}/trace-evidence` 只读接口；`TicketWorkflowService` 聚合 `ticket_ai_analysis`、`generation_record`、`ticket_status_history`、`knowledge_article`；新增 H2 集成测试覆盖接口返回。
+- 前端改动：新增 Trace Evidence 类型、API 调用和 Demo fallback；工作台底部证据区展示 Trace 摘要、Provider / Model / Fallback、Generation Record JSON 摘要、RAG Reference、Human Review 和 Status History；右侧 Copilot 面板补充 provider/model/fallback/recordId 标签。
+- 真实数据来源：`analysisId` 来自 `ticket_ai_analysis.id`；`recordId`、`latencyMs`、`status`、`createdAt`、`promptSummary`、`responseSummary` 来自 `generation_record`；状态历史来自 `ticket_status_history`；知识引用来自 `knowledge_article`。
+- fallback / 推导字段：`runId` / `traceId` 基于工单号派生；`currentStep` 由工单状态映射；`totalLatency` 为生成记录耗时求和；RAG `relevanceScore` 通过现有关键词匹配服务重算；Human Review 从状态历史中的人工 actor 推导；Demo fallback 集中在 `frontend/src/data/demoTickets.ts`，由 demo 工单、analysis 和 timeline 派生。
+- 边界说明：仍是 `local-rule fallback`、`keyword-based RAG reference`、`Human-in-the-loop review`；未声明真实 LLM、向量数据库、Tool Runtime、完整 Multi-Agent Runtime、生产级权限或无人值守自动关闭工单。
+- 文档改动：新增 `docs/trace-evidence.md`，更新 README API 表、`docs/API.md`、`docs/architecture.md`、`docs/frontend-style.md`、`docs/TEST_REPORT.md` 和 TODO。
+- 验证结果：`backend/` 下 `mvn test` 通过，`Tests run: 21, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`；`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过并刷新 README 截图。
+- 安全与边界扫描：未发现密钥类敏感内容；未将 `.env`、`node_modules`、`dist`、`target`、`build` 或日志文件加入 Git；README/docs 中相关 LLM、向量库、Multi-Agent、自动关闭等词均用于否定或边界说明。
+- 剩余风险：`generation_record` 当前没有 `error_message`、真实 provider/model 字段；知识命中 score 未持久化到历史引用表；Human Review 不是独立审核任务表；`runId/traceId` 不是生产分布式 trace。
+
 ### 2026-06-26 — Codex — 按 02 参考图改造真实前端工作台
 
 - 本轮任务：按 `docs/design/references/02-ticket-workbench-ai-concept-cn.png` 的视觉方向改造真实 Vue 前端工作台。

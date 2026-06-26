@@ -1,4 +1,4 @@
-import type { AiAnalysis, CreateTicketRequest, KnowledgeDraft, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from '../types/ticket'
+import type { AiAnalysis, CreateTicketRequest, KnowledgeDraft, TicketDetail, TicketStatus, TicketSummary, TraceEvidence, WorkbenchMetrics } from '../types/ticket'
 import {
   demoConfirmKnowledgeDraft,
   demoCreateKnowledgeDraft,
@@ -7,6 +7,7 @@ import {
   demoFetchMetrics,
   demoFetchTicket,
   demoFetchTickets,
+  demoFetchTraceEvidence,
   demoUpdateTicketStatus
 } from '../data/demoTickets'
 
@@ -46,6 +47,13 @@ export function fetchAiAnalysis(id: string) {
     return demoFetchAiAnalysis(id)
   }
   return request<AiAnalysis>(`/api/tickets/${encodeURIComponent(id)}/ai-analysis`)
+}
+
+export function fetchTraceEvidence(id: string) {
+  if (isDemoRuntime) {
+    return demoFetchTraceEvidence(id)
+  }
+  return request<TraceEvidence>(`/api/tickets/${encodeURIComponent(id)}/trace-evidence`)
 }
 
 export function fetchMetrics() {

@@ -34,7 +34,8 @@
 - docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 前端真实工作台已按深色企业 RAG Copilot 方向改造，主图突出左导航、顶部运行边界、三栏工单处理、Copilot / RAG / Human Review 面板，README 截图区继续使用 Playwright 真实页面截图。
-- 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
+- Trace Evidence 已新增只读接口和前端证据区，展示 `generation_record`、状态历史、关键词知识引用和 Human Review 推导字段；`runId/traceId` 明确为基于工单号派生的展示标识。
+- 当前存在 6 个后端测试文件，合计 21 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 
 ## 3. 当前不能夸大的能力
 
@@ -95,11 +96,12 @@
 - 增加 GitHub Actions CI，至少自动执行后端测试。（已完成：新增 `.github/workflows/ci.yml`，在 `push` / `pull_request` 时运行后端 `mvn test` 和前端 `npm run build`）
 - 增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 - 优化前端体验与截图素材，保证作品集展示统一。（已完成：重做深色企业 RAG Copilot 工作台、左导航、顶部运行边界、三栏工单处理、README 主图与两列辅助截图展示，并重新生成真实前端截图）
+- 细化 Trace / generation_record / RAG Reference / Human Review 证据链展示。（已完成：新增 `/api/tickets/{id}/trace-evidence` 只读聚合接口，前端证据区接入真实 `generation_record`、状态历史、关键词引用和人工审核推导字段，Demo fallback 集中管理）
 - 补充面试 Q&A 文档，说明项目边界、规则引擎取舍、状态机设计和后续可扩展方向。
 
 ## 7. 下一轮建议任务
 
-下一轮建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
+下一轮可再单独处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。本轮已按要求没有处理 Docker Compose。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 

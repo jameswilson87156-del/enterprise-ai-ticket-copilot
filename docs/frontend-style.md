@@ -51,7 +51,9 @@ Shadow: 0 24px 60px rgba(0, 0, 0, 0.28)
 - 当前工单详情按问题描述、系统上下文、日志、业务上下文和处理记录分层。
 - Copilot 面板必须展示规则引擎辅助分类、优先级判断、关键词知识匹配、模板化建议草稿、风险提示与 Human Review 操作区。
 - Knowledge Base / RAG 区域必须说明当前基于关键词匹配与知识引用，向量检索是后续扩展。
-- Trace 区域必须说明当前保留状态历史与生成记录，后续可扩展 Workflow Step Trace。
+- Trace 区域必须展示 `ticketId`、派生 `runId/traceId`、当前步骤、状态历史和 `generation_record` 摘要，并说明当前不是完整 Workflow Step Trace / Span Runtime。
+- RAG Reference 区域必须展示知识标题、`sourcePath`、命中关键词、相关度、片段、是否用于草稿和关联工单/运行标识；没有真实命中时保持空状态。
+- Human Review 区域必须展示人工审核状态、reviewer、decision、comment、reviewedAt 与 nextAction；当前数据由状态历史推导，不能包装成完整审核中心。
 
 ## 交互原则
 
