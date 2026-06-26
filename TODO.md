@@ -1,14 +1,14 @@
-﻿# Enterprise AI Ticket Copilot TODO 路线图
+﻿# Enterprise Ticket RAG Copilot TODO 路线图
 
 > 本文件用于后续 Claude / Codex 本地协作交接。每轮只处理一个明确、可验收的小任务；不要把未验证能力写成已完成，也不要把规则引擎包装成真实大模型。
 
 ## 1. 项目定位
 
-本项目是一个企业内部工单辅助处理系统，适合作为大三实习简历的第二项目。推荐定位为：
+本项目是一个企业工单知识库智能助手，适合作为大三实习简历的第二项目。推荐定位为：
 
 - Spring Boot 3 + Vue 3 企业工单工作流系统
 - 规则引擎辅助分类系统
-- 企业内部支持团队的工单流转、知识匹配、建议草稿和人工确认演示项目
+- 企业内部支持团队的工单流转、关键词 RAG Reference、建议草稿和人工确认演示项目
 
 当前项目可以强调工程闭环、分层架构、数据表设计、状态流转、审计记录和前端交互演示；不要写成真实大模型项目、生产级 AI 平台或完整 RAG 系统。
 
@@ -36,6 +36,8 @@
 - 前端真实工作台已按深色企业 RAG Copilot 方向改造，主图突出左导航、顶部运行边界、三栏工单处理、Copilot / RAG / Human Review 面板，README 截图区继续使用 Playwright 真实页面截图。
 - Trace Evidence 已新增只读接口和前端证据区，展示 `generation_record`、状态历史、关键词知识引用和 Human Review 推导字段；`runId/traceId` 明确为基于工单号派生的展示标识。
 - 当前存在 6 个后端测试文件，合计 21 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
+- README 已收口为 `Enterprise Ticket RAG Copilot / 企业工单知识库智能助手` 投递页，引用 `docs/images/` 最新真实浏览器截图。
+- docs/resume-evidence.md 已补充简历 bullet、技术亮点和面试追问回答；当前项目已具备作为第二简历项目展示的基本材料。
 
 ## 3. 当前不能夸大的能力
 
@@ -97,13 +99,17 @@
 - 增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 - 优化前端体验与截图素材，保证作品集展示统一。（已完成：重做深色企业 RAG Copilot 工作台、左导航、顶部运行边界、三栏工单处理、README 主图与两列辅助截图展示，并重新生成真实前端截图）
 - 细化 Trace / generation_record / RAG Reference / Human Review 证据链展示。（已完成：新增 `/api/tickets/{id}/trace-evidence` 只读聚合接口，前端证据区接入真实 `generation_record`、状态历史、关键词引用和人工审核推导字段，Demo fallback 集中管理）
-- 补充面试 Q&A 文档，说明项目边界、规则引擎取舍、状态机设计和后续可扩展方向。
+- 补充面试 Q&A 文档，说明项目边界、规则引擎取舍、状态机设计和后续可扩展方向。（已完成：新增 `docs/resume-evidence.md`，README 链接简历证据与 Trace Evidence 文档）
 
 ## 7. 下一轮建议任务
 
-下一轮可再单独处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。本轮已按要求没有处理 Docker Compose。
+当前项目已具备第二简历项目展示条件。下一步建议按顺序单独处理：
 
-不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
+1. 创建 PR。
+2. 合并 `feat/enterprise-ticket-rag-copilot` 到 `main`。
+3. 可选再单独处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
+
+不要同时处理 PR、合并、Docker Compose 或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 
 ## 8. 任务记录格式
 

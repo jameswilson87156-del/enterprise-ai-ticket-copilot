@@ -177,6 +177,18 @@
 
 ## 历史记录
 
+### 2026-06-27 — Codex — README 与简历证据收口
+
+- 本轮任务：把 Enterprise Ticket RAG Copilot 包装成可投递、可展示、可面试讲清楚的第二简历项目；不改后端业务逻辑、不改前端页面结构、不新增接口、不做 Docker Compose。
+- README 收口：标题与定位调整为 `Enterprise Ticket RAG Copilot / 企业工单知识库智能助手`；补充项目定位、技术栈、核心能力、真实截图、架构摘要、API 摘要、运行方式、测试结果和项目边界。
+- 新增简历证据：新增 `docs/resume-evidence.md`，集中说明项目一句话定位、适合 Java / AI 应用开发实习简历的原因、技术亮点、可写进简历的 bullet 和面试追问回答。
+- Trace / 架构文档增强：更新 `docs/architecture.md` 与 `docs/trace-evidence.md`，明确 `ticket_ai_analysis`、`generation_record`、`ticket_status_history`、`knowledge_article` 的聚合来源，区分真实接口字段与安全派生字段。
+- 边界说明：继续明确当前是 `local-rule fallback`、关键词 RAG Reference、Human-in-the-loop review；没有真实 LLM、向量数据库、Tool Runtime、完整 Multi-Agent Runtime、生产级权限或无人值守自动关闭工单。
+- 是否修改业务代码：否。未修改 Java 后端、数据库 schema、Vue 前端真实代码或接口。
+- 当前项目状态：已具备作为第二简历项目展示的 README、截图、Trace Evidence 说明和面试证据材料。
+- 下一步建议：创建 PR，合并 `feat/enterprise-ticket-rag-copilot` 到 `main`；如仍需要本地一键演示，再单独处理 Docker Compose。
+- 本轮验证：`backend/` 下 `mvn test` 通过，21 tests；`frontend/` 下 `npm run build` 通过；根目录安全扫描未发现真实密钥、被 Git 跟踪的禁提交目录或夸大能力描述。`git diff --check` 修复 EOF 空白后通过。
+
 ### 2026-06-26 — Codex — 强化工单 Copilot Trace Evidence 证据链
 
 - 本轮任务：细化 Trace / generation_record / Human Review / RAG Reference 的展示证据链，不继续大改 UI，不处理 Docker Compose。
