@@ -93,7 +93,8 @@ async function verifyDemoInteractions(page) {
   await page.setViewportSize(standardViewport)
   await page.evaluate(() => window.scrollTo(0, 0))
 
-  const search = page.getByRole('searchbox', { name: '搜索' })
+  const workbench = page.locator('[data-screenshot="ticket-detail"]')
+  const search = workbench.getByRole('searchbox', { name: '搜索', exact: true })
   await search.fill('KB-REDIS-CONN')
   await page.waitForTimeout(100)
   if (await page.getByRole('button', { name: /DEMO-0003/ }).count() !== 1) {
@@ -104,11 +105,11 @@ async function verifyDemoInteractions(page) {
   await page.getByText('暂无匹配工单', { exact: true }).waitFor()
   await search.fill('')
 
-  await page.getByRole('button', { name: '已沉淀', exact: true }).click()
+  await workbench.getByRole('button', { name: '已沉淀', exact: true }).click()
   if (await page.getByRole('button', { name: /DEMO-0008/ }).count() !== 1) {
     throw new Error('Knowledge-based filter did not return DEMO-0008.')
   }
-  await page.getByRole('button', { name: '全部', exact: true }).click()
+  await workbench.getByRole('button', { name: '全部', exact: true }).click()
 
   await page.getByRole('button', { name: /DEMO-0007/ }).click()
   await page.waitForTimeout(300)
@@ -164,17 +165,21 @@ try {
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
   await page.waitForSelector('[data-screenshot="dashboard"]')
+  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-metadata-grid')
+  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
 
   await captureViewport(page, 'dashboard')
   await captureLarge(page, 'dashboard')
 
   await page.getByRole('button', { name: /DEMO-0005/ }).click()
-  await page.waitForTimeout(300)
-  await page.setViewportSize(focusedViewport)
-  await scrollTo(page, '[data-screenshot="ticket-detail"]')
-  await captureViewport(page, 'ticket-detail', focusedViewport)
+  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-detail-header h1')
+  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-metadata-grid')
+  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
+  await page.waitForTimeout(240)
+  await captureViewport(page, 'ticket-detail', standardViewport)
   await captureLarge(page, 'ticket-detail')
 
+  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
   await page.setViewportSize(focusedViewport)
   await scrollTo(page, '[data-screenshot="ai-analysis"]')
   await captureViewport(page, 'ai-analysis', focusedViewport)

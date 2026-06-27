@@ -18,6 +18,7 @@ import StatusTimeline from './components/StatusTimeline.vue'
 import TicketDetailPanel from './components/TicketDetailPanel.vue'
 import TicketIntakePanel from './components/TicketIntakePanel.vue'
 import TicketQueue from './components/TicketQueue.vue'
+import TicketWorkbenchShowcaseView from './views/TicketWorkbenchShowcaseView.vue'
 import type { AiAnalysis, CreateTicketRequest, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from './types/ticket'
 
 type TicketFilter = 'ALL' | 'PENDING' | 'REVIEW' | 'KNOWLEDGE'
@@ -283,29 +284,7 @@ onMounted(() => {
         <p v-else class="operation-feedback__message" role="status" aria-live="polite">{{ feedback }}</p>
       </div>
 
-      <section class="workspace-grid">
-        <div class="ticket-column">
-          <TicketQueue
-            :tickets="filteredTickets"
-            :selected-id="selectedTicketId"
-            :loading="loading && !tickets.length"
-            @select="(id) => run(() => selectTicket(id))"
-          />
-        </div>
-        <div class="detail-column">
-          <TicketDetailPanel :ticket="selectedTicket" :loading="loading" />
-        </div>
-        <div class="assist-column">
-          <AiRecommendationPanel
-            :analysis="selectedAnalysis"
-            :ticket="selectedTicket"
-            :busy="loading"
-            @status="changeStatus"
-            @draft="generateDraft"
-            @confirm-draft="confirmDraft"
-          />
-        </div>
-      </section>
+      <TicketWorkbenchShowcaseView />
 
       <section class="secondary-grid">
         <div class="intake-column">
