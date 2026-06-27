@@ -128,10 +128,10 @@ try {
   })
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
-  await page.waitForSelector('[data-screenshot="trace-evidence"]')
+  await page.waitForSelector('[data-screenshot="human-review"]')
 
-  await captureViewport(page, 'trace-evidence')
-  await captureLarge(page, 'trace-evidence')
+  await captureViewport(page, 'human-review')
+  await captureLarge(page, 'human-review')
   await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, '1366 desktop')
   await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, '390 mobile')
 
