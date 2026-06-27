@@ -165,34 +165,9 @@ try {
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
   await page.waitForSelector('[data-screenshot="dashboard"]')
-  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-metadata-grid')
-  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
 
   await captureViewport(page, 'dashboard')
   await captureLarge(page, 'dashboard')
-
-  await page.getByRole('button', { name: /DEMO-0005/ }).click()
-  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-detail-header h1')
-  await page.waitForSelector('[data-screenshot="ticket-detail"] .showcase-metadata-grid')
-  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
-  await page.waitForTimeout(240)
-  await captureViewport(page, 'ticket-detail', standardViewport)
-  await captureLarge(page, 'ticket-detail')
-
-  await page.waitForSelector('[data-screenshot="ai-analysis"] .showcase-signal-grid')
-  await page.setViewportSize(focusedViewport)
-  await scrollTo(page, '[data-screenshot="ai-analysis"]')
-  await captureViewport(page, 'ai-analysis', focusedViewport)
-  await captureLarge(page, 'ai-analysis')
-
-  await page.getByRole('button', { name: /DEMO-0008/ }).click()
-  await page.waitForTimeout(300)
-  await page.setViewportSize(focusedViewport)
-  await scrollTo(page, '[data-screenshot="knowledge-base"]')
-  await captureViewport(page, 'knowledge-base', focusedViewport)
-  await captureLarge(page, 'knowledge-base')
-
-  await verifyDemoInteractions(page)
   await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, '1366 desktop')
   await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, '390 mobile')
 
