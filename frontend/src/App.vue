@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import TraceShowcaseView from './views/TraceShowcaseView.vue'
+import HumanReviewShowcaseView from './views/HumanReviewShowcaseView.vue'
 </script>
 
 <template>
-  <TraceShowcaseView />
+  <HumanReviewShowcaseView />
 </template>
