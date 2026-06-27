@@ -14,6 +14,11 @@ public class GenerationRecord {
     private String businessType;
     private Long businessId;
     private String sourceType;
+    private String providerName;
+    private String modelName;
+    private Boolean fallbackUsed;
+    private String fallbackReason;
+    private String errorMessage;
     private String inputSummary;
     private String outputSummary;
     private Long latencyMs;
@@ -50,6 +55,46 @@ public class GenerationRecord {
 
     public void setSourceType(String sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public String getProviderName() {
+        return providerName;
+    }
+
+    public void setProviderName(String providerName) {
+        this.providerName = providerName;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
+
+    public Boolean getFallbackUsed() {
+        return fallbackUsed;
+    }
+
+    public void setFallbackUsed(Boolean fallbackUsed) {
+        this.fallbackUsed = fallbackUsed;
+    }
+
+    public String getFallbackReason() {
+        return fallbackReason;
+    }
+
+    public void setFallbackReason(String fallbackReason) {
+        this.fallbackReason = fallbackReason;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
     public String getInputSummary() {

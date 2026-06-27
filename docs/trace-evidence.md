@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | `support_ticket` | 工单基础信息和当前状态 | `ticket_no`、`status`、`priority`、`category` |
 | `ticket_ai_analysis` | 规则引擎辅助分析结果 | `id`、`classification`、`confidence`、`confirmation_state`、`created_at` |
-| `generation_record` | 记录规则分类、关键词匹配和模板草稿的生成摘要 | `id`、`business_type`、`business_id`、`source_type`、`input_summary`、`output_summary`、`latency_ms`、`status`、`created_at` |
+| `generation_record` | 记录规则分类、关键词匹配、模板草稿和 Provider/fallback 的生成摘要 | `id`、`business_type`、`provider_name`、`model_name`、`fallback_used`、`fallback_reason`、`error_message`、`latency_ms`、`status` |
 | `ticket_status_history` | 记录人工确认后的状态流转 | `from_status`、`to_status`、`actor`、`note`、`occurred_at` |
 | `knowledge_article` | 提供关键词知识引用和片段 | `article_no`、`title`、`keywords`、`content`、`source_ticket_id` |
 
@@ -28,6 +28,11 @@
 - `generationRecords[].recordId`：来自 `generation_record.id`。
 - `generationRecords[].businessType`：来自 `generation_record.business_type`。
 - `generationRecords[].sourceType`：来自 `generation_record.source_type`。
+- `generationRecords[].providerName`：来自 `generation_record.provider_name`。
+- `generationRecords[].modelName`：来自 `generation_record.model_name`。
+- `generationRecords[].fallbackUsed`：来自 `generation_record.fallback_used`。
+- `generationRecords[].fallbackReason`：来自 `generation_record.fallback_reason`。
+- `generationRecords[].errorMessage`：来自 `generation_record.error_message`。
 - `generationRecords[].promptSummary`：来自 `generation_record.input_summary`。
 - `generationRecords[].responseSummary`：来自 `generation_record.output_summary`。
 - `generationRecords[].latencyMs`：来自 `generation_record.latency_ms`。
@@ -44,8 +49,6 @@
 - `traceMode`：标记当前 trace 来源是 ticket records。
 - `currentStep`：由当前工单状态映射。
 - `totalLatency`：对当前工单关联的 `generation_record.latency_ms` 求和。
-- `aiAnalysis.provider`：固定说明为 `local-rule fallback`。
-- `aiAnalysis.model`：固定说明为 `N/A (no LLM)`。
 - `fallbackStrategy`：由 `generation_record.source_type` 映射为 rule classification、keyword reference 或 rule template draft。
 - `ragReferences[].relevanceScore`：后端通过现有 `KnowledgeMatchingService` 按关键词重新计算，历史表中未单独持久化每次命中的 score。
 - `ragReferences[].matchedKeyword`：从 `knowledge_article.keywords` 与当前工单文本交集推导；如果历史关键词没有保留，则显示安全空状态。
@@ -54,11 +57,11 @@
 
 ## generation_record 当前边界
 
-`generation_record` 目前用于记录本地规则和模板输出的审计摘要，不是大模型调用日志。
+`generation_record` 目前用于记录本地规则、模板输出和 OpenAI-compatible Provider 尝试结果的审计摘要。
 
-- 当前没有真实 `provider` 字段；前端和接口统一展示为 `local-rule fallback`。
-- 当前没有真实 `model` 字段；接口展示为 `N/A (no LLM)`。
-- 当前没有独立 `error_message` 列；成功记录的 `errorMessage` 为空，失败时只能返回当前 schema 边界说明。
+- 默认本地记录展示 `providerName=local-rule`、`modelName=N/A (no LLM)`、`fallbackUsed=true`、`fallbackReason=PROVIDER_DISABLED`。
+- 真实 Provider 路径写入 `providerName`、`modelName`、`fallbackUsed`、`fallbackReason`、`errorMessage`。
+- `fallbackReason` 可能是 `API_KEY_MISSING`、`BASE_URL_MISSING`、`PROVIDER_DISABLED`、`PROVIDER_ERROR`、`TIMEOUT` 或 `PARSE_ERROR`。
 - 当前 `promptSummary` / `responseSummary` 是输入摘要和输出摘要，不是完整 prompt 或完整模型响应。
 
 ## Demo fallback
@@ -67,11 +70,11 @@
 
 ## 明确不能夸大的能力
 
-- 当前没有真实 LLM 调用。
+- 默认没有真实 LLM 调用；OpenAI-compatible Provider 代码路径已实现，本轮未使用真实 Key 验证。
 - 当前没有 embedding 或向量数据库检索。
 - 当前没有 Tool Runtime。
 - 当前没有完整 Multi-Agent Runtime。
-- 当前没有生产级权限、审计登录或 RBAC。
+- 当前只有 JWT + RBAC demo，不是生产级权限、审计登录或账号体系。
 - 当前不会无人值守自动关闭工单。
 - 当前 `Human Review` 是人工状态流转与知识发布边界，不是完整审核任务中心。
 
@@ -79,7 +82,7 @@
 
 后续如果继续增强，应作为独立任务处理并补充真实实现与验证：
 
-- 将 `generation_record` 增加 `error_message`、`model_name`、`provider` 等真实字段。
+- 使用本地临时环境变量完成真实 Provider 调用验证，并记录结果。
 - 将知识匹配 score 持久化到分析记录或独立引用表。
 - 增加独立 Human Review 表，用于记录 reviewer、decision、comment 和 reviewed_at。
 - 在保持人工确认边界的前提下评估真实 Provider 调用或向量检索。

@@ -117,6 +117,27 @@
 - 截图执行结果：通过，重新生成 `docs/images/*.png` 和 `docs/images/large/*.png`。
 - 边界说明：本轮不接真实 LLM，不新增向量数据库，不新增 Tool Runtime，不实现完整 Multi-Agent Runtime，不做无人值守自动关闭工单。
 
+## 追加验证记录：Provider fallback + RBAC demo + Human Review
+
+- 验证时间：2026-06-27 00:41:22 +08:00
+- 验证分支：feat/enterprise-ticket-rag-copilot
+- 后端运行目录：D:\workhome\enterprise-ai-ticket-copilot\backend
+- 后端执行命令：`mvn test`
+- 后端执行结果：通过
+- 后端结果摘要：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`
+- 后端构建结论：`BUILD SUCCESS`
+- 新增覆盖：
+  - 无 API Key 时 OpenAI-compatible Provider 自动 fallback 到 local-rule，并在 Trace Evidence 暴露 `providerName`、`modelName`、`fallbackUsed`、`fallbackReason`。
+  - `POST /api/tickets/{id}/run-copilot` 写入 `AI_PROVIDER` generation record。
+  - Human Review `approve`、`request-changes`、`reject` 状态流转。
+  - RBAC demo 阻止 `VIEWER` 执行 run-copilot 或 review 操作。
+- 前端运行目录：D:\workhome\enterprise-ai-ticket-copilot\frontend
+- 前端执行命令：`npm run build`
+- 前端执行结果：通过，`vue-tsc` 类型检查完成，Vite 生产构建完成。
+- 截图执行命令：`npm run screenshots`
+- 截图执行结果：通过，刷新 `docs/images/*.png` 和 `docs/images/large/*.png`。
+- 边界说明：本轮没有真实 API Key，不声明真实 Provider 调用已完成验证；JWT + RBAC 是 demo 级，不是生产鉴权系统。
+
 ## 结论
 
-本次本地验证中，后端 `mvn test`、前端 `npm run build` 与前端截图脚本均真实运行并通过。最新后端验证已包含 H2 内存库集成测试和 Trace Evidence 接口测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
+本次本地验证中，后端 `mvn test`、前端 `npm run build` 与前端截图脚本均真实运行并通过。最新后端验证已包含 H2 内存库集成测试、Trace Evidence 接口测试、Provider fallback、RBAC demo 和 Human Review 状态闭环测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。

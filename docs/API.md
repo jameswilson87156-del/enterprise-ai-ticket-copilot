@@ -6,7 +6,7 @@
 
 后端基于 Spring Boot 3，REST API 面向企业工单辅助处理流程，覆盖工单录入、队列查询、详情查看、规则引擎辅助分析、知识库评分匹配、状态流转、知识草稿生成与发布确认、健康检查等场景。
 
-当前项目使用本地规则引擎辅助分类、关键词与评分公式做知识库匹配，并通过模板化方式生成建议草稿。系统不调用真实 LLM，不做模型训练，也不做 embedding / 向量检索。所有状态流转、对外回复和知识入库都需要人工确认。
+当前项目默认使用本地规则引擎辅助分类、关键词与评分公式做知识库匹配，并通过模板化方式生成建议草稿。系统已实现 OpenAI-compatible Provider 可选代码路径，未配置 API Key 或调用失败时自动回退到 local-rule fallback。项目不做模型训练，也不做 embedding / 向量检索。所有状态流转、对外回复和知识入库都需要人工确认。
 
 ## 2. 本地访问地址
 
@@ -57,12 +57,18 @@
 | 方法 | 路径 | 功能 | 请求体或参数 | 响应说明 | 备注 |
 | --- | --- | --- | --- | --- | --- |
 | `GET` | `/api/health` | 健康检查 | 无 | 返回 `status`、`service`、`phase`、`timestamp` | 用于确认后端启动 |
+| `POST` | `/api/auth/login` | JWT + RBAC demo 登录 | `LoginRequest` | 返回 token 与当前用户 | demo 账号见 `docs/auth-rbac-demo.md` |
+| `GET` | `/api/auth/me` | 查询当前用户 | Bearer token | 返回当前用户 | 需要登录 |
 | `GET` | `/api/tickets` | 查询工单队列 | 无查询参数 | 返回 `TicketSummary[]` | 当前后端不提供分页或筛选参数 |
 | `POST` | `/api/tickets` | 创建工单，并同步生成规则分类、知识匹配和模板化建议草稿 | `CreateTicketRequest` | 返回 `TicketDetail` | DTO 使用 Bean Validation 校验 |
 | `GET` | `/api/tickets/metrics` | 查询工作台指标 | 无 | 返回 `WorkbenchMetrics` | `knowledgeCoverage` 是兼容字段名，前端展示为知识关联率 |
 | `GET` | `/api/tickets/{id}` | 查看工单详情、上下文、状态历史和知识草稿 | 路径参数 `id` | 返回 `TicketDetail` | 工单不存在返回统一 `404` |
 | `GET` | `/api/tickets/{id}/ai-analysis` | 查询规则引擎辅助分析结果 | 路径参数 `id` | 返回 `AiAnalysis` | 路径保留历史命名；当前不是 LLM 分析 |
 | `GET` | `/api/tickets/{id}/trace-evidence` | 查询 Trace、生成记录、RAG 引用和 Human Review 证据链 | 路径参数 `id` | 返回 `TraceEvidence` | 只读聚合已有表；不代表完整 Trace / Span Runtime |
+| `POST` | `/api/tickets/{id}/run-copilot` | 运行 Provider / fallback 建议草稿 | 路径参数 `id` | 返回 `TicketDetail` | 需 `ADMIN / AGENT` |
+| `POST` | `/api/tickets/{id}/review/approve` | 审核通过 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
+| `POST` | `/api/tickets/{id}/review/request-changes` | 要求补充修改 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
+| `POST` | `/api/tickets/{id}/review/reject` | 拒绝建议草稿 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
 | `POST` | `/api/tickets/{id}/status` | 人工确认工单状态流转 | `UpdateTicketStatusRequest` | 返回更新后的 `TicketDetail` | 只接受源码允许的状态值 |
 | `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决或已沉淀工单生成知识草稿，可选直接发布 | `CreateKnowledgeDraftRequest` | 返回 `KnowledgeDraft` | 非已解决工单会返回统一 `400` |
 | `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 | 路径参数 `articleNo` | 返回 `KnowledgeDraft` | 已发布草稿重复确认会直接返回当前结果 |
@@ -85,7 +91,7 @@
 
 | 字段 | 类型 | 是否必填 | 校验 / 默认行为 |
 | --- | --- | --- | --- |
-| `status` | string | 是 | 非空；业务上只接受 `PENDING_PROCESS`、`IN_PROGRESS`、`RESOLVED`、`KNOWLEDGE_BASED` |
+| `status` | string | 是 | 非空；业务上接受 `PENDING_PROCESS`、`AI_DRAFTED`、`REVIEW_REQUIRED`、`IN_PROGRESS`、`APPROVED`、`RESOLVED`、`REJECTED`、`KNOWLEDGE_BASED` |
 | `actor` | string | 否 | 最长 64 字符；空值时默认 `Support Desk` |
 | `note` | string | 否 | 最长 1000 字符；空值时默认 `人工确认状态流转。` |
 | `resolvedSummary` | string | 否 | 最长 10000 字符 |
@@ -220,7 +226,7 @@
 
 `GET /api/tickets/{id}/trace-evidence`
 
-该接口聚合返回当前工单的规则分析记录、生成记录、状态历史、关键词知识引用和人工审核状态。数据来源包括 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`。
+该接口聚合返回当前工单的规则分析记录、生成记录、Provider/fallback 信息、状态历史、关键词知识引用和人工审核状态。数据来源包括 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`。
 
 关键字段说明：
 
@@ -231,11 +237,14 @@
 | `aiAnalysis.analysisId` | `ticket_ai_analysis.id` |
 | `generationRecords[].recordId` | `generation_record.id` |
 | `generationRecords[].latencyMs` | `generation_record.latency_ms` |
+| `generationRecords[].providerName` / `modelName` | `generation_record.provider_name` / `model_name` |
+| `generationRecords[].fallbackUsed` / `fallbackReason` | `generation_record.fallback_used` / `fallback_reason` |
+| `generationRecords[].errorMessage` | `generation_record.error_message` |
 | `ragReferences[].sourcePath` | `knowledge_article/{articleNo}` |
 | `ragReferences[].relevanceScore` | 通过现有关键词匹配服务重算；历史表未持久化每次 score |
 | `humanReview` | 从状态历史中的人工 actor 推导，不是独立审核任务表 |
 
-接口边界：Provider 仍为 `local-rule fallback`，Model 返回 `N/A (no LLM)`；当前没有真实 LLM、向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
+接口边界：默认 Provider 为 `local-rule`；配置 `TICKET_AI_PROVIDER=openai-compatible`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY` 后才会尝试真实 `/chat/completions` 调用。本轮没有真实 Key 验证记录；当前没有向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
 
 ### 5.4 人工确认状态流转
 
@@ -253,8 +262,12 @@
 允许的 `status`：
 
 - `PENDING_PROCESS`
+- `AI_DRAFTED`
+- `REVIEW_REQUIRED`
 - `IN_PROGRESS`
+- `APPROVED`
 - `RESOLVED`
+- `REJECTED`
 - `KNOWLEDGE_BASED`
 
 传入其他状态会返回统一 `400`，例如 `Unsupported status: CLOSED`。
@@ -295,10 +308,10 @@
 
 ## 6. 业务边界
 
-- 当前没有真实 LLM 调用。
+- 默认不调用真实 LLM；OpenAI-compatible Provider 代码路径已实现，待本地 Key 验证。
 - 当前没有真实 AI 模型训练。
 - 当前没有 embedding / 向量检索。
-- 当前没有生产级鉴权、角色权限或审计登录体系。
+- 当前只有 JWT + RBAC demo，不是生产级鉴权、角色权限或审计登录体系。
 - 当前没有线上部署能力说明，也不声明生产 SLA。
 - 当前规则引擎输出、模板化建议草稿、状态流转和知识发布都需要人工确认。
 - Swagger / OpenAPI 用于接口展示和本地调试，不代表项目已经生产部署。
@@ -306,6 +319,6 @@
 
 ## 7. 面试说明
 
-这个项目中的 Copilot 定位是企业工单辅助处理工作台，核心是规则引擎辅助分类、知识库评分匹配、模板化建议草稿和人工确认闭环。没有接入真实 LLM，是为了降低演示环境依赖、保证规则可解释性和本地运行稳定性。
+这个项目中的 Copilot 定位是企业工单辅助处理工作台，核心是规则引擎辅助分类、知识库评分匹配、Provider/fallback 调用记录、模板化建议草稿和人工确认闭环。默认使用 local-rule fallback，是为了降低演示环境依赖、保证规则可解释性和本地运行稳定性；真实 Provider 需要本地临时环境变量和 API Key 才会调用。
 
 如果面试官追问“为什么接口路径里还有 `ai-analysis`”，可以说明：这是早期命名保留的兼容路径；当前文档、README 和前端 UI 已明确校准为规则引擎辅助分析，不把它包装成真实大模型能力。

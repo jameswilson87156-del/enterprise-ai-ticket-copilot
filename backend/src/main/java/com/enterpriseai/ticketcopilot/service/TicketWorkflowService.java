@@ -52,8 +52,12 @@ public class TicketWorkflowService {
 
     public static final String STATUS_PENDING_CLASSIFICATION = "PENDING_CLASSIFICATION";
     public static final String STATUS_PENDING_PROCESS = "PENDING_PROCESS";
+    public static final String STATUS_AI_DRAFTED = "AI_DRAFTED";
+    public static final String STATUS_REVIEW_REQUIRED = "REVIEW_REQUIRED";
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
+    public static final String STATUS_APPROVED = "APPROVED";
     public static final String STATUS_RESOLVED = "RESOLVED";
+    public static final String STATUS_REJECTED = "REJECTED";
     public static final String STATUS_KNOWLEDGE_BASED = "KNOWLEDGE_BASED";
     private static final String CONFIRMATION_STATE = "待人工确认";
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -67,6 +71,7 @@ public class TicketWorkflowService {
     private final RuleClassificationService classificationService;
     private final KnowledgeMatchingService knowledgeMatchingService;
     private final RecommendationTemplateService recommendationTemplateService;
+    private final AiProviderService aiProviderService;
     private final ObjectMapper objectMapper;
 
     public TicketWorkflowService(
@@ -78,6 +83,7 @@ public class TicketWorkflowService {
         RuleClassificationService classificationService,
         KnowledgeMatchingService knowledgeMatchingService,
         RecommendationTemplateService recommendationTemplateService,
+        AiProviderService aiProviderService,
         ObjectMapper objectMapper
     ) {
         this.supportTicketMapper = supportTicketMapper;
@@ -88,6 +94,7 @@ public class TicketWorkflowService {
         this.classificationService = classificationService;
         this.knowledgeMatchingService = knowledgeMatchingService;
         this.recommendationTemplateService = recommendationTemplateService;
+        this.aiProviderService = aiProviderService;
         this.objectMapper = objectMapper;
     }
 
@@ -170,7 +177,7 @@ public class TicketWorkflowService {
 
     public WorkbenchMetrics metrics() {
         long pending = supportTicketMapper.selectCount(new LambdaQueryWrapper<SupportTicket>()
-            .in(SupportTicket::getStatus, STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_IN_PROGRESS));
+            .in(SupportTicket::getStatus, STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_AI_DRAFTED, STATUS_REVIEW_REQUIRED, STATUS_IN_PROGRESS));
         long total = supportTicketMapper.selectCount(new LambdaQueryWrapper<>());
         Set<Long> ticketsWithKnowledgeMatches = new HashSet<>(analysisMapper.selectList(new LambdaQueryWrapper<TicketAiAnalysisEntity>()
             .isNotNull(TicketAiAnalysisEntity::getMatchedKnowledgeNos)
@@ -254,10 +261,87 @@ public class TicketWorkflowService {
     }
 
     @Transactional
+    public TicketDetail runCopilot(String ticketNo, String actor) {
+        SupportTicket ticket = findTicket(ticketNo);
+        long started = System.currentTimeMillis();
+        RuleClassificationResult classification = classificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
+        saveGeneration(ticket.getId(), "CLASSIFICATION", "RULE_ENGINE", summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
+
+        started = System.currentTimeMillis();
+        List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
+        saveGeneration(ticket.getId(), "KNOWLEDGE_MATCH", "KEYWORD_MATCHER", classification.category(), "matched=" + matches.size(), started, "SUCCESS");
+
+        RecommendationDraft localDraft = recommendationTemplateService.generate(ticket, classification.category(), matches);
+        AiProviderResult providerResult = aiProviderService.complete(ticket, classification.category(), matches, localDraft);
+        saveGeneration(ticket.getId(), "AI_PROVIDER", providerResult);
+
+        RecommendationDraft finalDraft = new RecommendationDraft(
+            localDraft.troubleshootingSteps(),
+            defaultText(providerResult.content(), localDraft.replySuggestion()),
+            localDraft.riskNotes()
+        );
+        saveAnalysis(ticket, classification, matches, finalDraft, providerResult.sourceType());
+
+        String from = ticket.getStatus();
+        String target = requiresReview(ticket, finalDraft) ? STATUS_REVIEW_REQUIRED : STATUS_AI_DRAFTED;
+        ticket.setCategory(classification.category());
+        ticket.setAiConfidence(classification.confidence());
+        ticket.setStatus(target);
+        ticket.setUpdatedAt(LocalDateTime.now());
+        supportTicketMapper.updateById(ticket);
+        appendHistory(
+            ticket.getId(),
+            from,
+            target,
+            defaultText(actor, "Support Agent"),
+            "Copilot 已生成建议草稿，Provider="
+                + providerResult.providerName()
+                + "，fallback="
+                + providerResult.fallbackUsed()
+                + (providerResult.fallbackReason() == null ? "" : "，reason=" + providerResult.fallbackReason())
+                + "。等待人工审核。"
+        );
+        return toDetail(ticket);
+    }
+
+    @Transactional
+    public TicketDetail approveReview(String ticketNo, String actor, String comment) {
+        return applyReviewDecision(
+            ticketNo,
+            STATUS_RESOLVED,
+            defaultText(actor, "Reviewer"),
+            "APPROVE",
+            defaultText(comment, "审核通过，人工确认建议草稿可作为处理结论。")
+        );
+    }
+
+    @Transactional
+    public TicketDetail requestReviewChanges(String ticketNo, String actor, String comment) {
+        return applyReviewDecision(
+            ticketNo,
+            STATUS_REVIEW_REQUIRED,
+            defaultText(actor, "Reviewer"),
+            "REQUEST_CHANGES",
+            defaultText(comment, "需要补充信息后重新审核。")
+        );
+    }
+
+    @Transactional
+    public TicketDetail rejectReview(String ticketNo, String actor, String comment) {
+        return applyReviewDecision(
+            ticketNo,
+            STATUS_REJECTED,
+            defaultText(actor, "Reviewer"),
+            "REJECT",
+            defaultText(comment, "审核拒绝，保留原因并停止当前建议草稿。")
+        );
+    }
+
+    @Transactional
     public TicketDetail updateStatus(String ticketNo, UpdateTicketStatusRequest request) {
         SupportTicket ticket = findTicket(ticketNo);
         String target = required(request.status(), "status");
-        if (!List.of(STATUS_PENDING_PROCESS, STATUS_IN_PROGRESS, STATUS_RESOLVED, STATUS_KNOWLEDGE_BASED).contains(target)) {
+        if (!List.of(STATUS_PENDING_PROCESS, STATUS_AI_DRAFTED, STATUS_REVIEW_REQUIRED, STATUS_IN_PROGRESS, STATUS_APPROVED, STATUS_RESOLVED, STATUS_REJECTED, STATUS_KNOWLEDGE_BASED).contains(target)) {
             throw new ResponseStatusException(BAD_REQUEST, "Unsupported status: " + target);
         }
         String from = ticket.getStatus();
@@ -327,6 +411,46 @@ public class TicketWorkflowService {
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
         appendHistory(ticket.getId(), from, STATUS_KNOWLEDGE_BASED, "Knowledge Reviewer", "人工确认知识库草稿并完成知识沉淀。");
+    }
+
+    private TicketDetail applyReviewDecision(String ticketNo, String targetStatus, String actor, String decision, String comment) {
+        SupportTicket ticket = findTicket(ticketNo);
+        String from = ticket.getStatus();
+        ticket.setStatus(targetStatus);
+        if (STATUS_RESOLVED.equals(targetStatus) || STATUS_APPROVED.equals(targetStatus)) {
+            ticket.setResolvedSummary(comment);
+        }
+        ticket.setUpdatedAt(LocalDateTime.now());
+        supportTicketMapper.updateById(ticket);
+        appendHistory(ticket.getId(), from, targetStatus, actor, decision + ": " + comment);
+        return toDetail(ticket);
+    }
+
+    private void saveAnalysis(
+        SupportTicket ticket,
+        RuleClassificationResult classification,
+        List<KnowledgeMatch> matches,
+        RecommendationDraft draft,
+        String sourceType
+    ) {
+        TicketAiAnalysisEntity analysis = new TicketAiAnalysisEntity();
+        analysis.setTicketId(ticket.getId());
+        analysis.setClassification(classification.category());
+        analysis.setClassificationReason(classificationReason(ticket, classification, matches));
+        analysis.setConfidence(classification.confidence());
+        analysis.setConfirmationState(CONFIRMATION_STATE);
+        analysis.setMatchedKnowledgeNos(toJson(matches.stream().map(match -> match.article().getArticleNo()).toList()));
+        analysis.setTroubleshootingSteps(toJson(draft.troubleshootingSteps()));
+        analysis.setReplySuggestion(draft.replySuggestion());
+        analysis.setRiskNotes(toJson(draft.riskNotes()));
+        analysis.setSourceType(defaultText(sourceType, "RULE_TEMPLATE"));
+        analysis.setCreatedAt(LocalDateTime.now());
+        analysis.setUpdatedAt(LocalDateTime.now());
+        analysisMapper.insert(analysis);
+    }
+
+    private boolean requiresReview(SupportTicket ticket, RecommendationDraft draft) {
+        return "P1".equals(ticket.getUrgency()) || !draft.riskNotes().isEmpty();
     }
 
     private TicketSummary toSummary(SupportTicket ticket) {
@@ -407,13 +531,17 @@ public class TicketWorkflowService {
         return new TraceEvidence.AiAnalysisEvidence(
             analysis.getId(),
             record == null ? null : record.getId(),
-            "local-rule fallback",
-            "N/A (no LLM)",
+            recordProviderName(record),
+            recordModelName(record),
+            recordFallbackUsed(record),
+            record == null ? "NO_GENERATION_RECORD" : record.getFallbackReason(),
+            recordProviderName(record),
+            recordModelName(record),
             defaultText(analysis.getSourceType(), record == null ? "RULE_TEMPLATE" : record.getSourceType()),
             totalLatency,
             status,
             analysis.getCreatedAt(),
-            analysisErrorMessage(status, records),
+            record == null ? analysisErrorMessage(status, records) : record.getErrorMessage(),
             record == null ? analysis.getClassificationReason() : record.getInputSummary(),
             defaultText(analysis.getReplySuggestion(), record == null ? "" : record.getOutputSummary())
         );
@@ -422,14 +550,24 @@ public class TicketWorkflowService {
     private GenerationRecord analysisRecord(List<GenerationRecord> records) {
         GenerationRecord fallback = records.isEmpty() ? null : records.get(records.size() - 1);
         return records.stream()
+            .filter(record -> "AI_PROVIDER".equals(record.getBusinessType()))
+            .reduce((first, second) -> second)
+            .orElseGet(() -> records.stream()
             .filter(record -> "RECOMMENDATION".equals(record.getBusinessType()))
             .reduce((first, second) -> second)
-            .orElse(fallback);
+            .orElse(fallback));
     }
 
     private String analysisStatus(List<GenerationRecord> records) {
         if (records.isEmpty()) {
             return "NO_GENERATION_RECORD";
+        }
+        GenerationRecord providerRecord = records.stream()
+            .filter(record -> "AI_PROVIDER".equals(record.getBusinessType()))
+            .reduce((first, second) -> second)
+            .orElse(null);
+        if (providerRecord != null) {
+            return defaultText(providerRecord.getStatus(), "UNKNOWN");
         }
         return records.stream().allMatch(record -> "SUCCESS".equalsIgnoreCase(defaultText(record.getStatus(), ""))) ? "SUCCESS" : "PARTIAL";
     }
@@ -441,7 +579,11 @@ public class TicketWorkflowService {
         if (records.isEmpty()) {
             return "No generation_record rows were found for this ticket.";
         }
-        return "generation_record does not store a dedicated error_message column in the current schema.";
+        return records.stream()
+            .map(GenerationRecord::getErrorMessage)
+            .filter(message -> message != null && !message.isBlank())
+            .findFirst()
+            .orElse("One or more generation_record rows did not finish successfully.");
     }
 
     private TraceEvidence.GenerationRecordEvidence toGenerationEvidence(GenerationRecord record) {
@@ -449,16 +591,32 @@ public class TicketWorkflowService {
             record.getId(),
             record.getBusinessType(),
             record.getSourceType(),
-            "local-rule fallback",
-            "N/A (no LLM)",
+            recordProviderName(record),
+            recordModelName(record),
+            recordFallbackUsed(record),
+            record.getFallbackReason(),
+            recordProviderName(record),
+            recordModelName(record),
             fallbackStrategy(record.getSourceType()),
             record.getLatencyMs(),
             record.getStatus(),
             record.getCreatedAt(),
-            "SUCCESS".equalsIgnoreCase(defaultText(record.getStatus(), "")) ? null : "No error_message column exists in generation_record.",
+            record.getErrorMessage(),
             record.getInputSummary(),
             record.getOutputSummary()
         );
+    }
+
+    private String recordProviderName(GenerationRecord record) {
+        return record == null ? "local-rule" : defaultText(record.getProviderName(), "local-rule");
+    }
+
+    private String recordModelName(GenerationRecord record) {
+        return record == null ? "N/A (no LLM)" : defaultText(record.getModelName(), "N/A (no LLM)");
+    }
+
+    private boolean recordFallbackUsed(GenerationRecord record) {
+        return record == null || Boolean.TRUE.equals(record.getFallbackUsed());
     }
 
     private List<TraceEvidence.RagReference> toRagReferences(SupportTicket ticket, TicketAiAnalysisEntity analysis, String runId) {
@@ -506,22 +664,28 @@ public class TicketWorkflowService {
         return switch (defaultText(status, "")) {
             case STATUS_PENDING_CLASSIFICATION -> "LOCAL_RULE_CLASSIFICATION";
             case STATUS_PENDING_PROCESS -> "HUMAN_REVIEW_REQUIRED";
+            case STATUS_AI_DRAFTED -> "AI_DRAFT_READY";
+            case STATUS_REVIEW_REQUIRED -> "HUMAN_REVIEW_REQUIRED";
             case STATUS_IN_PROGRESS -> "HUMAN_PROCESSING";
+            case STATUS_APPROVED -> "REVIEW_APPROVED";
             case STATUS_RESOLVED -> "KNOWLEDGE_REVIEW_READY";
+            case STATUS_REJECTED -> "REVIEW_REJECTED";
             case STATUS_KNOWLEDGE_BASED -> "KNOWLEDGE_PUBLISHED";
             default -> "UNKNOWN";
         };
     }
 
     private boolean reviewRequired(SupportTicket ticket) {
-        return List.of(STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_IN_PROGRESS).contains(ticket.getStatus());
+        return List.of(STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, STATUS_AI_DRAFTED, STATUS_REVIEW_REQUIRED, STATUS_IN_PROGRESS).contains(ticket.getStatus());
     }
 
     private String reviewStatus(String status) {
         return switch (defaultText(status, "")) {
-            case STATUS_PENDING_PROCESS -> "PENDING";
+            case STATUS_PENDING_PROCESS, STATUS_REVIEW_REQUIRED -> "PENDING";
+            case STATUS_AI_DRAFTED -> "AI_DRAFTED";
             case STATUS_IN_PROGRESS -> "IN_PROGRESS";
-            case STATUS_RESOLVED, STATUS_KNOWLEDGE_BASED -> "COMPLETED";
+            case STATUS_APPROVED, STATUS_RESOLVED, STATUS_KNOWLEDGE_BASED -> "COMPLETED";
+            case STATUS_REJECTED -> "REJECTED";
             default -> "WAITING_FOR_RULE_ANALYSIS";
         };
     }
@@ -529,7 +693,10 @@ public class TicketWorkflowService {
     private String reviewDecision(String toStatus) {
         return switch (defaultText(toStatus, "")) {
             case STATUS_IN_PROGRESS -> "TAKE_OWNERSHIP";
+            case STATUS_REVIEW_REQUIRED -> "REQUEST_CHANGES";
+            case STATUS_APPROVED -> "APPROVED_DRAFT";
             case STATUS_RESOLVED -> "APPROVED_RESOLUTION";
+            case STATUS_REJECTED -> "REJECTED";
             case STATUS_KNOWLEDGE_BASED -> "APPROVED_KNOWLEDGE";
             default -> "STATUS_UPDATED";
         };
@@ -538,8 +705,12 @@ public class TicketWorkflowService {
     private String nextAction(String status) {
         return switch (defaultText(status, "")) {
             case STATUS_PENDING_PROCESS -> "人工确认接手、补充信息或解决状态。";
+            case STATUS_AI_DRAFTED -> "审核 AI 建议草稿，决定批准、要求修改或拒绝。";
+            case STATUS_REVIEW_REQUIRED -> "高风险或需确认建议必须由 Reviewer 审核。";
             case STATUS_IN_PROGRESS -> "人工复核处理结果，再确认解决或继续排查。";
+            case STATUS_APPROVED -> "审核已通过，可由人工继续确认解决。";
             case STATUS_RESOLVED -> "可生成知识草稿，并由知识审核人确认发布。";
+            case STATUS_REJECTED -> "建议草稿已拒绝，需要人工重新分析或补充上下文。";
             case STATUS_KNOWLEDGE_BASED -> "已完成知识沉淀；不执行无人值守自动关闭。";
             default -> "等待本地规则分类和模板化建议草稿生成。";
         };
@@ -550,6 +721,8 @@ public class TicketWorkflowService {
             case "RULE_ENGINE" -> "keyword rule classification";
             case "KEYWORD_MATCHER" -> "keyword-based RAG reference";
             case "TEMPLATE_ENGINE", "RULE_TEMPLATE" -> "rule template draft";
+            case "OPENAI_COMPATIBLE" -> "OpenAI-compatible provider";
+            case "LOCAL_RULE_FALLBACK" -> "local-rule fallback";
             default -> "local-rule fallback";
         };
     }
@@ -615,13 +788,65 @@ public class TicketWorkflowService {
     }
 
     private void saveGeneration(Long businessId, String businessType, String sourceType, String input, String output, long startedAt, String status) {
+        saveGeneration(
+            businessId,
+            businessType,
+            sourceType,
+            input,
+            output,
+            System.currentTimeMillis() - startedAt,
+            status,
+            "local-rule",
+            "N/A (no LLM)",
+            true,
+            "PROVIDER_DISABLED",
+            null
+        );
+    }
+
+    private void saveGeneration(Long businessId, String businessType, AiProviderResult providerResult) {
+        saveGeneration(
+            businessId,
+            businessType,
+            providerResult.sourceType(),
+            providerResult.promptSummary(),
+            providerResult.responseSummary(),
+            providerResult.latencyMs(),
+            providerResult.status(),
+            providerResult.providerName(),
+            providerResult.modelName(),
+            providerResult.fallbackUsed(),
+            providerResult.fallbackReason(),
+            providerResult.errorMessage()
+        );
+    }
+
+    private void saveGeneration(
+        Long businessId,
+        String businessType,
+        String sourceType,
+        String input,
+        String output,
+        long latencyMs,
+        String status,
+        String providerName,
+        String modelName,
+        boolean fallbackUsed,
+        String fallbackReason,
+        String errorMessage
+    ) {
         GenerationRecord record = new GenerationRecord();
         record.setBusinessId(businessId);
         record.setBusinessType(businessType);
         record.setSourceType(sourceType);
+        record.setProviderName(defaultText(providerName, "local-rule"));
+        record.setModelName(defaultText(modelName, "N/A (no LLM)"));
+        record.setFallbackUsed(fallbackUsed);
+        record.setFallbackReason(fallbackReason);
+        record.setErrorMessage(errorMessage);
         record.setInputSummary(summarize(input));
         record.setOutputSummary(summarize(output));
-        record.setLatencyMs(System.currentTimeMillis() - startedAt);
+        record.setLatencyMs(latencyMs);
         record.setStatus(status);
         record.setCreatedAt(LocalDateTime.now());
         generationRecordMapper.insert(record);
