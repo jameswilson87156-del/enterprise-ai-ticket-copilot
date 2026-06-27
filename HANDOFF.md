@@ -177,6 +177,25 @@
 
 ## 历史记录
 
+### 2026-06-26 — Codex — Enterprise RAG UI visual references
+
+* 分支：feat/enterprise-ticket-rag-copilot
+* 任务：归档 5 张 AI-generated UI visual references
+* 新增目录：docs/design/references/
+* 新增图片：
+
+  * 01-dashboard-ai-concept-cn.png
+  * 02-ticket-workbench-ai-concept-cn.png
+  * 03-ticket-trace-ai-concept-cn.png
+  * 04-knowledge-base-ai-concept-cn.png
+  * 05-human-review-ai-concept-cn.png
+* 新增说明：docs/design/references/README.md
+* 未修改 backend
+* 未修改 frontend 真实代码
+* 未修改 README 项目真实截图区
+* 这些图片只作为前端设计参考，不是真实运行截图
+* 下一步建议：先选择 02-ticket-workbench-ai-concept-cn.png 作为第一版真实前端重构参考，再按现有真实接口改造前端工作台
+
 ### 2026-06-22 — Codex — 重新制作前端作品集展示效果
 
 - 任务：重新制作前端作品集展示效果，并重做 README 截图展示区。
