@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import DashboardShowcaseView from './views/DashboardShowcaseView.vue'
+import KnowledgeRagShowcaseView from './views/KnowledgeRagShowcaseView.vue'
 </script>
 
 <template>
-  <DashboardShowcaseView />
+  <KnowledgeRagShowcaseView />
 </template>
