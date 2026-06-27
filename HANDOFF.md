@@ -4,6 +4,18 @@
 
 ---
 
+## 当前交接更新
+
+### 2026-06-27 — Codex — Ticket Workbench ShowcaseView 单页改造
+
+- 本轮任务：按 Enterprise SaaS UI Design Skill 与 playbook 只改 Ticket Workbench 页面，不改 backend、不改数据库、不改其他页面源码。
+- 前端改动：新增 `frontend/src/views/TicketWorkbenchShowcaseView.vue`，内部只使用本地 demo 常量，CSS 使用 `showcase-` scoped 前缀；没有复用旧 `TicketQueue`、`TicketDetailPanel`、`AiRecommendationPanel`。
+- App 入口：`frontend/src/App.vue` 中 Tickets 默认区域已切到 `TicketWorkbenchShowcaseView`。
+- 截图脚本：`frontend/scripts/capture-screenshots.mjs` 的 Ticket Workbench 等待选择器最小适配为 ShowcaseView 的 `.showcase-metadata-grid` 与 `.showcase-signal-grid`。
+- 验收记录：`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过；`docs/images/ticket-detail.png` 已人工验收通过，首屏可见左队列 / 中详情 / 右 Copilot。
+
+---
+
 ## 当前待处理交接
 
 ### 本轮审查时间
