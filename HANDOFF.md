@@ -4,6 +4,19 @@
 
 ---
 
+## 当前交接更新
+
+### 2026-06-27 — Codex — 前端设计资料库与工作流规范
+
+- 本轮任务：为后续前端改造建立可长期复用的设计资料库与执行流程，只更新 `docs/design` 下的文档和必要的交接记录，不改 backend、不改 frontend 源码、不改 README 主截图、不 push。
+- 新增资料库：`docs/design/ui-reference-library.md` 汇总 `01-dashboard-ai-concept-cn.png` 到 `05-human-review-ai-concept-cn.png` 的用途，并整理 TailAdmin、Tailwind-Admin、satnaing/shadcn-admin、Ticketfy、shadcnspace 的借鉴点、不可直接搬运内容和 Vue + CSS 转换方式。
+- 新增风格规范：`docs/design/ui-style-guide.md` 定义 Enterprise Ticket RAG Copilot 的深色企业 AI SaaS 视觉 token、sidebar/topbar/card/tag/button/table 规则、信息密度要求和禁止项。
+- 新增页面 recipe：`docs/design/page-recipes.md` 记录 Ticket Workbench、Dashboard、Trace、Knowledge / RAG、Human Review、Provider 的布局骨架与必备内容。
+- 新增截图验收：`docs/design/screenshot-acceptance-checklist.md` 明确真实浏览器截图、单页验收、`docs/images/` 与 `docs/design/references/` 的用途边界，以及 `ticket-detail.png` 的逐项验收标准。
+- 新增前端流程：`docs/design/frontend-workflow.md` 固化“先读资料库、先写页面规格、每轮只改一个页面、先 build 再 screenshots、人工验收后再 commit”的前端工作流。
+- 修改范围说明：本轮没有修改 frontend 源码，没有修改 backend，没有刷新 README 主截图，也没有生成或改动 `docs/images/` 真实截图。
+- 验证状态：本轮为文档整理任务，未运行前端构建或截图命令；后续前端实现必须先读上述设计资料库再进入代码修改。
+
 ## 当前待处理交接
 
 ### 本轮审查时间
@@ -176,6 +189,43 @@
 ---
 
 ## 历史记录
+
+### 2026-06-27 — Codex — Ticket Workbench 单页视觉验收收敛
+
+- 本轮任务：先恢复误删的 7 个 `docs/images/large/*.png` 截图删除项，再只做第 0 步全局壳层修正和第 1 步 Ticket Workbench 单页视觉返工；不改 Dashboard / Knowledge / Trace / Human Review / Provider / Settings 页面内容，除截图脚本随导航刷新真实截图外不扩展其他页面。
+- 工作区处理：按用户要求执行 `git restore` 恢复 `docs/images/large/ai-analysis.png`、`dashboard.png`、`human-review.png`、`knowledge-base.png`、`provider-config.png`、`ticket-detail.png`、`trace-evidence.png`，恢复后 `git status --short` 为空再继续。
+- 壳层改动：`App.vue` 去掉左侧底部重复 Provider 信息，只保留 `local-rule fallback`、`No real LLM`、`No vector DB`；顶部只保留一套 Search / Portfolio Demo / Provider / Role / No real LLM / Keyword retrieval；左上角 Logo 改为蓝紫渐变圆角 SVG 节点/六边形图标。
+- Ticket Workbench 改动：移除页面内部重复状态条和首屏下方摘要/提交区；中栏精简为工单元数据、描述、状态时间线和操作按钮；右栏压缩为 AI Copilot 状态、规则分类建议、优先级判断、预计影响、相似工单 Top 3、RAG 知识引用、模板化建议草稿、风险提示、Human Review 按钮和 Trace evidence 入口。
+- 截图改动：`ticket-detail.png` 改为 1440x960 全工作台截图，能看到左队列 / 中详情 / 右 Copilot；`ai-analysis.png` 改为桌面视口下的右侧 Copilot 面板截图；截图均由 `npm run screenshots` 从真实前端生成，未复制 `docs/design/references` 参考图。
+- 是否修改后端：否。未修改 backend、数据库 schema、CI、真实 Provider、真实向量数据库或生产级权限系统。
+- 验证结果：`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过；`git diff --check` 通过（仅出现 Windows CRLF 提示）。
+- 文案与安全检查：风险文案搜索命中均为 README/docs/HANDOFF 中的否定边界、历史说明或参考图规则说明，未发现本轮真实 UI 主文案夸大能力；安全扫描未命中 `sk-`、`api_key`、`secret`、私钥文本。
+- 剩余风险：本轮没有运行后端 `mvn test`，因为未修改 backend；建议人工重点验收 `docs/images/ticket-detail.png`，合格后再进入下一个页面的逐页验收。
+
+### 2026-06-27 — Codex — 前端导航修复与多视图拆分
+
+- 本轮任务：只做前端可用性与页面瘦身；修复左侧导航无响应，把臃肿单页拆成 Dashboard / Ticket Workbench / Knowledge / Trace / Human Review / Provider / Settings 多视图，不新增后端能力。
+- 审查结论：原左侧导航只是静态 button，缺少 `@click`、router 或 `activeView`，且高亮写死在“工单处理”；`frontend/package.json` 没有 Vue Router，因此本轮使用 `activeView` 做最小切换。
+- 前端改动：`App.vue` 保留数据加载、鉴权角色切换、工单选择与 API 调用；新增 `frontend/src/views/` 下 7 个视图组件；Ticket Workbench 只保留队列、详情、Copilot 建议、RAG 摘要和 Human Review 摘要；完整 Trace JSON、generation_record、Provider/fallback 细节移到独立页面。
+- 截图改动：更新 `frontend/scripts/capture-screenshots.mjs`，按左侧导航切换后截图；保留 README 依赖的 dashboard、ticket-detail、ai-analysis、knowledge-base，并新增 trace-evidence、human-review、provider-config 及 large 版本。
+- 文档改动：更新 README、docs/frontend-style.md、docs/product-design.md、TODO.md 和 HANDOFF.md，说明导航已可用、多视图拆分和能力边界不变。
+- 是否修改后端：本轮没有修改后端源码、接口、schema 或测试；当前 git status 中的后端改动来自上一轮 Provider/RBAC/Human Review 工作，继续保留。
+- 验证结果：`backend/` 下 `mvn test` 通过，`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`；`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过并刷新多视图截图。
+- 质量检查：`git diff --check` 通过；安全扫描命中均为 `TICKET_AI_API_KEY` 占位符/环境变量说明或 `risk-box` CSS 假阳性，未发现真实 API Key；`git ls-files` 未发现 `.env`、`node_modules`、`dist`、`target`、`build` 或日志文件被跟踪。
+- 剩余风险：当前仍未提交；真实 Provider 仍需用户本地临时 Key 单独验证；JWT + RBAC 仍是 demo 级；RAG 仍是 keyword-based reference，不是向量数据库。
+- 建议 commit message：`feat: refine ticket copilot navigation and workspace layout`
+
+### 2026-06-27 — Codex — Provider fallback、RBAC demo 与 Human Review 闭环
+
+- 本轮任务：在不改成生产级系统的前提下，完成 OpenAI-compatible Provider 可选接入、local-rule fallback、JWT + RBAC demo、Human Review 三态审核、Trace Evidence provider 字段和前端最小接入。
+- 后端改动：新增 `AiProviderService`，读取 `TICKET_AI_PROVIDER`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY`、`TICKET_AI_FALLBACK_TO_LOCAL`；新增 demo JWT/RBAC（`/api/auth/login`、`/api/auth/me`）；新增 `POST /api/tickets/{id}/run-copilot` 和 review approve/request-changes/reject 接口。
+- 数据字段：`generation_record` 新增 `provider_name`、`model_name`、`fallback_used`、`fallback_reason`、`error_message`，H2 schema 同步；未新增独立 Human Review 表。
+- 状态闭环：run-copilot 后进入 `REVIEW_REQUIRED`；Approve 进入 `RESOLVED`；Request Changes 回到 `REVIEW_REQUIRED`；Reject 进入 `REJECTED`；所有变化写入 `ticket_status_history`。
+- 前端改动：API 层带 Bearer token；工作台默认 demo Agent 登录，可切换 Agent / Reviewer / Viewer；右侧面板新增 Run Copilot、审核意见、Approve / Request Changes / Reject；Trace 区显示 providerName/modelName/fallbackReason。
+- 文档改动：更新 README、docs/API.md、docs/architecture.md、docs/trace-evidence.md、docs/resume-evidence.md、docs/TEST_REPORT.md、TODO；新增 `docs/real-provider-verification.md` 和 `docs/auth-rbac-demo.md`。
+- 验证结果：`backend/` 下 `mvn test` 通过，`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`；`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过并刷新 `docs/images`。
+- 安全边界：本轮没有真实 API Key，不声明真实 Provider 调用已验证；JWT + RBAC 是 demo 级，不是生产鉴权；RAG 仍是 keyword-based reference，不是向量数据库；没有 Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭工单。
+- 剩余风险：真实 Provider 需要用户本地临时环境变量和 Key 单独验证；demo JWT 使用本地演示账号；没有独立 review 表，review 记录仍从 `ticket_status_history` 推导。
 
 ### 2026-06-27 — Codex — README 与简历证据收口
 
@@ -387,3 +437,22 @@
 - 修改文件：本 HANDOFF.md（首次填写，原为空模板）
 - 验证证据：纯读审查，未执行任何构建或测试命令
 - 下一步：按 Task-01 → Task-02 → Task-03 → Task-04 顺序交给 Codex 处理
+
+### 2026-06-27 — Codex — 前端视觉返工对齐 02 Ticket Workbench
+
+- 本轮任务：撤回旧前端提交 `1dcb4fc` 的当前 HEAD 位置，保留文件改动后，按 `docs/design/references/02-ticket-workbench-ai-concept-cn.png` 重新返工真实 Vue 前端视觉；不 push、不 PR、不修改 backend、schema 或 CI。
+- Git 收口：已创建 `backup/frontend-layout-1dcb4fc` 备份分支；当前分支 HEAD 回到 `21956b0 feat: add enterprise ticket provider and review workflow` 后继续在工作区返工前端。
+- 前端改动：默认首屏从 Dashboard 改为 Ticket Workbench；左侧固定导航、顶部搜索和 Provider/Role/No real LLM/Keyword retrieval 边界标签重新排布；Ticket Workbench 重做为左队列 / 中详情 / 右 Copilot 三栏，左栏内置搜索筛选和选中发光态，中栏新增元数据网格、分区标签和真实状态操作，右栏压缩展示规则分类建议、相似工单、RAG 引用、Human Review、边界 footer。
+- 截图改动：`frontend/scripts/capture-screenshots.mjs` 改为等待详情和 Copilot 数据渲染后再截 `dashboard.png`；`docs/images/` 与 `docs/images/large/` 均由真实运行前端页面重新生成，没有复制 `docs/design/references` 中的 AI 参考图。
+- 文档改动：更新 README、docs/frontend-style.md、docs/product-design.md、TODO.md 和 HANDOFF.md，说明主图现在是深色 Ticket Workbench 首屏，并保留 local-rule fallback / 关键词知识引用 / 无真实 LLM / 无向量库边界。
+- 验证结果：`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过。由于本轮未修改 backend，未重新运行 `mvn test`；上一轮 backend commit 的记录仍为 24 tests passed。
+- 剩余风险：视觉已明显贴近 02 参考图，但仍建议人工打开 `docs/images/dashboard.png`、`ticket-detail.png`、`ai-analysis.png` 后再决定是否 push 或开 PR。
+
+### 2026-06-27 — Codex — Ticket Workbench 第三轮视觉收口
+
+- 本轮任务：只继续收 Ticket Workbench 视觉，不改 backend / schema / CI；目标是把页面从“深色后台感”进一步压成更接近 `02-ticket-workbench-ai-concept-cn.png` 的企业工单控制台。
+- 主要改动：`frontend/src/App.vue` 改为新的壳层结构，左侧采用中文导航与蓝紫六边形品牌图标，侧栏补 demo 角色切换卡，顶栏收为 Search / Portfolio Demo / Provider / 通知 / 帐号；`frontend/src/components/SearchFilterBar.vue`、`TicketQueue.vue`、`TicketDetailPanel.vue`、`AiRecommendationPanel.vue` 全部重写成更贴近参考图的中文三栏工作台内容。
+- 布局收口：`frontend/src/styles.css` 追加最终覆盖层，三栏工作区调整为 `330 / 1fr / 390`，并将左栏、右栏和顶部工具条的间距、边框、卡片圆角、按钮和状态胶囊统一到更接近参考图的密度。
+- 截图脚本：`frontend/scripts/capture-screenshots.mjs` 重写为按当前中文导航和工单编号取样，等待主导航、工作台、详情和 Copilot 面板渲染后再截图，避免截到半成品。
+- 验证结果：`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过并刷新 `docs/images/` 与 `docs/images/large/`；`git diff --check` 仅出现 CRLF 预警，没有实际格式错误。
+- 剩余风险：当前仍是规则引擎 / keyword reference / demo RBAC 语义，不应夸大为真实 LLM、向量数据库或生产权限系统；如果还要继续逼近参考图，可单独处理 Dashboard / Knowledge / Trace 的视觉统一，但本轮不再扩展。
