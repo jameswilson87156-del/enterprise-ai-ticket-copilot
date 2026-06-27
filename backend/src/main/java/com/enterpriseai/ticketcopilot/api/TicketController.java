@@ -2,14 +2,18 @@ package com.enterpriseai.ticketcopilot.api;
 
 import java.util.List;
 
+import com.enterpriseai.ticketcopilot.auth.AuthContext;
+import com.enterpriseai.ticketcopilot.auth.AuthUser;
 import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
+import com.enterpriseai.ticketcopilot.dto.ReviewDecisionRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
 import com.enterpriseai.ticketcopilot.model.AiAnalysis;
 import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
+import com.enterpriseai.ticketcopilot.model.TraceEvidence;
 import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -56,6 +60,35 @@ public class TicketController {
         return ticketWorkflowService.getAiAnalysis(id);
     }
 
+    @GetMapping("/{id}/trace-evidence")
+    public TraceEvidence getTraceEvidence(@PathVariable String id) {
+        return ticketWorkflowService.getTraceEvidence(id);
+    }
+
+    @PostMapping("/{id}/run-copilot")
+    public TicketDetail runCopilot(@PathVariable String id) {
+        AuthUser user = requireRoles("ADMIN", "AGENT");
+        return ticketWorkflowService.runCopilot(id, user.displayName());
+    }
+
+    @PostMapping("/{id}/review/approve")
+    public TicketDetail approveReview(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
+        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        return ticketWorkflowService.approveReview(id, user.displayName(), request.comment());
+    }
+
+    @PostMapping("/{id}/review/request-changes")
+    public TicketDetail requestReviewChanges(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
+        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        return ticketWorkflowService.requestReviewChanges(id, user.displayName(), request.comment());
+    }
+
+    @PostMapping("/{id}/review/reject")
+    public TicketDetail rejectReview(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
+        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        return ticketWorkflowService.rejectReview(id, user.displayName(), request.comment());
+    }
+
     @PostMapping("/{id}/status")
     public TicketDetail updateStatus(@PathVariable String id, @Valid @RequestBody UpdateTicketStatusRequest request) {
         return ticketWorkflowService.updateStatus(id, request);
@@ -69,5 +102,13 @@ public class TicketController {
     @PostMapping("/knowledge/{articleNo}/confirm")
     public KnowledgeDraft confirmKnowledgeDraft(@PathVariable String articleNo) {
         return ticketWorkflowService.confirmKnowledgeDraft(articleNo);
+    }
+
+    private AuthUser requireRoles(String... roles) {
+        AuthUser user = AuthContext.requireUser();
+        if (!user.hasAnyRole(roles)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Insufficient role for this operation.");
+        }
+        return user;
     }
 }

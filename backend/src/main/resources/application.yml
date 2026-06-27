@@ -2,6 +2,16 @@ spring:
   application:
     name: enterprise-ai-ticket-copilot
 
+ticket:
+  ai:
+    provider: ${TICKET_AI_PROVIDER:local-rule}
+    base-url: ${TICKET_AI_BASE_URL:}
+    model: ${TICKET_AI_MODEL:gpt-4o-mini}
+    api-key: ${TICKET_AI_API_KEY:}
+    fallback-to-local: ${TICKET_AI_FALLBACK_TO_LOCAL:true}
+  auth:
+    jwt-signing-key: ${TICKET_AUTH_JWT_SIGNING_KEY:demo-rbac-signing-key-change-before-production}
+
 server:
   port: 8080
   servlet:

@@ -49,6 +49,7 @@ class TicketWorkflowServiceTest {
     @Mock private RuleClassificationService classificationService;
     @Mock private KnowledgeMatchingService knowledgeMatchingService;
     @Mock private RecommendationTemplateService recommendationTemplateService;
+    @Mock private AiProviderService aiProviderService;
 
     private TicketWorkflowService service;
 
@@ -63,6 +64,7 @@ class TicketWorkflowServiceTest {
             classificationService,
             knowledgeMatchingService,
             recommendationTemplateService,
+            aiProviderService,
             new ObjectMapper()
         );
     }
