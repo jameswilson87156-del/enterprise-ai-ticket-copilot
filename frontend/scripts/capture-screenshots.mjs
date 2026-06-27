@@ -14,6 +14,14 @@ const shouldStartServer = !process.env.SCREENSHOT_URL
 const standardViewport = { width: 1440, height: 960 }
 const largeViewport = { width: 1920, height: 1200 }
 
+const showcaseTargets = [
+  { name: 'dashboard', route: 'dashboard', selector: '[data-screenshot="dashboard"]' },
+  { name: 'ticket-detail', route: 'ticket-detail', selector: '[data-screenshot="ticket-detail"]' },
+  { name: 'knowledge-base', route: 'knowledge-base', selector: '[data-screenshot="knowledge-base"]' },
+  { name: 'trace-evidence', route: 'trace-evidence', selector: '[data-screenshot="trace-evidence"]' },
+  { name: 'human-review', route: 'human-review', selector: '[data-screenshot="human-review"]' }
+]
+
 const browserCandidates = [
   process.env.CHROME_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -24,6 +32,12 @@ const browserCandidates = [
 
 function findBrowser() {
   return browserCandidates.find((candidate) => existsSync(candidate))
+}
+
+function targetUrl(route) {
+  const url = new URL(baseUrl)
+  url.hash = route
+  return url.toString()
 }
 
 function startServer() {
@@ -105,6 +119,14 @@ async function captureLarge(page, name) {
   await page.setViewportSize(standardViewport)
 }
 
+async function openShowcase(page, target, viewport = standardViewport) {
+  await page.setViewportSize(viewport)
+  await page.goto(targetUrl(target.route), { waitUntil: 'networkidle' })
+  await page.waitForSelector(target.selector)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(150)
+}
+
 mkdirSync(outputRoot, { recursive: true })
 mkdirSync(largeRoot, { recursive: true })
 
@@ -127,13 +149,16 @@ try {
     headless: true
   })
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
-  await page.goto(baseUrl, { waitUntil: 'networkidle' })
-  await page.waitForSelector('[data-screenshot="human-review"]')
 
-  await captureViewport(page, 'human-review')
-  await captureLarge(page, 'human-review')
-  await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, '1366 desktop')
-  await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, '390 mobile')
+  for (const target of showcaseTargets) {
+    await openShowcase(page, target)
+    await captureViewport(page, target.name)
+    await captureLarge(page, target.name)
+    await openShowcase(page, target, { width: 1366, height: 900 })
+    await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, `${target.name} 1366 desktop`)
+    await openShowcase(page, target, { width: 390, height: 844 })
+    await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, `${target.name} 390 mobile`)
+  }
 
   await browser.close()
   console.log(`Screenshots saved to ${outputRoot}`)
