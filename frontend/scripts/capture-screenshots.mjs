@@ -12,7 +12,6 @@ const largeRoot = resolve(outputRoot, 'large')
 const baseUrl = process.env.SCREENSHOT_URL || 'http://127.0.0.1:5173'
 const shouldStartServer = !process.env.SCREENSHOT_URL
 const standardViewport = { width: 1440, height: 960 }
-const focusedViewport = { width: 1100, height: 960 }
 const largeViewport = { width: 1920, height: 1200 }
 
 const browserCandidates = [
@@ -89,36 +88,6 @@ async function assertNoHorizontalOverflow(page, viewport, label) {
   }
 }
 
-async function verifyDemoInteractions(page) {
-  await page.setViewportSize(standardViewport)
-  await page.evaluate(() => window.scrollTo(0, 0))
-
-  const workbench = page.locator('[data-screenshot="ticket-detail"]')
-  const search = workbench.getByRole('searchbox', { name: '搜索', exact: true })
-  await search.fill('KB-REDIS-CONN')
-  await page.waitForTimeout(100)
-  if (await page.getByRole('button', { name: /DEMO-0003/ }).count() !== 1) {
-    throw new Error('Knowledge keyword search did not return DEMO-0003.')
-  }
-
-  await search.fill('no-such-ticket-keyword')
-  await page.getByText('暂无匹配工单', { exact: true }).waitFor()
-  await search.fill('')
-
-  await workbench.getByRole('button', { name: '已沉淀', exact: true }).click()
-  if (await page.getByRole('button', { name: /DEMO-0008/ }).count() !== 1) {
-    throw new Error('Knowledge-based filter did not return DEMO-0008.')
-  }
-  await workbench.getByRole('button', { name: '全部', exact: true }).click()
-
-  await page.getByRole('button', { name: /DEMO-0007/ }).click()
-  await page.waitForTimeout(300)
-  await page.getByRole('button', { name: '生成知识草稿', exact: true }).click()
-  await page.getByText('知识草稿已生成，发布前仍需人工审核。', { exact: true }).waitFor()
-  await page.getByRole('button', { name: '人工确认入库', exact: true }).click()
-  await page.getByText('知识草稿已由人工确认并完成沉淀。', { exact: true }).waitFor()
-}
-
 async function captureViewport(page, name, viewport = standardViewport) {
   await page.setViewportSize(viewport)
   await page.screenshot({
@@ -134,11 +103,6 @@ async function captureLarge(page, name) {
     animations: 'disabled'
   })
   await page.setViewportSize(standardViewport)
-}
-
-async function scrollTo(page, selector) {
-  await page.locator(selector).scrollIntoViewIfNeeded()
-  await page.waitForTimeout(200)
 }
 
 mkdirSync(outputRoot, { recursive: true })
@@ -164,10 +128,10 @@ try {
   })
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
-  await page.waitForSelector('[data-screenshot="dashboard"]')
+  await page.waitForSelector('[data-screenshot="knowledge-base"]')
 
-  await captureViewport(page, 'dashboard')
-  await captureLarge(page, 'dashboard')
+  await captureViewport(page, 'knowledge-base')
+  await captureLarge(page, 'knowledge-base')
   await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, '1366 desktop')
   await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, '390 mobile')
 
