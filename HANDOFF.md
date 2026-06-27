@@ -6,6 +6,18 @@
 
 ## 当前交接更新
 
+### 2026-06-27 — Codex — Ticket Workbench ShowcaseView 单页改造
+
+- 本轮任务：继续 `D:\workhome\enterprise-ai-ticket-copilot` 的前端改造，但严格按 Enterprise SaaS UI Design Skill 与 playbook 执行；只改 Ticket Workbench 页面，不改 backend、不改数据库、不改其他页面源码、不 push、不 commit。
+- 已读取资料：`C:\Users\wangxun\.agents\skills\enterprise-saas-ui-design\SKILL.md`、`D:\workhome\enterprise-saas-ui-design-skill\README.md`、`playbook/ui-reference-library.md`、`ui-style-guide.md`、`page-recipes.md`、`screenshot-acceptance-checklist.md`、`frontend-workflow.md`；同时读取项目规则、TODO、HANDOFF、现有 Ticket Workbench 入口和截图脚本。项目内 `docs/PRD.md` 与 `docs/DESIGN.md` 不存在，实际读取了现有 `docs/architecture.md`、`docs/design/*` 等上下文。
+- Page spec：已先输出 Ticket Workbench page spec，明确目标、三栏布局、组件角色、设计 token、截图验收标准和实施顺序，再进入代码修改。
+- 前端改动：新增 `frontend/src/views/TicketWorkbenchShowcaseView.vue`，内部只使用本地 demo 常量，CSS 全部为 `showcase-` 前缀并使用 scoped style；没有复用旧 `TicketQueue`、`TicketDetailPanel`、`AiRecommendationPanel`。
+- App 入口：`frontend/src/App.vue` 中 Tickets 默认分支已切到 `TicketWorkbenchShowcaseView`；旧 TicketWorkbenchView 和旧组件未删除。
+- 截图脚本：`frontend/scripts/capture-screenshots.mjs` 的 Ticket Workbench 等待选择器最小适配为 ShowcaseView 的 `.showcase-metadata-grid` 与 `.showcase-signal-grid`，以便 `npm run screenshots` 能从真实浏览器生成截图。
+- 验证命令：`frontend/` 下 `npm run build` 通过；`frontend/` 下 `npm run screenshots` 通过，输出目录为 `D:\workhome\enterprise-ai-ticket-copilot\docs\images`。
+- 人工验收：只人工查看 `D:\workhome\enterprise-ai-ticket-copilot\docs\images\ticket-detail.png`；第二轮压缩右侧 Copilot 密度后，1440x960 首屏可见左队列 / 中详情 / 右 Copilot，并可见分类建议、优先级判断、相似工单、RAG 知识引用、模板化排查草稿、风险提示和 Human Review 按钮。
+- 未做事项：未修改 backend、数据库 schema、真实 Provider 配置或生产依赖；未 push、未 commit；除截图脚本按既有命令刷新截图文件外，没有改其它页面源码。
+
 ### 2026-06-27 — Codex — 前端设计资料库与工作流规范
 
 - 本轮任务：为后续前端改造建立可长期复用的设计资料库与执行流程，只更新 `docs/design` 下的文档和必要的交接记录，不改 backend、不改 frontend 源码、不改 README 主截图、不 push。

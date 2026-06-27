@@ -34,6 +34,7 @@
 - docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 前端真实工作台已按深色企业 RAG Copilot 方向改造，主图突出左导航、顶部运行边界、三栏工单处理、Copilot / RAG / Human Review 面板，README 截图区继续使用 Playwright 真实页面截图。
+- 2026-06-27 已按 Enterprise SaaS UI Design Skill 新建 `TicketWorkbenchShowcaseView.vue`：Tickets 默认显示独立 ShowcaseView，只使用本地 demo 常量，CSS 使用 `showcase-` scoped 前缀，不复用旧 TicketQueue / TicketDetailPanel / AiRecommendationPanel；`ticket-detail.png` 已刷新并人工验收通过，首屏可见左队列 / 中详情 / 右 Copilot，以及分类、优先级、相似工单、RAG 引用、模板化草稿、风险提示和 Human Review。
 - Trace Evidence 已新增只读接口和前端证据区，展示 `generation_record`、状态历史、关键词知识引用和 Human Review 推导字段；`runId/traceId` 明确为基于工单号派生的展示标识。
 - 当前存在 6 个后端测试文件，合计 21 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 - README 已收口为 `Enterprise Ticket RAG Copilot / 企业工单知识库智能助手` 投递页，引用 `docs/images/` 最新真实浏览器截图。

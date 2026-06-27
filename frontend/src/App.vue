@@ -18,6 +18,7 @@ import SearchFilterBar from './components/SearchFilterBar.vue'
 import StatusTimeline from './components/StatusTimeline.vue'
 import TicketDetailPanel from './components/TicketDetailPanel.vue'
 import TicketIntakePanel from './components/TicketIntakePanel.vue'
+import TicketWorkbenchShowcaseView from './views/TicketWorkbenchShowcaseView.vue'
 import TicketQueue from './components/TicketQueue.vue'
 import type { AiAnalysis, CreateTicketRequest, TicketDetail, TicketStatus, TicketSummary, TraceEvidence, WorkbenchMetrics } from './types/ticket'
 
@@ -396,30 +397,7 @@ onMounted(() => {
           <p v-else class="operation-feedback__message" role="status" aria-live="polite">{{ feedback }}</p>
         </div>
 
-        <section class="workspace-grid" aria-label="工单处理三栏工作台">
-          <div class="ticket-column">
-            <TicketQueue
-              :tickets="filteredTickets"
-              :selected-id="selectedTicketId"
-              :loading="loading && !tickets.length"
-              @select="(id) => run(() => selectTicket(id))"
-            />
-          </div>
-          <div class="detail-column">
-            <TicketDetailPanel :ticket="selectedTicket" :loading="loading" />
-          </div>
-          <div class="assist-column">
-            <AiRecommendationPanel
-              :analysis="selectedAnalysis"
-              :ticket="selectedTicket"
-              :evidence="selectedTraceEvidence"
-              :busy="loading"
-              @status="changeStatus"
-              @draft="generateDraft"
-              @confirm-draft="confirmDraft"
-            />
-          </div>
-        </section>
+        <TicketWorkbenchShowcaseView />
 
         <section class="secondary-grid">
           <div class="intake-column">
