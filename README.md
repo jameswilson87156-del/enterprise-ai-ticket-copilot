@@ -1,5 +1,7 @@
 # Enterprise AI Ticket RAG Copilot
 
+Portfolio Case Study: [https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag](https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag)
+
 面向企业客服与内部 IT 工单场景的 AI Copilot 作品集项目，展示工单分析、RAG 知识引用、Trace Evidence、Provider fallback 与 Human Review 人工审核闭环。
 
 当前项目默认使用 `local-rule fallback`：分类来自本地规则，知识检索来自关键词匹配，回复内容是模板化建议草稿。5 个 Showcase 页面使用本地 Demo 数据，重点呈现产品交互和工程边界，不代表已部署生产级自动客服或无人值守 Agent。
