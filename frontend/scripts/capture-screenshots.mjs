@@ -19,7 +19,8 @@ const showcaseTargets = [
   { name: 'ticket-detail', route: 'ticket-detail', selector: '[data-screenshot="ticket-detail"]' },
   { name: 'knowledge-base', route: 'knowledge-base', selector: '[data-screenshot="knowledge-base"]' },
   { name: 'trace-evidence', route: 'trace-evidence', selector: '[data-screenshot="trace-evidence"]' },
-  { name: 'human-review', route: 'human-review', selector: '[data-screenshot="human-review"]' }
+  { name: 'human-review', route: 'human-review', selector: '[data-screenshot="human-review"]' },
+  { name: 'evaluation-metrics', route: 'evaluation-metrics', selector: '[data-screenshot="evaluation-metrics"]' }
 ]
 
 const browserCandidates = [

@@ -37,6 +37,7 @@
 - 2026-06-27 已按 Enterprise SaaS UI Design Skill 新建 `TicketWorkbenchShowcaseView.vue`：Tickets 默认显示独立 ShowcaseView，只使用本地 demo 常量，CSS 使用 `showcase-` scoped 前缀，不复用旧 TicketQueue / TicketDetailPanel / AiRecommendationPanel；`ticket-detail.png` 已刷新并人工验收通过。
 - 当前存在 6 个后端测试文件，合计 24 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
 - 本地 RAG / Citation / Trace Evaluation 最小闭环已补充，包含 `data/eval/ticket_rag_eval_cases.jsonl`、`scripts/evaluate_rag_demo.py`、`docs/evaluation/RAG_EVALUATION_PLAN.md`、`docs/metrics/rag_metrics_latest.json` 和 `docs/metrics/rag_metrics_snapshot.md`。
+- 2026-07-04 已完成前端 Phase 1：统一深色 Showcase App Shell，升级 Dashboard 首页，新建 Evaluation / Metrics 页面，同步本地评测数据到 `frontend/src/data/evaluationMetrics.ts`，并刷新本项目真实运行截图；未使用第三方截图，未接真实 API Key。
 
 ## 3. 当前不能夸大的能力
 
@@ -103,7 +104,9 @@
 
 ## 7. 下一轮建议任务
 
-下一轮建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
+下一轮如继续前端改造，建议处理 Phase 2：只深化 Ticket Workbench 页面在新 App Shell 下的首屏截图表现，不要同时重写 Knowledge、Trace、Human Review。
+
+如果回到后端/部署路线，建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 
 不要同时处理 CI、Docker Compose、README 大改或其他 P1/P2 优化。下一轮仍然只做一个明确、可验收的小任务。
 

@@ -6,6 +6,25 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Frontend Phase 1 Showcase Shell + Evaluation Dashboard
+
+- 本轮任务：严格按 `docs/frontend_reference_research.md`、`docs/frontend_moodboard.md`、`docs/frontend_showcase_design.md` 落地 Phase 1 前端升级，范围限定为 App Shell、Dashboard、Evaluation / Metrics，并保持其他页面可访问。
+- App Shell：`frontend/src/App.vue` 改为统一深色企业 SaaS showcase shell，保留 hash route，新增 `Evaluation / Metrics` 路由；顶部状态栏展示 Project Mode、Provider、Retrieval、Eval Dataset 和 Demo Boundary；右侧上下文面板仅在 Dashboard / Evaluation 显示，避免压窄旧页面。
+- Dashboard：重写 `frontend/src/views/DashboardShowcaseView.vue`，首屏展示 Enterprise Ticket RAG Copilot、demo 边界、KPI、Evaluation Snapshot、Recent Ticket Runs、Top Knowledge Sources、Provider/Fallback、Human Review Queue 和 Trace/Audit Activity。
+- Evaluation：新增 `frontend/src/views/EvaluationMetricsShowcaseView.vue`，展示本地评测指标、baseline/scope、next-stage、样本表、失败类型分布、复现命令和能力边界。
+- 数据来源：新增 `frontend/src/data/evaluationMetrics.ts`，同步自 `docs/metrics/rag_metrics_latest.json`、`docs/metrics/rag_metrics_snapshot.md` 和 `data/eval/ticket_rag_eval_cases.jsonl`；文件注释已说明 synthetic demo dataset + local keyword retrieval + citation gating 边界。
+- 截图：`frontend/scripts/capture-screenshots.mjs` 新增 `evaluation-metrics` 目标；已生成本项目本地运行截图到 `docs/images/` 和 `docs/images/large/`，没有使用或提交 `.local/reference_screenshots/` 下第三方截图。
+- 验证命令：
+  - `frontend/` 下执行 `npm ci`，结果：0 vulnerabilities。
+  - `frontend/` 下执行 `npm run typecheck`，结果：通过。
+  - `frontend/` 下执行 `npm run build`，结果：通过，Vite build 完成。
+  - `frontend/` 下执行 `npm run screenshots`，首次因 5173/5174 被其他本地服务占用失败；改用空闲端口 5291 + `SCREENSHOT_URL` 后通过，并完成 1366 / 390 无横向溢出检查。
+  - 根目录执行 `py .\scripts\evaluate_rag_demo.py`，结果：16 cases，Top-K=3，Top-K Hit Rate 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11%，Failed Case Count 6，Human Review Required Count 15。
+  - `backend/` 下执行 `mvn test`，结果：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 边界说明：未修改后端业务逻辑，未接真实 API Key，未写入密钥，未声明真实向量 RAG、真实模型准确率、真实线上用户或生产可用；前端所有评测数字均标注为本地 demo / local evaluation 来源。
+
+---
+
 ### 2026-07-04 — Codex — RAG Evaluation Metrics Baseline
 
 - 本轮任务：补一个可复现、可解释、适合 README 和简历引用的最小 RAG / Citation / Trace Evaluation 体系。

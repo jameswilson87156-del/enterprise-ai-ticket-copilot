@@ -1,6 +1,6 @@
 ﻿# RAG Metrics Snapshot
 
-- Generated at: `2026-07-04T12:25:07+08:00`
+- Generated at: `2026-07-04T14:00:05+08:00`
 - Dataset: `data\eval\ticket_rag_eval_cases.jsonl`
 - Samples: `16` synthetic demo cases
 - Retrieval method: category-aware keyword retrieval matching the demo KnowledgeMatchingService scoring shape
@@ -17,7 +17,7 @@
 | Citation Precision | 81.11% | Citation IDs that belong to expected knowledge IDs. |
 | MRR | 1.0000 | Optional local retrieval rank metric. |
 | NDCG@K | 0.9742 | Optional binary relevance rank metric. |
-| Avg Retrieval Latency | 0.0994 ms | Local in-memory demo scoring only. |
+| Avg Retrieval Latency | 0.0437 ms | Local in-memory demo scoring only. |
 | Knowledge Miss Fallback Rate | 6.25% | No expected source or no retrieved source. |
 | Provider Fallback Rate | 100.00% | Expected 100% in this no-key local run. |
 | Failed Case Count | 6 | Retrieval/citation quality failures, not production incidents. |
