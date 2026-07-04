@@ -16,3 +16,4 @@ node-types/
 *.tsbuildinfo
 .DS_Store
 .agents/
+.local/
