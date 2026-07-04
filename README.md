@@ -1,10 +1,8 @@
 # Enterprise Ticket RAG Copilot
 
-Portfolio Case Study: [https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag](https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag)
-
 面向企业工单、客服支持和运维知识库场景的 AI RAG Copilot 作品集项目，用来展示工单分析、知识库检索、引用证据、Trace 运行链路、Human Review 门禁和本地 Evaluation / Metrics。
 
-这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成线上系统、公司内部数据效果或稳定模型接入能力。
+这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成对外运行服务、公司内部数据效果或稳定模型接入能力。
 
 ## 项目定位
 
@@ -81,7 +79,7 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 - **Trace Timeline**：Ticket Input、Query Rewrite、Retrieval、Citation Attach、Provider skipped、fallback、Answer Draft、Human Review 和 Raw JSON。
 - **Human Review**：高风险或低证据场景进入人工确认，展示 approve / request changes / reject 状态。
 - **Evaluation / Metrics**：本地 synthetic demo 评测集、baseline、指标快照和失败样本解释。
-- **Provider Fallback**：OpenAI-compatible provider 可选；未配置 Key 或失败时记录 reason 并回退 local-rule。
+- **Provider Boundary**：OpenAI-compatible provider 可选；未配置 Key 时走 local-rule fallback，并记录 provider path 与 reason。
 - **Citation Gating**：建议草稿必须展示引用来源或进入 fallback / review。
 - **Local Demo Dataset**：前端 showcase 和评测脚本都可在本地无外部服务运行。
 
@@ -145,12 +143,21 @@ py .\scripts\evaluate_rag_demo.py
 | Citation Coverage | 100.00% | 需要引用的样本均附带模拟 citation IDs |
 | Citation Precision | 81.11% | citation IDs 中属于期望知识 ID 的比例 |
 | Avg Retrieval Latency | 0.0437 ms | 本地内存关键词评分耗时，不代表线上性能 |
-| Knowledge Miss Fallback Rate | 6.25% | 缺知识或无期望来源的 fallback 样本比例 |
-| Provider Fallback Rate | 100.00% | 本轮未配置真实 API Key，预期全部走 local-rule fallback |
 | Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
 | Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
 
-这些结果来自 synthetic demo dataset + local keyword retrieval + citation gating，不代表真实向量检索、真实模型质量、线上效果或公司内部数据效果。
+Provider / fallback 边界不作为核心质量指标展示：
+
+| 路径 | 当前说明 |
+| --- | --- |
+| Local fallback path | enabled |
+| No API key mode | expected local-rule fallback |
+| Provider path | local-rule fallback |
+| Real provider | not configured in this README snapshot |
+
+当前未配置真实 API Key，默认走 local-rule fallback，这是本地 demo 的预期路径，不代表生产失败率。
+
+这些结果来自 synthetic demo dataset + local keyword retrieval + citation gating，不代表真实向量检索、真实模型质量、real online effect 或公司内部数据效果。
 
 ### Baseline / Scope
 
@@ -270,6 +277,8 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 
 > 企业工单 RAG Copilot：基于 Spring Boot + Vue 3 实现企业工单知识库智能助手，支持工单分析、keyword retrieval、引用证据、Trace Timeline 与 Human Review 门禁，并构建 16 条 synthetic demo 评测集统计 Top-K Hit Rate、Context Recall@K、Citation Coverage / Precision 等指标。
 
+> 设计 local-rule fallback 作为无 API Key 环境下的安全演示路径，并保留 OpenAI-compatible Provider optional path，避免把 demo 输出误写成外部模型质量结论。
+
 更短版：
 
 > 实现企业工单 RAG Copilot Demo，覆盖 Ticket Workbench、Citation Evidence、Trace Timeline、Human Review 与本地 Evaluation / Metrics，基于 16 条自建 synthetic 工单评测集输出可复现指标快照。
@@ -298,9 +307,10 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 - 默认生成路径是 local-rule fallback，不是外部模型稳定响应。
 - 当前检索为 keyword retrieval，不是 embedding / Vector DB。
 - 当前 citation gating 是本地 demo 逻辑，用于展示证据约束和失败样本。
-- 仓库不提交真实 API Key、数据库密码或个人本地配置。
-- 不使用公司内部数据、客户数据或业务系统流量。
+- `no real API key committed`；仓库不提交数据库密码或个人本地配置。
+- `not production data`；`not real online traffic`；不使用客户数据。
 - OpenAI-compatible Provider 是 optional path；只有实际跑通并记录证据后，才能写入新的指标或结论。
+- 当前 README 中的评测指标不代表真实向量 RAG、`not real model quality result`、real online effect 或 production data result。
 - Human Review 是 demo gate，不是生产级审核任务平台。
 - `runId` / `traceId` 是展示标识，不代表完整分布式 Trace / Span Runtime。
 - Showcase 截图证明页面可复现，不等同于真实联调或部署证据。

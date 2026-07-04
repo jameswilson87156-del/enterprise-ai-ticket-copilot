@@ -6,6 +6,14 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — README Post-publish Boundary Fix
+
+- 本轮任务：只做 README 发布后小修复；未修改前端代码、后端代码、截图、metrics JSON、评测脚本或临时本地文件，未 push。
+- README 外链：移除顶部 `Portfolio Case Study` 外部链接，避免 GitHub README 跳转到可能尚未同步最新截图的作品集页面；本项目截图仍全部使用仓库内 `docs/images/` 相对路径。
+- Provider fallback：Evaluation / Metrics 不再把 provider fallback 作为百分比质量指标展示，改为独立说明 `Local fallback path: enabled`、`No API key mode: expected local-rule fallback`、`Provider path: local-rule fallback`、`Real provider: not configured`。
+- Resume / Boundary：Resume Bullets 补充 local-rule fallback 作为无 API Key 环境下的安全演示路径；Honest Boundaries 保留 synthetic demo dataset、keyword retrieval、citation gating、OpenAI-compatible Provider optional path、no real API key committed、not production data / traffic / model quality result。
+- 验证：本轮不运行 build、test、screenshots 或 evaluate；仅执行 git status、文档 diff、README 外链与风险词检查、git diff --check。
+
 ### 2026-07-04 — Codex — GitHub README Portfolio Integration
 
 - 本轮任务：只整合 GitHub README 作品集展示；未修改前端代码、后端代码、截图文件、metrics 产物或 `.local/`。

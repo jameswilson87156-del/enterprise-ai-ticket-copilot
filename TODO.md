@@ -43,6 +43,7 @@
 - 2026-07-04 已完成前端 Phase 2：Ticket Workbench 升级为三栏企业工单 AI 处理工作台，首屏包含 Ticket Queue、Ticket Detail + AI Draft、Citation Evidence + Human Review + Trace；页面继续只使用 synthetic demo data、local-rule fallback、keyword retrieval 和 citation gating，不接真实 API Key，不修改后端逻辑，不更新 README。
 - 2026-07-04 已完成前端 Phase 3：Trace Timeline 新增专用 Showcase 页面，首屏展示 Run Overview、Run List、Step Timeline、Step Detail、Retrieval / Citation Evidence、Provider skipped / local-rule fallback、Human Review gate 与 Raw JSON / Debug Detail；页面继续只使用 synthetic demo trace data，不接真实 API Key，不修改后端业务逻辑，不更新 README。
 - 2026-07-04 已完成 GitHub README 作品集整合：README 首屏重新定位 Enterprise Ticket RAG Copilot，按 Dashboard、Ticket Workbench、Evaluation / Metrics、Trace Timeline、Knowledge Base、Human Review 顺序引用本项目真实截图，并补充项目定位、非普通 RAG demo 差异、Workflow、Evaluation / Metrics、Resume Bullets、Interview Talking Points 和 Honest Boundaries；本轮只改文档，不改前端/后端代码，不重新生成截图，不接真实 API Key，不引用 `.local/`、第三方截图或 Image2 图。
+- 2026-07-04 已完成 README 发布后小修复：移除顶部外部 Portfolio Case Study 链接，避免跳转到可能滞后的作品集页面；Evaluation / Metrics 不再把 provider fallback 作为百分比质量指标展示，改为说明 no API key mode 下 expected local-rule fallback；Resume Bullets 和 Honest Boundaries 同步强调 optional provider path、synthetic demo dataset、keyword retrieval、citation gating 和 no real API key committed。
 
 ## 3. 当前不能夸大的能力
 
