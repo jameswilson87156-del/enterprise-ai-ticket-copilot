@@ -35,7 +35,8 @@
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 前端作品集展示 UI 与 README 截图区已重做，主图突出企业工单辅助处理工作台，辅助图使用两列作品集布局展示。
 - 2026-06-27 已按 Enterprise SaaS UI Design Skill 新建 `TicketWorkbenchShowcaseView.vue`：Tickets 默认显示独立 ShowcaseView，只使用本地 demo 常量，CSS 使用 `showcase-` scoped 前缀，不复用旧 TicketQueue / TicketDetailPanel / AiRecommendationPanel；`ticket-detail.png` 已刷新并人工验收通过。
-- 当前存在 5 个后端测试文件，合计 17 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
+- 当前存在 6 个后端测试文件，合计 24 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
+- 本地 RAG / Citation / Trace Evaluation 最小闭环已补充，包含 `data/eval/ticket_rag_eval_cases.jsonl`、`scripts/evaluate_rag_demo.py`、`docs/evaluation/RAG_EVALUATION_PLAN.md`、`docs/metrics/rag_metrics_latest.json` 和 `docs/metrics/rag_metrics_snapshot.md`。
 
 ## 3. 当前不能夸大的能力
 
@@ -45,6 +46,7 @@
 - 知识匹配是评分公式，不是 embedding 向量检索。
 - 推荐内容是模板生成，不是生成式 AI。
 - knowledgeCoverage 已改为基于已有数据的真实知识关联率；不能再写成人为覆盖率、模型效果或向量检索能力。
+- RAG Evaluation 结果只能写成本地 demo keyword retrieval + citation gating 的可复现指标，不能写成真实模型准确率、真实向量检索效果、Prompt 提升或生产效果。
 - 当前 application.yml 缺少 spring.datasource，仓库内可复现启动存在风险；虽然已有 application-example.yml 和 README 启动说明，但仍需统一本地配置样例与验收闭环。
 - 不能写成生产级鉴权系统，因为当前没有鉴权层。
 
@@ -97,6 +99,7 @@
 - 增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 - 优化前端体验与截图素材，保证作品集展示统一。（已完成：重做首屏控制台视觉、三栏工作台布局、README 主图与两列辅助截图展示，并重新生成截图）
 - 补充面试 Q&A 文档，说明项目边界、规则引擎取舍、状态机设计和后续可扩展方向。
+- 如后续要比较 BM25 / Vector / Hybrid / Rerank，必须先实现真实链路并复用当前评测集跑出结果；不能提前写进当前能力。
 
 ## 7. 下一轮建议任务
 

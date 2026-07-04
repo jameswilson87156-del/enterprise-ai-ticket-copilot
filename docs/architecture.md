@@ -92,6 +92,18 @@ flowchart TD
 | `ticket_status_history` | 记录人工确认后的状态变化 | `fromStatus`、`toStatus`、`actor`、`note`、`occurredAt` |
 | `knowledge_article` | 提供关键词知识引用 | `knowledgeTitle`、`sourcePath`、`snippet`、`sourceTicketId` |
 
+## Evaluation Artifacts
+
+本项目新增本地 RAG / Citation / Trace Evaluation 最小闭环，用于验证 demo keyword retrieval、citation gating 和 Human Review gate 的可解释性。它不属于线上运行链路，不连接真实 Provider，不读写 MySQL，也不代表生产级模型效果。
+
+| 路径 | 用途 |
+| --- | --- |
+| `data/eval/ticket_rag_eval_cases.jsonl` | 16 条 synthetic enterprise ticket demo cases |
+| `scripts/evaluate_rag_demo.py` | 仅使用 Python 标准库的本地评测脚本 |
+| `docs/evaluation/RAG_EVALUATION_PLAN.md` | 评测目标、样本字段、指标、baseline 和下一阶段计划 |
+| `docs/metrics/rag_metrics_latest.json` | 最新一次本地评测 JSON 结果 |
+| `docs/metrics/rag_metrics_snapshot.md` | 适合 README / 面试说明引用的指标快照 |
+
 ## 真实字段与安全派生字段
 
 真实接口数据来自现有表和现有服务逻辑。例如 `analysisId` 来自 `ticket_ai_analysis.id`，`recordId` 和 `latencyMs` 来自 `generation_record`，状态历史来自 `ticket_status_history`，知识标题和片段来自 `knowledge_article`。
@@ -114,4 +126,5 @@ flowchart TD
 - `generation_record` 保存规则或模板输出来源、输入摘要、输出摘要、耗时和状态，便于审计。
 - `/api/tickets/{id}/trace-evidence` 只读聚合 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`；其中 `runId/traceId` 是基于工单号派生的展示标识，不代表完整 Trace / Span Runtime。
 - 知识检索当前是关键词匹配和 RAG Reference 展示，不是 embedding / 向量数据库。
+- Evaluation 指标来自本地 synthetic demo 评测集，不代表真实线上用户、真实模型准确率或真实向量 RAG 效果。
 - 当前 JWT + RBAC 是 demo 级控制，不是生产级权限体系；当前没有 Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动处理闭环。

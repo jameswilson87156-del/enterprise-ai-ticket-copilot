@@ -6,6 +6,24 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — RAG Evaluation Metrics Baseline
+
+- 本轮任务：补一个可复现、可解释、适合 README 和简历引用的最小 RAG / Citation / Trace Evaluation 体系。
+- 新增评测集：`data/eval/ticket_rag_eval_cases.jsonl`，包含 16 条 synthetic enterprise ticket demo cases，覆盖 SSO/MFA、RBAC、数据同步、慢查询、接口 500、部署配置、SLA、高风险回滚、缺知识 fallback 和易误判相似问题。
+- 新增脚本：`scripts/evaluate_rag_demo.py`，仅使用 Python 标准库，模拟当前 demo keyword retrieval 评分口径，不连接 MySQL，不调用真实 Provider，不读取 API Key。
+- 新增文档：`docs/evaluation/RAG_EVALUATION_PLAN.md`，说明评测目标、样本字段、指标定义、baseline、运行命令、当前边界和下一阶段真实模型评测计划。
+- 新增指标产物：`docs/metrics/rag_metrics_latest.json`、`docs/metrics/rag_metrics_snapshot.md`。
+- README 更新：新增 `Evaluation / Metrics` 章节，包含 Demo Dataset、指标定义、运行命令、当前结果快照、baseline 边界、local-rule / mock 边界、简历可写表达和不能夸大的点。
+- 架构文档更新：`docs/architecture.md` 增加 Evaluation artifacts 说明，明确评测不属于线上运行链路。
+- TODO 更新：记录本地 Evaluation 闭环和当前 24 个后端测试用例的真实现状。
+- 验证命令：
+  - `backend/` 下执行 `mvn test`，结果：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+  - 项目根目录执行 `py .\scripts\evaluate_rag_demo.py`，结果：16 cases，Top-K=3，Top-K Hit Rate 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11%，Failed Case Count 6，Human Review Required Count 15。
+- 边界说明：这些指标只来自 synthetic demo dataset + local keyword retrieval + citation gating；不声明真实向量 RAG、真实模型准确率、Prompt 提升、生产可用或服务真实用户。
+- 未做事项：未修改前端 UI，未生成新截图，未接真实 API Key，未新增生产依赖，未实现 BM25 / Vector / Hybrid / Rerank。
+
+---
+
 ### 2026-06-27 — Codex — Ticket Workbench ShowcaseView 单页改造
 
 - 本轮任务：按 Enterprise SaaS UI Design Skill 与 playbook 只改 Ticket Workbench 页面，不改 backend、不改数据库、不改其他页面源码。

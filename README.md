@@ -181,6 +181,52 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 
 测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。2026-06-29 的最小 OpenAI 调试已进入 OpenAI-compatible 路径并写入 `AI_PROVIDER` 记录，但调用结果为 `PROVIDER_ERROR` 后回退到 local-rule；因此当前只确认 Provider 路径与 fallback 记录生效，不声明真实模型成功响应已验证。
 
+## Evaluation / Metrics
+
+本项目补充了一个本地可复现的 RAG / Citation / Trace Evaluation 最小闭环。评测集位于 [data/eval/ticket_rag_eval_cases.jsonl](data/eval/ticket_rag_eval_cases.jsonl)，包含 16 条 synthetic enterprise ticket demo cases，覆盖 SSO/MFA、RBAC 权限、数据同步、慢查询、接口 500、部署配置、SLA、高风险回滚、缺知识 fallback 和易误判相似问题。该数据集不包含真实企业用户或客户数据。
+
+本地运行：
+
+```powershell
+py .\scripts\evaluate_rag_demo.py
+```
+
+如果本机 `python` 可用，也可以运行：
+
+```bash
+python scripts/evaluate_rag_demo.py
+```
+
+脚本只使用 Python 标准库，读取本地评测集和内置 demo 知识语料，不连接 MySQL，不调用真实 Provider，不读取 API Key。结果会写入 [docs/metrics/rag_metrics_latest.json](docs/metrics/rag_metrics_latest.json) 和 [docs/metrics/rag_metrics_snapshot.md](docs/metrics/rag_metrics_snapshot.md)。
+
+当前快照（来源：`docs/metrics/rag_metrics_latest.json`，Top-K = 3）：
+
+| 指标 | 当前结果 | 说明 |
+| --- | ---: | --- |
+| Top-K Hit Rate | 100.00% | 15 条有期望知识 ID 的样本中，Top-3 至少命中一个期望来源 |
+| Context Recall@K | 90.00% | 期望关键词在 Top-3 demo 知识上下文中的平均覆盖 |
+| Citation Coverage | 100.00% | 需要引用的样本均附带模拟 citation IDs |
+| Citation Precision | 81.11% | citation IDs 中属于期望知识 ID 的比例 |
+| Avg Retrieval Latency | 0.0994 ms | 本地内存关键词评分耗时，不代表线上性能 |
+| Knowledge Miss Fallback Rate | 6.25% | 缺知识或无期望来源的 fallback 样本比例 |
+| Provider Fallback Rate | 100.00% | 本轮未配置真实 API Key，预期全部走 local-rule fallback |
+| Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
+| Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
+
+Baseline 边界：
+
+- 已实现：`keyword_only`、`naive_keyword_score`、`with_citation_required`、`with_human_review_gate`。
+- 当前没有 BM25、embedding、Vector DB、Hybrid、Rerank，因此不声称真实向量 RAG 或检索增强效果提升。
+- `Provider Fallback Rate = 100.00%` 只说明本轮没有接真实 API Key，不能写成模型质量指标。
+
+可写进简历的谨慎表达：
+
+> 基于 16 条自建企业工单 demo 评测集，完成 keyword retrieval + citation gating 的本地评测，统计 Top-K Hit Rate、Context Recall@K、Citation Coverage、Citation Precision、Retrieval Latency 与 Human Review gate，用于验证 RAG Reference 和 Trace Evidence 的可解释性。
+
+不应夸大的点：不要写“准确率 99%”“真实向量检索已上线”“Prompt 效果提升 80%”“生产可用”“服务真实用户”或“真实模型已稳定接入”。Answer Relevance、Faithfulness、Hallucination Case Count、Token Cost 和 Prompt v1/v2 效果对比属于下一阶段真实 Provider 小规模评测范围。
+
+完整方案见 [docs/evaluation/RAG_EVALUATION_PLAN.md](docs/evaluation/RAG_EVALUATION_PLAN.md)。
+
 ## 能力边界
 
 - 这是 portfolio / demo showcase，不是生产级客服系统。
