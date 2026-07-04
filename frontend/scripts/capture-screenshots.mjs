@@ -19,7 +19,8 @@ const showcaseTargets = [
   { name: 'ticket-workbench', route: 'ticket-detail', selector: '[data-screenshot="ticket-workbench"]' },
   { name: 'ticket-detail', route: 'ticket-detail', selector: '[data-screenshot="ticket-detail"]' },
   { name: 'knowledge-base', route: 'knowledge-base', selector: '[data-screenshot="knowledge-base"]' },
-  { name: 'trace-evidence', route: 'trace-evidence', selector: '[data-screenshot="trace-evidence"]' },
+  { name: 'trace-evidence', route: 'trace-evidence', selector: '[data-screenshot="trace-timeline"]' },
+  { name: 'trace-timeline', route: 'trace-timeline', selector: '[data-screenshot="trace-timeline"]' },
   { name: 'human-review', route: 'human-review', selector: '[data-screenshot="human-review"]' },
   { name: 'evaluation-metrics', route: 'evaluation-metrics', selector: '[data-screenshot="evaluation-metrics"]' }
 ]

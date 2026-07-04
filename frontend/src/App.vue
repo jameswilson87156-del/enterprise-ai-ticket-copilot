@@ -12,6 +12,7 @@ import HumanReviewShowcaseView from './views/HumanReviewShowcaseView.vue'
 import KnowledgeRagShowcaseView from './views/KnowledgeRagShowcaseView.vue'
 import TicketWorkbenchShowcaseView from './views/TicketWorkbenchShowcaseView.vue'
 import TraceShowcaseView from './views/TraceShowcaseView.vue'
+import TraceTimelineShowcaseView from './views/TraceTimelineShowcaseView.vue'
 
 type ShowcaseRoute =
   | 'dashboard'
@@ -72,7 +73,7 @@ const showcaseComponents: Record<ShowcaseRoute, Component> = {
   'ticket-detail': TicketWorkbenchShowcaseView,
   'knowledge-base': KnowledgeRagShowcaseView,
   'retrieval-evidence': TraceShowcaseView,
-  'trace-timeline': TraceShowcaseView,
+  'trace-timeline': TraceTimelineShowcaseView,
   'human-review': HumanReviewShowcaseView,
   'evaluation-metrics': EvaluationMetricsShowcaseView
 }

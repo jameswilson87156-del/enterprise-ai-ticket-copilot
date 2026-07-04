@@ -6,6 +6,17 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Phase 3 Trace Timeline Showcase
+
+- 本轮任务：只产品化 `Trace Timeline` 页面；未重写 Dashboard、Evaluation / Metrics、Ticket Workbench、Knowledge Base、Human Review，未修改 README 或后端业务逻辑。
+- 前端改动：新增 `frontend/src/views/TraceTimelineShowcaseView.vue`，将 `trace-timeline` 路由切到专用页面；保留旧 `TraceShowcaseView.vue` 给 Retrieval Evidence 兼容路径使用。
+- 页面能力：首屏展示 Run Overview、Run List / Trace Summary、Step Timeline、Step Detail、Retrieval / Citation Evidence、Provider Call skipped / local-rule fallback、Human Review gate 和 Raw JSON / Debug Detail。
+- 数据边界：新增 trace demo constants 已标注为 showcase demo trace data；仅用于作品集前端展示，不代表真实生产日志、真实用户流量、真实 LLM 调用、真实向量 RAG 或完整 Agent Runtime。
+- 截图脚本：`frontend/scripts/capture-screenshots.mjs` 新增 `trace-timeline` 目标；旧 `trace-evidence` 目标沿用并指向 Trace Timeline 页面，生成 `docs/images/trace-timeline.png`、`docs/images/large/trace-timeline.png`，同时刷新 Trace 兼容截图 `trace-evidence` 标准与 large 版本。全量截图脚本生成的非 Trace 页面截图已恢复，未纳入本轮改动。
+- 截图端口：默认 5173 端口被占用，本轮使用 `http://127.0.0.1:41760` 启动本项目 Vite demo，并通过 `SCREENSHOT_URL=http://127.0.0.1:41760 npm run screenshots` 生成真实本地页面截图；临时进程已停止。
+- 验证：`npm run typecheck` 通过；`npm run build` 通过；`SCREENSHOT_URL=http://127.0.0.1:41760 npm run screenshots` 通过；`py .\scripts\evaluate_rag_demo.py` 通过（16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11%，Failed 6，Review 15）；`mvn test` 通过（24 tests，0 failures / errors / skipped）。
+- 未做事项：未改 README，未接真实 API Key，未使用 Image2，未提交 `.local/`，未提交第三方截图，未声明真实生产链路或真实模型稳定接入。
+
 ### 2026-07-04 — Codex — Phase 2 Ticket Workbench Showcase
 
 - 本轮任务：只深化 Ticket Workbench 页面在当前深色 App Shell 下的企业级首屏表现；未重写 Dashboard、Evaluation / Metrics、Knowledge、Trace Timeline 或 Human Review 独立页面，未修改后端逻辑或指标口径。

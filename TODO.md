@@ -41,6 +41,7 @@
 - 2026-07-04 已完成 Evaluation / Metrics 视觉精修：页面产品名调整为“评测指标中心”，8 个核心 KPI 与 4 个补充指标分层展示，Baseline / 实验计划与右侧评测上下文产品化，并刷新本项目标准与 large 真实截图；所有指标继续限定为 synthetic demo dataset + local keyword retrieval + citation gating + local-rule fallback。
 - 2026-07-04 已完成 Evaluation / Metrics 左上角 Sidebar 品牌图标修复：App Shell 品牌区恢复 44px 深色圆角容器 + 原创 ET/ticket inline SVG 标识，并只刷新 `evaluation-metrics` 标准与 large 真实截图；未修改 Evaluation 指标数据、RAG metrics 口径、README、后端或 `docs/frontend_reference*`。
 - 2026-07-04 已完成前端 Phase 2：Ticket Workbench 升级为三栏企业工单 AI 处理工作台，首屏包含 Ticket Queue、Ticket Detail + AI Draft、Citation Evidence + Human Review + Trace；页面继续只使用 synthetic demo data、local-rule fallback、keyword retrieval 和 citation gating，不接真实 API Key，不修改后端逻辑，不更新 README。
+- 2026-07-04 已完成前端 Phase 3：Trace Timeline 新增专用 Showcase 页面，首屏展示 Run Overview、Run List、Step Timeline、Step Detail、Retrieval / Citation Evidence、Provider skipped / local-rule fallback、Human Review gate 与 Raw JSON / Debug Detail；页面继续只使用 synthetic demo trace data，不接真实 API Key，不修改后端业务逻辑，不更新 README。
 
 ## 3. 当前不能夸大的能力
 
@@ -107,7 +108,7 @@
 
 ## 7. 下一轮建议任务
 
-下一轮如继续前端改造，建议处理 Phase 3：从 Knowledge、Trace、Human Review 中只选一个页面做同等深度的首屏产品化，不要同时重写多个页面。
+下一轮如继续前端改造，建议从 Knowledge Base 或 Human Review 中只选一个页面做同等深度的首屏产品化，不要同时重写多个页面。
 
 如果回到后端/部署路线，建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 
