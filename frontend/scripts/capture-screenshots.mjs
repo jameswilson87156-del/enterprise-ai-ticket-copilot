@@ -16,6 +16,7 @@ const largeViewport = { width: 1920, height: 1200 }
 
 const showcaseTargets = [
   { name: 'dashboard', route: 'dashboard', selector: '[data-screenshot="dashboard"]' },
+  { name: 'ticket-workbench', route: 'ticket-detail', selector: '[data-screenshot="ticket-workbench"]' },
   { name: 'ticket-detail', route: 'ticket-detail', selector: '[data-screenshot="ticket-detail"]' },
   { name: 'knowledge-base', route: 'knowledge-base', selector: '[data-screenshot="knowledge-base"]' },
   { name: 'trace-evidence', route: 'trace-evidence', selector: '[data-screenshot="trace-evidence"]' },

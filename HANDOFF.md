@@ -6,6 +6,16 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Phase 2 Ticket Workbench Showcase
+
+- 本轮任务：只深化 Ticket Workbench 页面在当前深色 App Shell 下的企业级首屏表现；未重写 Dashboard、Evaluation / Metrics、Knowledge、Trace Timeline 或 Human Review 独立页面，未修改后端逻辑或指标口径。
+- 前端改动：`frontend/src/views/TicketWorkbenchShowcaseView.vue` 重做为三栏工作台：左侧 Ticket Queue，中间 Ticket Detail + AI 分析结果 + AI 回复草稿，右侧 Citation Evidence + Human Review + Trace + Retrieval / Evaluation 摘要。
+- 数据边界：页面使用本地 synthetic demo 工单常量，展示 local-rule fallback、keyword retrieval、citation gating、manual review gate；没有接真实 API Key，没有声明真实线上 AI 自动处理、真实企业数据或生产流量。
+- 截图脚本：`frontend/scripts/capture-screenshots.mjs` 新增 `ticket-workbench` 目标，同时保留既有 `ticket-detail` 目标；本轮刷新 `docs/images/ticket-workbench.png`、`docs/images/large/ticket-workbench.png`，并同步刷新既有 Workbench 截图 `ticket-detail` 标准与 large 版本。脚本全量生成的非 Workbench 页面截图已恢复，未纳入本轮改动。
+- 截图端口：默认 5173 端口被其他本地进程占用，本轮复用本项目本地 Vite 端口 41749，通过 `SCREENSHOT_URL=http://127.0.0.1:41749 npm run screenshots` 生成真实本地页面截图。
+- 验证：`npm run typecheck` 通过；`npm run build` 通过；`SCREENSHOT_URL=http://127.0.0.1:41749 npm run screenshots` 通过；`py .\scripts\evaluate_rag_demo.py` 通过（16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11%，Failed 6，Review 15）；`mvn test` 通过（24 tests，0 failures / errors / skipped）。
+- 未做事项：未改 README，未改后端，未改 `docs/frontend_reference*`，未提交 `.local/`，未使用第三方截图，未使用 Image2 图进入项目，未接真实 API Key。
+
 ### 2026-07-04 — Codex — Restore Sidebar Brand Mark
 
 - 本轮任务：仅修复 App Shell / Sidebar 左上角 Enterprise Ticket RAG Copilot 品牌图标，避免 Evaluation / Metrics 截图中品牌区弱化；未重构布局，未修改 Evaluation 页面指标逻辑。

@@ -1,610 +1,778 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { evaluationSnapshot } from '../data/evaluationMetrics'
 
-type ShowcaseFilter = 'ALL' | 'PENDING' | 'REVIEW' | 'KNOWLEDGE'
-type ShowcasePriority = 'P1' | 'P2' | 'P3'
-type ShowcaseTone = 'danger' | 'warning' | 'info' | 'success'
+type WorkbenchFilter = 'ALL' | 'REVIEW' | 'P1' | 'FALLBACK'
+type WorkbenchPriority = 'P1' | 'P2' | 'P3'
+type WorkbenchTone = 'blue' | 'cyan' | 'green' | 'amber' | 'red' | 'violet' | 'slate'
+type DemoAction = 'idle' | 'draft' | 'citation' | 'trace' | 'review'
 
-interface ShowcaseTimelineItem {
-  time: string
-  title: string
-  note: string
+interface WorkbenchEvidence {
+  knowledgeId: string
+  sourceTitle: string
+  sourcePath: string
+  matchedKeywords: string[]
+  keywordScore: number
+  citationUsed: boolean
+  confidence: string
 }
 
-interface ShowcaseReference {
-  id: string
-  title: string
-  source: string
-  score: number
-}
-
-interface ShowcaseSimilarTicket {
-  id: string
-  title: string
+interface WorkbenchTraceStep {
+  name: string
   status: string
-  tone: ShowcaseTone
+  latency: string
+  path: string
+  tone: WorkbenchTone
 }
 
-interface ShowcaseTicket {
+interface WorkbenchReview {
+  status: string
+  riskReason: string
+  reviewerAction: string
+  editedPreview: string
+  requiredReason: string
+  citationWarning: string
+}
+
+interface WorkbenchTicket {
   id: string
   title: string
   summary: string
   requester: string
-  department: string
-  assignee: string
-  source: string
-  environment: string
-  status: string
-  priority: ShowcasePriority
-  priorityNote: string
+  team: string
+  system: string
   category: string
-  updatedAt: string
+  priority: WorkbenchPriority
+  urgency: string
+  status: string
   sla: string
-  impact: string
-  confidence: number
+  providerPath: string
+  citationState: string
+  reviewState: string
   tags: string[]
   searchText: string
-  classificationReason: string
-  replyDraft: string
+  context: string[]
+  classification: string
+  priorityReason: string
+  analysisSummary: string
+  likelyCause: string
+  recommendedPlan: string
   riskNotes: string[]
-  timeline: ShowcaseTimelineItem[]
-  references: ShowcaseReference[]
-  similarTickets: ShowcaseSimilarTicket[]
+  draftLabel: string
+  draftReply: string
+  retrieval: {
+    query: string
+    topK: string
+    hitStatus: string
+    latency: string
+    method: string
+  }
+  evidences: WorkbenchEvidence[]
+  trace: WorkbenchTraceStep[]
+  review: WorkbenchReview
+  evalCaseId: string
 }
 
-const showcaseFilters: Array<{ id: ShowcaseFilter; label: string }> = [
-  { id: 'ALL', label: '全部' },
-  { id: 'PENDING', label: '待处理' },
-  { id: 'REVIEW', label: '待审核' },
-  { id: 'KNOWLEDGE', label: '已沉淀' }
-]
-
-const showcaseTickets: ShowcaseTicket[] = [
+// Showcase demo data only: these synthetic enterprise ticket cases are used for
+// portfolio frontend display. They are not real enterprise data, real users, or
+// production traffic, and they do not imply a real online AI automation system.
+const workbenchTickets: WorkbenchTicket[] = [
   {
-    id: 'DEMO-0005',
+    id: 'DEMO-API-005',
     title: '报价接口返回 500，销售无法生成报价单',
-    summary: '销售在报价中心提交企业客户报价时接口返回 500，错误集中在华东区域，影响本日上午报价单生成。',
-    requester: '林悦 / 销售运营',
-    department: 'Sales Ops',
-    assignee: '支持二组',
-    source: 'quote-center',
-    environment: 'internal',
+    summary: '报价中心在华东区域灰度后出现 500，销售运营无法生成企业客户报价单。',
+    requester: '销售运营 / synthetic user',
+    team: 'Sales Ops',
+    system: 'quote-center',
+    category: '系统故障',
+    priority: 'P1',
+    urgency: 'High Risk',
     status: '处理中',
-    priority: 'P1',
-    priorityNote: '销售运营与客户成功团队受影响，需人工复核后推进。',
-    category: '系统故障',
-    updatedAt: '11:10',
-    sla: '01:23:45',
-    impact: '销售运营与客户成功团队',
-    confidence: 92,
-    tags: ['华东业务区', '今天 09:40 灰度发布', '系统故障 / P1'],
-    searchText: 'quote-center pricing 500 sales ops 报价接口',
-    classificationReason: '错误日志出现 500 与 PricePolicyService，且请求集中在报价中心灰度窗口后。',
-    replyDraft:
-      '您好，已收到报价接口异常反馈。当前判断与报价中心后端服务有关，支持人员会先确认灰度发布差异、关联 traceId 与依赖服务日志，再同步处理进度。',
-    riskNotes: ['报价链路影响销售收入，降级或回滚必须人工确认。', '当前建议仅来自规则分类和知识引用，不代表真实 LLM 自动决策。'],
-    timeline: [
-      { time: '10:24', title: '待分类', note: '系统 / 工单进入规则分类队列。' },
-      { time: '10:29', title: '待处理', note: '规则引擎 / 完成分类、知识命中和模板化建议草稿。' },
-      { time: '10:44', title: '处理中', note: '支持人员 / 人工接手，关联 traceId 排查。' }
+    sla: '00:47:12',
+    providerPath: 'local-rule fallback',
+    citationState: 'Citation Ready',
+    reviewState: 'Needs Review',
+    tags: ['High Risk', 'Citation Ready', 'Needs Review', 'SLA Watch'],
+    searchText: 'quote center api 500 traceId price policy sales ops citation review',
+    context: [
+      '影响销售运营与客户成功团队的报价单生成。',
+      '日志包含 traceId=qc-20260704-500 与 PricePolicyService 空指针。',
+      '最近变更为今天 09:40 quote-center 灰度发布。'
     ],
-    references: [
-      { id: 'KB-API-500', title: '接口 500 错误分层排查手册', source: '支持知识库 / 校验 2026-06-20', score: 88 },
-      { id: 'KB-OPS-003', title: '系统故障超时与 5xx 排查手册', source: '运维知识库 / 校验 2026-06-19', score: 74 }
+    classification: '系统故障 / API 5xx',
+    priorityReason: 'P1：报价链路影响客户跟进，任何回滚或降级都必须人工确认。',
+    analysisSummary: '本地规则命中 500、traceId、PricePolicyService 和报价中心关键词，判断为系统故障并触发人工复核。',
+    likelyCause: '报价策略服务在灰度版本中出现空指针，或某类客户报价输入缺少策略映射。',
+    recommendedPlan: '先用 traceId 串联网关、应用日志和最近发布差异；确认影响面后由值班人员决定修复、降级或回滚。',
+    riskNotes: ['不得自动回滚生产灰度。', '不得批量重放报价请求。', '需要引用知识库并进入 Human Review。'],
+    draftLabel: 'Requires human review',
+    draftReply:
+      '您好，报价接口异常已进入人工排查。当前初步判断与报价中心服务 500 有关，我们会先核对 traceId、灰度发布差异和依赖服务日志；处理动作确认后再同步修复进度与临时方案。',
+    retrieval: {
+      query: 'quote-center HTTP 500 PricePolicyService traceId 报价失败',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'Top-K hit / multi-source citation',
+      latency: evaluationSnapshot.avgRetrievalLatency,
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'KB-API-500',
+        sourceTitle: '接口 500 错误分层排查手册',
+        sourcePath: 'support-knowledge/api/500-troubleshooting',
+        matchedKeywords: ['500', 'traceId', '接口异常', '回滚确认'],
+        keywordScore: 92,
+        citationUsed: true,
+        confidence: 'high'
+      },
+      {
+        knowledgeId: 'KB-OPS-003',
+        sourceTitle: '系统故障超时与 5xx 排查手册',
+        sourcePath: 'ops/runbook/5xx-timeout',
+        matchedKeywords: ['灰度发布', '依赖服务', '降级策略'],
+        keywordScore: 84,
+        citationUsed: true,
+        confidence: 'medium'
+      }
     ],
-    similarTickets: [
-      { id: 'DEMO-0003', title: 'Redis 连接失败导致会话校验超时', status: 'IN_PROGRESS', tone: 'success' },
-      { id: 'DEMO-0002', title: 'Spring Boot 启动时报 BeanCreationException', status: 'PENDING_PROCESS', tone: 'info' },
-      { id: 'DEMO-0001', title: 'Java 服务启动失败，提示 8080 端口已被占用', status: 'IN_PROGRESS', tone: 'success' }
-    ]
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.004 ms', path: 'keyword terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'Top-K hit', latency: evaluationSnapshot.avgRetrievalLatency, path: 'keyword retrieval', tone: 'green' },
+      { name: 'Prompt Build', status: 'template draft', latency: '0.011 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: '2 citations', latency: '0.006 ms', path: 'citation gating', tone: 'green' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'red' }
+    ],
+    review: {
+      status: '待人工复核',
+      riskReason: 'P1 业务影响 + 多来源 citation + 可能涉及降级或回滚。',
+      reviewerAction: '先请求值班 SRE 补充 traceId 关联日志，再决定是否通过草稿。',
+      editedPreview: '请保留失败报价单和 traceId。支持人员确认处理动作后，会同步修复进度。',
+      requiredReason: 'high-risk-change + citation-required',
+      citationWarning: '引用来源匹配预期知识源；仍需人工确认是否适用于当前灰度版本。'
+    },
+    evalCaseId: 'EVAL-010'
   },
   {
-    id: 'DEMO-0003',
-    title: 'Redis 连接失败导致会话校验超时',
-    summary: '员工门户间歇性登录失败，日志出现 KB-REDIS-CONN 相关连接池耗尽告警。',
-    requester: '周宁 / 员工服务',
-    department: 'Employee Portal',
-    assignee: '平台支持',
-    source: 'employee-portal',
-    environment: 'prod-cn',
-    status: '处理中',
+    id: 'DEMO-SSO-001',
+    title: '员工 SSO 登录失败并触发 MFA 重试',
+    summary: '多名员工反馈 SSO 登录失败，MFA 重试后仍无法进入员工门户。',
+    requester: '员工服务 / synthetic user',
+    team: 'Employee Portal',
+    system: 'sso-gateway',
+    category: '账号与认证',
     priority: 'P1',
-    priorityNote: '员工登录链路受影响，需优先处理连接池与超时阈值。',
-    category: '系统故障',
-    updatedAt: '10:30',
-    sla: '00:52:18',
-    impact: '员工门户登录',
-    confidence: 95,
-    tags: ['KB-REDIS-CONN', 'employee-portal', '连接池'],
-    searchText: 'KB-REDIS-CONN Redis 连接失败 session timeout employee portal',
-    classificationReason: '命中 Redis、连接失败、会话超时和 KB-REDIS-CONN 关键词。',
-    replyDraft: '您好，当前登录超时与 Redis 连接池状态相关。支持人员会先核对连接池水位、近期部署和慢请求日志。',
-    riskNotes: ['登录链路存在放大风险，需确认是否触发限流或临时扩容。'],
-    timeline: [
-      { time: '10:12', title: '待分类', note: '系统 / 工单进入分类队列。' },
-      { time: '10:18', title: '待处理', note: '规则引擎 / 命中 Redis 连接失败知识条目。' },
-      { time: '10:30', title: '处理中', note: '平台支持 / 人工接手排查连接池。' }
-    ],
-    references: [
-      { id: 'KB-REDIS-CONN', title: 'Redis 连接池耗尽排查手册', source: '平台知识库 / 校验 2026-06-18', score: 91 },
-      { id: 'KB-LOGIN-012', title: '员工门户会话超时处理流程', source: '员工服务知识库', score: 78 }
-    ],
-    similarTickets: [
-      { id: 'DEMO-0001', title: 'Java 服务启动失败，提示 8080 端口已被占用', status: 'RESOLVED', tone: 'success' },
-      { id: 'DEMO-0006', title: 'HR 权限审批后仍无法访问报表', status: 'PENDING_PROCESS', tone: 'warning' }
-    ]
-  },
-  {
-    id: 'DEMO-0002',
-    title: 'Spring Boot 启动时报 BeanCreationException',
-    summary: '支付服务启动失败，BeanCreationException 指向数据源配置缺失。',
-    requester: '李雷 / 支付研发',
-    department: 'Payment',
-    assignee: '后端支持',
-    source: 'payment-service',
-    environment: 'staging',
+    urgency: 'SLA Watch',
     status: '待处理',
-    priority: 'P1',
-    priorityNote: '影响测试环境发布验证，建议后端支持优先介入。',
-    category: '系统故障',
-    updatedAt: '10:00',
-    sla: '02:18:30',
-    impact: '支付服务验证',
-    confidence: 89,
-    tags: ['payment-service', 'BeanCreationException', 'datasource'],
-    searchText: 'Spring Boot BeanCreationException datasource payment-service',
-    classificationReason: '错误日志命中 BeanCreationException 与 datasource。',
-    replyDraft: '您好，初步看是启动配置缺失。请补充 active profile、datasource 配置和启动日志前后 80 行。',
-    riskNotes: ['测试环境阻塞发布验证，需确认是否同样影响生产配置模板。'],
-    timeline: [
-      { time: '09:52', title: '待分类', note: '系统 / 接收启动失败日志。' },
-      { time: '10:00', title: '待处理', note: '规则引擎 / 命中启动失败模板。' }
+    sla: '01:18:44',
+    providerPath: 'local-rule fallback',
+    citationState: 'Citation Ready',
+    reviewState: 'Needs Review',
+    tags: ['SLA Watch', 'Needs Review', 'Draft Ready'],
+    searchText: 'SSO MFA login failure employee portal authentication retry',
+    context: ['SSO 登录页返回 401 与 MFA challenge expired。', '影响多个内部部门的员工门户访问。', '需要确认身份源同步与 MFA 服务状态。'],
+    classification: '账号与认证 / SSO',
+    priorityReason: 'P1：登录入口受影响，需快速判断身份源、MFA 与网关状态。',
+    analysisSummary: '本地规则命中 SSO、MFA、401、login failure，优先按账号认证链路处理。',
+    likelyCause: 'MFA challenge 过期或身份源同步延迟导致会话校验失败。',
+    recommendedPlan: '核对 SSO 网关错误率、MFA 服务状态与最近身份源同步批次；收敛影响范围后再发布用户通知。',
+    riskNotes: ['不能自动重置 MFA。', '不能绕过身份验证流程。'],
+    draftLabel: 'Requires human review',
+    draftReply: '您好，SSO 登录失败已进入人工排查。我们会先核对 MFA 服务、身份源同步和网关错误率；确认处理动作后再同步恢复进度。',
+    retrieval: {
+      query: 'SSO MFA 401 challenge expired 登录失败',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'Top-K hit',
+      latency: '0.0443 ms',
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'KB-SSO-001',
+        sourceTitle: 'SSO 登录失败与 MFA 排查流程',
+        sourcePath: 'iam/sso/mfa-login-failure',
+        matchedKeywords: ['SSO', 'MFA', '401', 'challenge expired'],
+        keywordScore: 90,
+        citationUsed: true,
+        confidence: 'high'
+      }
     ],
-    references: [{ id: 'KB-SPRING-010', title: 'Spring Boot 数据源配置缺失排查', source: '后端知识库', score: 82 }],
-    similarTickets: [{ id: 'DEMO-0001', title: 'Java 服务启动失败，提示 8080 端口已被占用', status: 'RESOLVED', tone: 'success' }]
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.003 ms', path: 'sso / mfa terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'Top-K hit', latency: '0.0443 ms', path: 'keyword retrieval', tone: 'green' },
+      { name: 'Prompt Build', status: 'template draft', latency: '0.010 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: '1 citation', latency: '0.005 ms', path: 'citation gating', tone: 'green' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'red' }
+    ],
+    review: {
+      status: '待人工复核',
+      riskReason: '登录入口影响面可能扩大，任何绕过认证或批量重置都需要审批。',
+      reviewerAction: '请求 IAM 值班确认身份源同步窗口与 MFA 服务状态。',
+      editedPreview: '我们已定位到 SSO / MFA 链路，会在人工确认后同步下一步处理。',
+      requiredReason: 'identity-risk + review-required',
+      citationWarning: '当前 citation 与 SSO/MFA 关键词匹配，需人工确认是否为身份源同步问题。'
+    },
+    evalCaseId: 'EVAL-016'
   },
   {
-    id: 'DEMO-0004',
-    title: 'CRM 客户列表查询超过 12 秒',
-    summary: '客户成功团队反馈 CRM 客户列表查询慢，慢 SQL 集中在客户标签 join。',
-    requester: '韩笙 / 客户成功',
-    department: 'Customer Success',
-    assignee: '数据支持',
-    source: 'crm-analytics',
-    environment: 'prod-cn',
-    status: '待处理',
+    id: 'DEMO-RBAC-002',
+    title: '审批完成后仍无法访问 HR 报表',
+    summary: 'HRBP 已完成审批，但进入人事报表时仍提示无权限。',
+    requester: 'HRBP / synthetic user',
+    team: 'HR Ops',
+    system: 'hr-reporting',
+    category: '权限问题',
     priority: 'P2',
-    priorityNote: '影响客服查询效率，未阻塞交易链路。',
+    urgency: 'Needs Review',
+    status: '待人工确认',
+    sla: '03:42:19',
+    providerPath: 'local-rule fallback',
+    citationState: 'Citation Ready',
+    reviewState: 'Needs Review',
+    tags: ['Needs Review', 'Citation Ready', 'RBAC'],
+    searchText: 'RBAC 403 permission approval HR report access',
+    context: ['审批单显示 completed，但用户组未包含 hr-report-viewer。', '访问日志返回 403 Forbidden。', '需要核对审批流与权限同步记录。'],
+    classification: '权限问题 / RBAC',
+    priorityReason: 'P2：单系统权限阻塞，但涉及 HR 数据访问，必须人工复核。',
+    analysisSummary: '本地规则命中 403、审批、RBAC、report-viewer，判断为权限同步或角色映射问题。',
+    likelyCause: '审批完成事件尚未同步到 RBAC 角色，或报表路径绑定了错误角色。',
+    recommendedPlan: '核验审批单、用户组同步日志和报表路径权限；确认后由权限支持人工补齐。',
+    riskNotes: ['不得自动授权 HR 报表权限。', '需要保留审批与审计记录。'],
+    draftLabel: 'Draft only',
+    draftReply: '您好，当前更像是审批完成后的权限同步问题。请补充审批单号和报表路径，权限支持会人工核对 RBAC 同步记录后处理。',
+    retrieval: {
+      query: 'RBAC 403 审批完成 报表无权限',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'Top-K hit',
+      latency: '0.0418 ms',
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'KB-IAM-ROLE',
+        sourceTitle: '权限配置问题与 RBAC 核验流程',
+        sourcePath: 'iam/rbac/role-sync-checklist',
+        matchedKeywords: ['RBAC', '403', '审批', '角色同步'],
+        keywordScore: 88,
+        citationUsed: true,
+        confidence: 'high'
+      }
+    ],
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.003 ms', path: 'rbac / 403 terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'Top-K hit', latency: '0.0418 ms', path: 'keyword retrieval', tone: 'green' },
+      { name: 'Prompt Build', status: 'template draft', latency: '0.010 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: '1 citation', latency: '0.004 ms', path: 'citation gating', tone: 'green' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'red' }
+    ],
+    review: {
+      status: '待人工复核',
+      riskReason: 'HR 报表涉及敏感数据，权限补齐必须有审批依据。',
+      reviewerAction: '请求权限支持核对审批单号、同步批次和目标角色。',
+      editedPreview: '请提供审批单号与报表路径，我们会人工核对权限同步记录。',
+      requiredReason: 'sensitive-permission + audit-required',
+      citationWarning: '引用来源为 RBAC 核验流程，不能替代审批。'
+    },
+    evalCaseId: 'EVAL-003'
+  },
+  {
+    id: 'DEMO-SYNC-003',
+    title: 'CRM 数据同步延迟导致指标看板口径不一致',
+    summary: '客户成功团队发现今日续费看板与 CRM 明细相差约 6.25%。',
+    requester: '客户成功 / synthetic user',
+    team: 'Customer Success',
+    system: 'crm-analytics',
     category: '数据问题',
-    updatedAt: '09:50',
-    sla: '04:42:11',
-    impact: '客户成功团队',
-    confidence: 84,
-    tags: ['crm-analytics', 'slow-query', 'customer-tag'],
-    searchText: 'CRM slow query customer list analytics',
-    classificationReason: '命中慢查询、客户列表和数据分析关键词。',
-    replyDraft: '您好，已记录 CRM 查询慢问题。建议先确认时间范围、筛选条件和慢 SQL 样本，再评估索引或缓存策略。',
-    riskNotes: ['性能优化需避免直接改生产索引，建议先压测和回放。'],
-    timeline: [
-      { time: '09:38', title: '待分类', note: '系统 / 接收性能问题。' },
-      { time: '09:50', title: '待处理', note: '规则引擎 / 命中慢查询处理模板。' }
-    ],
-    references: [{ id: 'KB-SQL-021', title: '慢 SQL 初步定位与回放流程', source: '数据知识库', score: 76 }],
-    similarTickets: [{ id: 'DEMO-0008', title: '知识库条目已沉淀：慢 SQL 处理流程', status: 'KNOWLEDGE_BASED', tone: 'success' }]
-  },
-  {
-    id: 'DEMO-0001',
-    title: 'Java 服务启动失败，提示 8080 端口已被占用',
-    summary: '订单服务本地启动失败，提示 8080 端口占用，需要判断是否为本机进程冲突。',
-    requester: '李皓 / 订单研发',
-    department: 'Order Service',
-    assignee: '支持一组',
-    source: 'order-service',
-    environment: 'local-dev',
-    status: '处理中',
     priority: 'P2',
-    priorityNote: '不影响生产，但阻塞研发本地调试。',
-    category: '系统故障',
-    updatedAt: '09:10',
-    sla: '06:18:10',
-    impact: '研发本地启动',
-    confidence: 86,
-    tags: ['8080', 'order-service', 'local-dev'],
-    searchText: 'Java 8080 port occupied order service',
-    classificationReason: '错误日志命中端口占用和 Java 服务启动失败。',
-    replyDraft: '您好，请先确认 8080 端口占用进程，再决定切换本地端口或停止冲突进程。',
-    riskNotes: ['本地排查不应自动结束进程，需研发确认。'],
-    timeline: [
-      { time: '08:58', title: '待分类', note: '系统 / 接收启动失败问题。' },
-      { time: '09:10', title: '处理中', note: '支持一组 / 人工确认处理。' }
-    ],
-    references: [{ id: 'KB-PORT-8080', title: '本地端口占用排查', source: '研发支持知识库', score: 80 }],
-    similarTickets: [{ id: 'DEMO-0002', title: 'Spring Boot 启动时报 BeanCreationException', status: 'PENDING_PROCESS', tone: 'info' }]
-  },
-  {
-    id: 'DEMO-0006',
-    title: 'HR 权限审批后仍无法访问报表',
-    summary: 'HR 已通过权限审批，但用户访问人事报表仍提示无权限。',
-    requester: '钱璐 / HRBP',
-    department: 'HR',
-    assignee: '权限支持',
-    source: 'hr-reporting',
-    environment: 'prod-cn',
+    urgency: 'SLA Watch',
     status: '待处理',
-    priority: 'P3',
-    priorityNote: '单用户权限问题，需核对审批流与 RBAC 同步。',
-    category: '权限问题',
-    updatedAt: '08:55',
-    sla: '08:34:00',
-    impact: 'HR 报表访问',
-    confidence: 83,
-    tags: ['RBAC', 'HR report', 'permission'],
-    searchText: 'HR permission RBAC report access',
-    classificationReason: '命中权限、审批、RBAC 与报表访问关键词。',
-    replyDraft: '您好，请提供审批单号和报表路径。支持人员会核对审批完成时间与权限同步记录。',
-    riskNotes: ['权限变更必须人工复核，不做自动授权。'],
-    timeline: [
-      { time: '08:44', title: '待分类', note: '系统 / 接收权限问题。' },
-      { time: '08:55', title: '待处理', note: '规则引擎 / 命中权限问题模板。' }
+    sla: '04:16:35',
+    providerPath: 'local-rule fallback',
+    citationState: 'Citation Ready',
+    reviewState: 'Review Required',
+    tags: ['SLA Watch', 'Citation Ready', 'Draft Ready'],
+    searchText: 'CRM data sync delay dashboard metric mismatch renewal',
+    context: ['续费看板更新时间落后 CRM 明细约 90 分钟。', '当前影响客户成功团队的早会指标复盘。', '需要核对同步任务、数据口径和失败重试。'],
+    classification: '数据问题 / 同步延迟',
+    priorityReason: 'P2：影响业务分析，但不直接改变客户数据。',
+    analysisSummary: '本地规则命中数据同步、看板口径、延迟与 renewal dashboard 关键词。',
+    likelyCause: '同步任务部分分片失败或指标表刷新延迟。',
+    recommendedPlan: '检查 ETL 批次、失败重试和指标表刷新时间；先说明口径延迟，再由数据支持确认是否补跑。',
+    riskNotes: ['不得自动补跑生产数据任务。', '指标修复需保留批次与审计记录。'],
+    draftLabel: 'Draft only',
+    draftReply: '您好，当前更像是数据同步延迟导致的看板口径差异。我们会先核对 ETL 批次、失败重试和指标刷新时间，再确认是否需要人工补跑。',
+    retrieval: {
+      query: 'CRM renewal dashboard 数据同步延迟 指标口径',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'Top-K hit',
+      latency: '0.0452 ms',
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'KB-DATA-004',
+        sourceTitle: '报表数据同步与口径核对流程',
+        sourcePath: 'data/runbook/sync-metric-check',
+        matchedKeywords: ['数据同步', '指标口径', '补跑', '批次'],
+        keywordScore: 86,
+        citationUsed: true,
+        confidence: 'high'
+      }
     ],
-    references: [{ id: 'KB-RBAC-006', title: 'RBAC 审批后同步延迟排查', source: '权限知识库', score: 79 }],
-    similarTickets: [{ id: 'DEMO-0003', title: 'Redis 连接失败导致会话校验超时', status: 'IN_PROGRESS', tone: 'success' }]
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.004 ms', path: 'sync / metrics terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'Top-K hit', latency: '0.0452 ms', path: 'keyword retrieval', tone: 'green' },
+      { name: 'Prompt Build', status: 'template draft', latency: '0.011 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: '1 citation', latency: '0.005 ms', path: 'citation gating', tone: 'green' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'amber' }
+    ],
+    review: {
+      status: '待数据支持确认',
+      riskReason: '补跑或改指标表会影响业务报表，需要人工确认。',
+      reviewerAction: '请求数据支持提供 ETL 批次和补跑计划。',
+      editedPreview: '我们会先确认同步批次，再同步是否需要人工补跑。',
+      requiredReason: 'data-fix + audit-required',
+      citationWarning: 'citation 已命中数据同步流程；是否补跑仍需人工判断。'
+    },
+    evalCaseId: 'EVAL-006'
   },
   {
-    id: 'DEMO-0007',
-    title: 'VPN 策略变更后供应商无法访问测试环境',
-    summary: '供应商反馈 VPN 可连接但测试环境接口不可达，疑似策略组变更后网段未同步。',
-    requester: '赵敏 / 供应商管理',
-    department: 'Vendor Ops',
-    assignee: '网络支持',
-    source: 'vpn-gateway',
-    environment: 'test-net',
-    status: '待审核',
-    priority: 'P2',
-    priorityNote: '外部供应商联调受阻，需要审核后推进策略核对。',
-    category: '权限问题',
-    updatedAt: '08:40',
-    sla: '05:12:08',
-    impact: '供应商联调',
-    confidence: 81,
-    tags: ['VPN', 'vendor', 'network-policy'],
-    searchText: 'VPN vendor network policy test environment',
-    classificationReason: '命中 VPN、供应商、测试环境和策略变更关键词。',
-    replyDraft: '您好，建议先核对 VPN 策略组、目标网段和最近变更记录，再由网络支持人工确认是否放通。',
-    riskNotes: ['网络放通属于高风险变更，必须人工审核。'],
-    timeline: [
-      { time: '08:20', title: '待分类', note: '系统 / 接收外部访问问题。' },
-      { time: '08:33', title: '待审核', note: '规则引擎 / 标记需 Human Review。' }
+    id: 'DEMO-FALLBACK-004',
+    title: '会议室设备无法投屏，知识库暂无可靠来源',
+    summary: '会议室投屏设备偶发断连，当前知识库没有匹配的标准处理流程。',
+    requester: '行政支持 / synthetic user',
+    team: 'Workplace Ops',
+    system: 'meeting-room-device',
+    category: '流程咨询',
+    priority: 'P3',
+    urgency: 'Fallback',
+    status: '待补充',
+    sla: '12:00:00',
+    providerPath: 'local-rule fallback',
+    citationState: 'Fallback',
+    reviewState: 'Needs Review',
+    tags: ['Fallback', 'Needs Review', 'Knowledge Missing'],
+    searchText: 'meeting room cast device no knowledge fallback',
+    context: ['投屏设备重启后短暂恢复，但 30 分钟后再次断连。', '知识库暂无会议室设备条目。', '应避免用无关网络策略知识强行引用。'],
+    classification: '流程咨询 / 知识缺失',
+    priorityReason: 'P3：不影响核心业务系统，但需要标记知识库缺口。',
+    analysisSummary: '本地规则无法找到可靠知识来源，进入 fallback 和人工复核。',
+    likelyCause: '设备固件、无线网络或会议室本地环境问题；当前知识库不足以支持明确结论。',
+    recommendedPlan: '先请求补充设备型号、房间号和错误现象；不要附会无关知识条目。',
+    riskNotes: ['缺少可靠 citation，不应生成确定性处理结论。', '适合沉淀新的设备排查知识条目。'],
+    draftLabel: 'Requires human review',
+    draftReply: '您好，当前信息不足以给出确定处理结论。请补充会议室、设备型号和断连截图；支持人员会人工判断是否需要现场排查或新增知识库条目。',
+    retrieval: {
+      query: '会议室 投屏 设备断连 无知识库来源',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'fallback / expected miss',
+      latency: '0.0366 ms',
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'NO-RELIABLE-SOURCE',
+        sourceTitle: '未找到可靠知识来源',
+        sourcePath: 'fallback/no-citation-attached',
+        matchedKeywords: ['会议室', '投屏', '设备断连'],
+        keywordScore: 34,
+        citationUsed: false,
+        confidence: 'low'
+      }
     ],
-    references: [{ id: 'KB-VPN-014', title: 'VPN 策略变更后访问不可达排查', source: '网络知识库', score: 77 }],
-    similarTickets: [{ id: 'DEMO-0006', title: 'HR 权限审批后仍无法访问报表', status: 'PENDING_PROCESS', tone: 'warning' }]
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.003 ms', path: 'device terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'expected miss', latency: '0.0366 ms', path: 'keyword retrieval', tone: 'amber' },
+      { name: 'Prompt Build', status: 'fallback draft', latency: '0.009 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: 'blocked', latency: '0.002 ms', path: 'citation gating', tone: 'red' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'red' }
+    ],
+    review: {
+      status: '待补充信息',
+      riskReason: '无可靠知识来源，不能把低相关结果当作 citation。',
+      reviewerAction: '请求补充设备信息，并建议后续沉淀新知识。',
+      editedPreview: '当前知识库缺少可靠来源，请补充设备型号和现场现象。',
+      requiredReason: 'knowledge-missing + fallback',
+      citationWarning: 'citation gating 阻止无关来源进入草稿。'
+    },
+    evalCaseId: 'EVAL-015'
   },
   {
-    id: 'DEMO-0008',
-    title: '知识库条目已沉淀：慢 SQL 处理流程',
-    summary: '已从历史 CRM 慢查询工单沉淀为知识条目，用于后续相似问题引用。',
-    requester: '系统 / 知识沉淀',
-    department: 'Knowledge Ops',
-    assignee: '知识负责人',
-    source: 'knowledge-base',
-    environment: 'docs',
-    status: '已沉淀',
-    priority: 'P3',
-    priorityNote: '历史问题已进入知识库，可作为参考引用。',
-    category: '知识沉淀',
-    updatedAt: '昨天',
-    sla: '-',
-    impact: '后续慢查询处理',
-    confidence: 90,
-    tags: ['KB-SQL-021', 'knowledge-based', 'slow-query'],
-    searchText: 'knowledge based slow sql KB-SQL-021 已沉淀',
-    classificationReason: '该条目为已确认知识沉淀，不代表自动生成后直接发布。',
-    replyDraft: '可引用该知识条目作为慢 SQL 排查流程参考，仍需结合当前工单上下文人工确认。',
-    riskNotes: ['知识引用只辅助排查，不能替代当前生产变更审批。'],
-    timeline: [
-      { time: '昨天', title: '已解决', note: '支持人员 / 人工确认处理完成。' },
-      { time: '昨天', title: '已沉淀', note: '知识负责人 / 人工确认发布知识条目。' }
+    id: 'DEMO-SLA-006',
+    title: 'VIP 客户 onboarding 审批卡在外部系统回调',
+    summary: '客户成功反馈 VIP 客户 onboarding 超过 SLA，审批回调状态长时间未更新。',
+    requester: '客户成功 / synthetic user',
+    team: 'Customer Success',
+    system: 'onboarding-flow',
+    category: '流程与集成',
+    priority: 'P1',
+    urgency: 'SLA Watch',
+    status: '待人工确认',
+    sla: '00:29:58',
+    providerPath: 'local-rule fallback',
+    citationState: 'Citation Ready',
+    reviewState: 'Needs Review',
+    tags: ['SLA Watch', 'High Risk', 'Needs Review'],
+    searchText: 'VIP onboarding approval callback SLA watch external integration',
+    context: ['外部审批系统回调状态停留在 pending。', '客户成功团队需要明确是否升级人工处理。', '涉及客户承诺时效，需要保守措辞。'],
+    classification: '流程与集成 / SLA 风险',
+    priorityReason: 'P1：SLA 即将超时且涉及 VIP 客户承诺。',
+    analysisSummary: '本地规则命中 onboarding、审批回调、SLA 和 VIP 客户关键词。',
+    likelyCause: '外部审批回调失败、消息队列延迟或状态同步任务失败。',
+    recommendedPlan: '核对回调日志、消息队列和状态同步任务；由人工确认是否升级处理。',
+    riskNotes: ['不能自动绕过审批。', '客户承诺时效需要人工确认后再回复。'],
+    draftLabel: 'Requires human review',
+    draftReply: '您好，onboarding 审批状态已进入 SLA 风险关注。我们会先核对外部系统回调、消息队列和状态同步任务；若需要升级人工处理，会由负责人确认后推进。',
+    retrieval: {
+      query: 'onboarding 审批回调 pending SLA VIP',
+      topK: `Top-${evaluationSnapshot.topK}`,
+      hitStatus: 'Top-K hit',
+      latency: '0.0472 ms',
+      method: 'keyword retrieval'
+    },
+    evidences: [
+      {
+        knowledgeId: 'KB-SLA-ONBOARDING',
+        sourceTitle: 'SLA 高风险流程升级与人工确认',
+        sourcePath: 'support/sla/onboarding-escalation',
+        matchedKeywords: ['SLA', '升级', '人工确认', 'onboarding'],
+        keywordScore: 87,
+        citationUsed: true,
+        confidence: 'high'
+      }
     ],
-    references: [{ id: 'KB-SQL-021', title: '慢 SQL 初步定位与回放流程', source: '数据知识库', score: 96 }],
-    similarTickets: [{ id: 'DEMO-0004', title: 'CRM 客户列表查询超过 12 秒', status: 'PENDING_PROCESS', tone: 'info' }]
+    trace: [
+      { name: 'Ticket Input', status: 'received', latency: '0.001 ms', path: 'demo ticket payload', tone: 'blue' },
+      { name: 'Query Rewrite', status: 'local normalize', latency: '0.004 ms', path: 'sla / callback terms', tone: 'cyan' },
+      { name: 'Retrieval', status: 'Top-K hit', latency: '0.0472 ms', path: 'keyword retrieval', tone: 'green' },
+      { name: 'Prompt Build', status: 'template draft', latency: '0.012 ms', path: 'local-rule template', tone: 'violet' },
+      { name: 'Provider Call', status: 'skipped', latency: '0 ms', path: 'no API key / fallback', tone: 'amber' },
+      { name: 'Citation Attach', status: '1 citation', latency: '0.006 ms', path: 'citation gating', tone: 'green' },
+      { name: 'Human Review', status: 'required', latency: 'pending', path: 'review gate', tone: 'red' }
+    ],
+    review: {
+      status: '待负责人确认',
+      riskReason: 'SLA 即将超时，客户侧回复需要负责人确认。',
+      reviewerAction: '请求客户成功负责人确认升级口径和预计恢复时间。',
+      editedPreview: '我们已将该工单标记为 SLA 风险，会在人工确认后同步处理计划。',
+      requiredReason: 'sla-risk + customer-impact',
+      citationWarning: 'SLA 升级流程可引用，但客户承诺时间不能由 demo 自动生成。'
+    },
+    evalCaseId: 'EVAL-012'
   }
 ]
 
-const selectedTicketId = ref('DEMO-0005')
+const filters: Array<{ id: WorkbenchFilter; label: string }> = [
+  { id: 'ALL', label: '全部' },
+  { id: 'REVIEW', label: '需复核' },
+  { id: 'P1', label: 'P1 高风险' },
+  { id: 'FALLBACK', label: 'Fallback' }
+]
+
+const selectedTicketId = ref('DEMO-API-005')
 const searchKeyword = ref('')
-const activeFilter = ref<ShowcaseFilter>('ALL')
-const draftGenerated = ref(false)
-const draftConfirmed = ref(false)
+const activeFilter = ref<WorkbenchFilter>('ALL')
+const demoAction = ref<DemoAction>('idle')
 
 const filteredTickets = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
-  return showcaseTickets.filter((ticket) => {
+  return workbenchTickets.filter((ticket) => {
     const matchesKeyword =
       !keyword ||
-      [ticket.id, ticket.title, ticket.summary, ticket.requester, ticket.category, ticket.source, ticket.searchText].some((value) =>
-        value.toLowerCase().includes(keyword)
-      )
+      [ticket.id, ticket.title, ticket.summary, ticket.system, ticket.category, ticket.searchText].some((value) => value.toLowerCase().includes(keyword))
     const matchesFilter =
       activeFilter.value === 'ALL' ||
-      (activeFilter.value === 'PENDING' && ['待分类', '待处理', '处理中'].includes(ticket.status)) ||
-      (activeFilter.value === 'REVIEW' && ['待审核', '处理中'].includes(ticket.status)) ||
-      (activeFilter.value === 'KNOWLEDGE' && ticket.status === '已沉淀')
+      (activeFilter.value === 'REVIEW' && ticket.reviewState.toLowerCase().includes('review')) ||
+      (activeFilter.value === 'P1' && ticket.priority === 'P1') ||
+      (activeFilter.value === 'FALLBACK' && ticket.citationState === 'Fallback')
     return matchesKeyword && matchesFilter
   })
 })
 
-const selectedTicket = computed(() => showcaseTickets.find((ticket) => ticket.id === selectedTicketId.value) ?? showcaseTickets[0])
+const selectedTicket = computed(() => workbenchTickets.find((ticket) => ticket.id === selectedTicketId.value) ?? workbenchTickets[0])
 
-const queueCounts = computed(() => ({
-  all: showcaseTickets.length,
-  review: showcaseTickets.filter((ticket) => ['待审核', '处理中'].includes(ticket.status)).length,
-  p1: showcaseTickets.filter((ticket) => ticket.priority === 'P1').length
+const queueSummary = computed(() => ({
+  total: workbenchTickets.length,
+  review: workbenchTickets.filter((ticket) => ticket.reviewState.toLowerCase().includes('review')).length,
+  citationReady: workbenchTickets.filter((ticket) => ticket.citationState === 'Citation Ready').length,
+  fallback: workbenchTickets.filter((ticket) => ticket.citationState === 'Fallback').length
 }))
 
-const selectTicket = (ticketId: string) => {
+const selectedCitationCount = computed(() => selectedTicket.value.evidences.filter((evidence) => evidence.citationUsed).length)
+
+const actionFeedback = computed(() => {
+  const labels: Record<DemoAction, string> = {
+    idle: 'Demo actions are local UI states only; no ticket is sent, closed, or modified in a real system.',
+    draft: '已重新生成草稿预览：仍为 Draft only，需要 Human Review 后才能采纳。',
+    citation: '已附加 citation 预览：仅展示 citation gating 结果，不写入真实知识库。',
+    trace: '已打开 Trace 入口提示：当前 traceId / runId 是 showcase 标识，不是完整分布式 tracing runtime。',
+    review: '已发送复核预览：本地 demo 状态，不会通知真实 reviewer。'
+  }
+  return labels[demoAction.value]
+})
+
+function selectTicket(ticketId: string) {
   selectedTicketId.value = ticketId
-  draftGenerated.value = false
-  draftConfirmed.value = false
+  demoAction.value = 'idle'
 }
 
-const generateDraft = () => {
-  draftGenerated.value = true
-  draftConfirmed.value = false
-}
-
-const confirmDraft = () => {
-  draftGenerated.value = true
-  draftConfirmed.value = true
+function setDemoAction(action: DemoAction) {
+  demoAction.value = action
 }
 </script>
 
 <template>
-  <section class="showcase-ticket-workbench" data-screenshot="ticket-detail" aria-label="Ticket Workbench Showcase">
-    <header class="showcase-workbench-header">
-      <div>
-        <p class="showcase-eyebrow">Ticket Workbench / Local showcase</p>
-        <h1>工单处理工作台</h1>
+  <section class="ticket-workbench" data-screenshot="ticket-detail" aria-label="Ticket Workbench">
+    <header class="ticket-workbench__hero" data-screenshot="ticket-workbench">
+      <div class="ticket-workbench__hero-copy">
+        <p class="ticket-workbench__eyebrow">Ticket Workbench / 工单工作台</p>
+        <h1>Ticket Workbench</h1>
+        <p>企业工单 AI 处理工作台 · RAG Evidence · Trace · Human Review。</p>
+        <small>基于 synthetic demo 工单，展示 local-rule fallback、keyword retrieval、citation gating 与人工复核门禁的处理链路。</small>
       </div>
-      <div class="showcase-header-metrics" aria-label="本地演示队列摘要">
-        <span><strong>{{ queueCounts.all }}</strong> demo tickets</span>
-        <span><strong>{{ queueCounts.review }}</strong> human review</span>
-        <span><strong>{{ queueCounts.p1 }}</strong> P1 focus</span>
+      <div class="ticket-workbench__hero-stats" aria-label="Workbench demo status">
+        <section>
+          <strong>{{ queueSummary.total }}</strong>
+          <span>demo tickets</span>
+        </section>
+        <section>
+          <strong>{{ queueSummary.review }}</strong>
+          <span>needs review</span>
+        </section>
+        <section>
+          <strong>{{ queueSummary.citationReady }}</strong>
+          <span>citation ready</span>
+        </section>
+        <section>
+          <strong>{{ queueSummary.fallback }}</strong>
+          <span>fallback</span>
+        </section>
       </div>
     </header>
 
-    <section class="showcase-workspace-grid" aria-label="左队列、中详情、右 Copilot 三栏工作台">
-      <aside class="showcase-panel showcase-queue-panel" aria-label="工单队列">
-        <div class="showcase-panel-heading">
+    <section class="ticket-workbench__grid" aria-label="Ticket Queue, Ticket Detail, Evidence Trace and Human Review">
+      <aside class="ticket-workbench__panel ticket-workbench__queue" aria-label="工单队列">
+        <div class="ticket-workbench__panel-heading">
           <div>
-            <p class="showcase-eyebrow">Queue</p>
-            <h2>待处理队列</h2>
+            <p class="ticket-workbench__eyebrow">Ticket Queue</p>
+            <h2>工单队列</h2>
           </div>
-          <span class="showcase-count-badge">{{ filteredTickets.length }}</span>
+          <span>{{ filteredTickets.length }}</span>
         </div>
 
-        <label class="showcase-search" for="showcase-ticket-search">
+        <label class="ticket-workbench__search" for="ticket-workbench-search">
           <span>搜索</span>
-          <input
-            id="showcase-ticket-search"
-            v-model="searchKeyword"
-            type="search"
-            aria-label="搜索"
-            placeholder="搜索工单、问题描述、知识库..."
-          />
+          <input id="ticket-workbench-search" v-model="searchKeyword" type="search" placeholder="搜索 ID、系统、category..." />
         </label>
 
-        <div class="showcase-filter-group" aria-label="工单筛选">
+        <div class="ticket-workbench__filters" aria-label="工单筛选">
           <button
-            v-for="filter in showcaseFilters"
+            v-for="filter in filters"
             :key="filter.id"
             type="button"
-            class="showcase-filter-button"
-            :class="{ 'showcase-filter-button--active': activeFilter === filter.id }"
+            :class="{ 'ticket-workbench__filter--active': activeFilter === filter.id }"
             @click="activeFilter = filter.id"
           >
             {{ filter.label }}
           </button>
         </div>
 
-        <div class="showcase-ticket-list" aria-live="polite">
+        <div class="ticket-workbench__ticket-list" aria-live="polite">
           <button
             v-for="ticket in filteredTickets"
             :key="ticket.id"
             type="button"
-            class="showcase-ticket-card"
-            :class="{ 'showcase-ticket-card--active': ticket.id === selectedTicket.id }"
+            class="ticket-workbench__ticket-card"
+            :class="{ 'ticket-workbench__ticket-card--active': ticket.id === selectedTicket.id }"
             @click="selectTicket(ticket.id)"
           >
-            <span class="showcase-ticket-priority" :data-priority="ticket.priority">{{ ticket.priority }}</span>
-            <span class="showcase-ticket-time">{{ ticket.updatedAt }}</span>
-            <strong>{{ ticket.id }}</strong>
-            <b>{{ ticket.title }}</b>
-            <small>{{ ticket.requester }}</small>
-            <span class="showcase-ticket-tags">
-              <em v-for="tag in ticket.tags.slice(0, 2)" :key="tag">{{ tag }}</em>
-            </span>
+            <span class="ticket-workbench__ticket-id">{{ ticket.id }}</span>
+            <span class="ticket-workbench__priority" :data-priority="ticket.priority">{{ ticket.priority }}</span>
+            <strong>{{ ticket.title }}</strong>
+            <small>{{ ticket.summary }}</small>
+            <dl>
+              <div><dt>category</dt><dd>{{ ticket.category }}</dd></div>
+              <div><dt>SLA</dt><dd>{{ ticket.sla }}</dd></div>
+              <div><dt>status</dt><dd>{{ ticket.status }}</dd></div>
+              <div><dt>provider</dt><dd>{{ ticket.providerPath }}</dd></div>
+            </dl>
+            <div class="ticket-workbench__chips">
+              <span v-for="tag in ticket.tags.slice(0, 3)" :key="tag">{{ tag }}</span>
+            </div>
           </button>
-          <p v-if="!filteredTickets.length" class="showcase-empty-state">暂无匹配工单</p>
+          <p v-if="!filteredTickets.length" class="ticket-workbench__empty">暂无匹配工单</p>
         </div>
       </aside>
 
-      <article class="showcase-panel showcase-detail-panel" aria-label="当前工单详情">
-        <div class="showcase-detail-header">
+      <main class="ticket-workbench__panel ticket-workbench__detail" aria-label="当前工单与 AI Draft">
+        <article class="ticket-workbench__current">
           <div>
-            <p class="showcase-eyebrow">Ticket Detail</p>
-            <h1>{{ selectedTicket.title }}</h1>
+            <p class="ticket-workbench__eyebrow">当前工单</p>
+            <h2>{{ selectedTicket.title }}</h2>
             <p>{{ selectedTicket.summary }}</p>
           </div>
-          <div class="showcase-status-stack">
-            <span class="showcase-priority-pill" :data-priority="selectedTicket.priority">{{ selectedTicket.priority }}</span>
-            <span class="showcase-state-pill">{{ selectedTicket.status }}</span>
+          <div class="ticket-workbench__status-stack">
+            <span class="ticket-workbench__priority" :data-priority="selectedTicket.priority">{{ selectedTicket.priority }}</span>
+            <span>{{ selectedTicket.urgency }}</span>
+            <span>{{ selectedTicket.status }}</span>
           </div>
-        </div>
+        </article>
 
-        <dl class="showcase-metadata-grid">
-          <div>
-            <dt>Ticket ID</dt>
-            <dd>{{ selectedTicket.id }}</dd>
-          </div>
-          <div>
-            <dt>Requester</dt>
-            <dd>{{ selectedTicket.requester }}</dd>
-          </div>
-          <div>
-            <dt>Assignee</dt>
-            <dd>{{ selectedTicket.assignee }}</dd>
-          </div>
-          <div>
-            <dt>Source</dt>
-            <dd>{{ selectedTicket.source }}</dd>
-          </div>
-          <div>
-            <dt>Category</dt>
-            <dd>{{ selectedTicket.category }}</dd>
-          </div>
-          <div>
-            <dt>Environment</dt>
-            <dd>{{ selectedTicket.environment }}</dd>
-          </div>
-          <div>
-            <dt>SLA</dt>
-            <dd>{{ selectedTicket.sla }}</dd>
-          </div>
-          <div>
-            <dt>Impact</dt>
-            <dd>{{ selectedTicket.impact }}</dd>
-          </div>
+        <dl class="ticket-workbench__meta" aria-label="当前工单元数据">
+          <div><dt>Requester</dt><dd>{{ selectedTicket.requester }}</dd></div>
+          <div><dt>System</dt><dd>{{ selectedTicket.system }}</dd></div>
+          <div><dt>Category</dt><dd>{{ selectedTicket.category }}</dd></div>
+          <div><dt>SLA / Risk</dt><dd>{{ selectedTicket.sla }} · {{ selectedTicket.urgency }}</dd></div>
+          <div><dt>Citation</dt><dd>{{ selectedTicket.citationState }}</dd></div>
+          <div><dt>Review</dt><dd>{{ selectedTicket.reviewState }}</dd></div>
         </dl>
 
-        <section class="showcase-detail-section">
-          <div class="showcase-section-heading">
+        <section class="ticket-workbench__context-card">
+          <div class="ticket-workbench__section-title">
             <span>01</span>
-            <h2>工单描述</h2>
+            <h3>Ticket Context</h3>
           </div>
-          <p>{{ selectedTicket.summary }}</p>
-          <div class="showcase-tag-row">
-            <span v-for="tag in selectedTicket.tags" :key="tag">{{ tag }}</span>
+          <ul>
+            <li v-for="item in selectedTicket.context" :key="item">{{ item }}</li>
+          </ul>
+        </section>
+
+        <section class="ticket-workbench__analysis-grid" aria-label="AI 分析结果">
+          <article>
+            <div class="ticket-workbench__section-title">
+              <span>02</span>
+              <h3>AI 分析结果</h3>
+            </div>
+            <dl class="ticket-workbench__analysis-pairs">
+              <div><dt>分类与优先级</dt><dd>{{ selectedTicket.classification }} · {{ selectedTicket.priorityReason }}</dd></div>
+              <div><dt>问题摘要</dt><dd>{{ selectedTicket.analysisSummary }}</dd></div>
+              <div><dt>可能原因</dt><dd>{{ selectedTicket.likelyCause }}</dd></div>
+              <div><dt>处理建议</dt><dd>{{ selectedTicket.recommendedPlan }}</dd></div>
+            </dl>
+          </article>
+
+          <article class="ticket-workbench__draft">
+            <div class="ticket-workbench__section-title">
+              <span>03</span>
+              <h3>AI 回复草稿</h3>
+              <em>{{ selectedTicket.draftLabel }}</em>
+            </div>
+            <p>{{ selectedTicket.draftReply }}</p>
+            <div class="ticket-workbench__action-bar" aria-label="Demo actions">
+              <button type="button" @click="setDemoAction('draft')">重新生成草稿</button>
+              <button type="button" @click="setDemoAction('citation')">Attach Citation</button>
+              <button type="button" @click="setDemoAction('trace')">查看 Trace</button>
+              <button type="button" @click="setDemoAction('review')">发送复核</button>
+            </div>
+            <p class="ticket-workbench__feedback">{{ actionFeedback }}</p>
+          </article>
+        </section>
+
+        <section class="ticket-workbench__risk" aria-label="风险提示">
+          <div>
+            <h3>风险提示</h3>
+            <p>Showcase demo only. Drafts require Human Review before action.</p>
+          </div>
+          <ul>
+            <li v-for="risk in selectedTicket.riskNotes" :key="risk">{{ risk }}</li>
+          </ul>
+        </section>
+      </main>
+
+      <aside class="ticket-workbench__panel ticket-workbench__evidence" aria-label="引用证据、运行链路与人工复核">
+        <section class="ticket-workbench__rail-card ticket-workbench__rail-card--citation">
+          <div class="ticket-workbench__panel-heading ticket-workbench__panel-heading--compact">
+            <div>
+              <p class="ticket-workbench__eyebrow">Citation Evidence</p>
+              <h2>引用证据</h2>
+            </div>
+            <span>{{ selectedCitationCount }}/{{ selectedTicket.evidences.length }}</span>
+          </div>
+          <article v-for="evidence in selectedTicket.evidences" :key="`${selectedTicket.id}-${evidence.knowledgeId}`" class="ticket-workbench__evidence-item">
+            <div>
+              <strong>{{ evidence.knowledgeId }}</strong>
+              <p>{{ evidence.sourceTitle }}</p>
+              <small>{{ evidence.sourcePath }}</small>
+            </div>
+            <b :data-used="evidence.citationUsed">{{ evidence.citationUsed ? 'used' : 'blocked' }}</b>
+            <div class="ticket-workbench__keyword-row">
+              <span v-for="keyword in evidence.matchedKeywords" :key="keyword">{{ keyword }}</span>
+            </div>
+            <dl>
+              <div><dt>keyword score</dt><dd>{{ evidence.keywordScore }}%</dd></div>
+              <div><dt>confidence</dt><dd>{{ evidence.confidence }}</dd></div>
+            </dl>
+          </article>
+        </section>
+
+        <section class="ticket-workbench__rail-card ticket-workbench__rail-card--review">
+          <div class="ticket-workbench__section-title">
+            <span>H</span>
+            <h3>人工复核</h3>
+          </div>
+          <dl class="ticket-workbench__summary-list">
+            <div><dt>复核状态</dt><dd>{{ selectedTicket.review.status }}</dd></div>
+            <div><dt>risk reason</dt><dd>{{ selectedTicket.review.riskReason }}</dd></div>
+            <div><dt>reviewer action</dt><dd>{{ selectedTicket.review.reviewerAction }}</dd></div>
+          </dl>
+          <blockquote>{{ selectedTicket.review.editedPreview }}</blockquote>
+          <div class="ticket-workbench__review-actions">
+            <button type="button">通过</button>
+            <button type="button">请求修改</button>
+            <button type="button">驳回</button>
           </div>
         </section>
 
-        <section class="showcase-detail-section showcase-timeline-section">
-          <div class="showcase-section-heading">
-            <span>02</span>
-            <h2>状态时间线</h2>
+        <section class="ticket-workbench__rail-card ticket-workbench__rail-card--trace">
+          <div class="ticket-workbench__section-title">
+            <span>T</span>
+            <h3>运行链路</h3>
           </div>
-          <ol class="showcase-timeline">
-            <li v-for="item in selectedTicket.timeline" :key="`${selectedTicket.id}-${item.time}-${item.title}`">
-              <time>{{ item.time }}</time>
+          <ol class="ticket-workbench__trace">
+            <li v-for="step in selectedTicket.trace" :key="`${selectedTicket.id}-${step.name}`" :data-tone="step.tone">
               <div>
-                <strong>{{ item.title }}</strong>
-                <p>{{ item.note }}</p>
+                <strong>{{ step.name }}</strong>
+                <small>{{ step.path }}</small>
               </div>
+              <span>{{ step.status }}</span>
+              <em>{{ step.latency }}</em>
             </li>
           </ol>
         </section>
 
-        <div class="showcase-action-bar" aria-label="人工处理动作">
-          <button type="button" class="showcase-action-button showcase-action-button--muted">开始处理</button>
-          <button type="button" class="showcase-action-button">请求修改</button>
-          <button type="button" class="showcase-action-button showcase-action-button--primary">人工确认</button>
-        </div>
-      </article>
-
-      <aside class="showcase-panel showcase-copilot-panel" data-screenshot="ai-analysis" aria-label="AI Copilot 辅助分析面板">
-        <div class="showcase-panel-heading showcase-panel-heading--compact">
-          <div>
-            <p class="showcase-eyebrow">AI Copilot</p>
-            <h2>辅助分析面板</h2>
+        <section class="ticket-workbench__rail-card">
+          <div class="ticket-workbench__section-title">
+            <span>R</span>
+            <h3>检索摘要</h3>
           </div>
-          <span class="showcase-connected-pill">已接入 local-rule fallback</span>
-        </div>
-
-        <div class="showcase-signal-grid">
-          <section>
-            <span>规则分类建议</span>
-            <strong>{{ selectedTicket.category }}</strong>
-            <p>local-rule fallback / 置信度 {{ selectedTicket.confidence }}%</p>
-          </section>
-          <section>
-            <span>优先级判断</span>
-            <strong>{{ selectedTicket.priority }}</strong>
-            <p>{{ selectedTicket.priorityNote }}</p>
-          </section>
-          <section>
-            <span>预计影响</span>
-            <strong>{{ selectedTicket.impact }}</strong>
-            <p>来自工单上下文，非自动决策。</p>
-          </section>
-        </div>
-
-        <div class="showcase-copilot-pair">
-          <section class="showcase-copilot-block">
-            <div class="showcase-block-title">
-              <h3>相似工单 Top 3</h3>
-              <span>{{ selectedTicket.similarTickets.length }}</span>
-            </div>
-            <div class="showcase-similar-list">
-              <article v-for="item in selectedTicket.similarTickets" :key="`${selectedTicket.id}-${item.id}`">
-                <div>
-                  <strong>{{ item.id }}</strong>
-                  <p>{{ item.title }}</p>
-                </div>
-                <span :data-tone="item.tone">{{ item.status }}</span>
-              </article>
-            </div>
-          </section>
-
-          <section class="showcase-copilot-block">
-            <div class="showcase-block-title">
-              <h3>RAG 知识引用</h3>
-              <span>{{ selectedTicket.references.length }}</span>
-            </div>
-            <div class="showcase-reference-list">
-              <article v-for="reference in selectedTicket.references" :key="`${selectedTicket.id}-${reference.id}`">
-                <div>
-                  <strong>{{ reference.id }}</strong>
-                  <p>{{ reference.title }}</p>
-                  <small>{{ reference.source }}</small>
-                </div>
-                <b>{{ reference.score }}%</b>
-              </article>
-            </div>
-          </section>
-        </div>
-
-        <section class="showcase-copilot-block showcase-draft-block">
-          <div class="showcase-block-title">
-            <h3>模板化排查草稿</h3>
-            <span>draft</span>
-          </div>
-          <p>{{ selectedTicket.replyDraft }}</p>
-          <ol>
-            <li>使用 traceId 关联网关、应用日志和依赖调用。</li>
-            <li>确认输入来源和最近发布差异。</li>
-          </ol>
+          <dl class="ticket-workbench__summary-list ticket-workbench__summary-list--compact">
+            <div><dt>query</dt><dd>{{ selectedTicket.retrieval.query }}</dd></div>
+            <div><dt>top-k</dt><dd>{{ selectedTicket.retrieval.topK }}</dd></div>
+            <div><dt>hit status</dt><dd>{{ selectedTicket.retrieval.hitStatus }}</dd></div>
+            <div><dt>latency</dt><dd>{{ selectedTicket.retrieval.latency }}</dd></div>
+            <div><dt>method</dt><dd>{{ selectedTicket.retrieval.method }}</dd></div>
+          </dl>
         </section>
 
-        <section class="showcase-risk-block" aria-label="风险提示">
-          <h3>风险提示</h3>
-          <p v-for="risk in selectedTicket.riskNotes" :key="risk">{{ risk }}</p>
-        </section>
-
-        <section class="showcase-review-block" aria-label="Human Review">
-          <div class="showcase-block-title">
-            <h3>Human Review</h3>
-            <span>visible</span>
+        <section class="ticket-workbench__rail-card ticket-workbench__rail-card--eval">
+          <div class="ticket-workbench__section-title">
+            <span>E</span>
+            <h3>Evaluation Link</h3>
           </div>
-          <div class="showcase-review-actions">
-            <button type="button" class="showcase-review-button showcase-review-button--approve">Approve</button>
-            <button type="button" class="showcase-review-button showcase-review-button--changes">Request Changes</button>
-            <button type="button" class="showcase-review-button showcase-review-button--reject">Reject</button>
-          </div>
-          <div class="showcase-knowledge-actions">
-            <button type="button" class="showcase-link-button" @click="generateDraft">生成知识草稿</button>
-            <button type="button" class="showcase-link-button" @click="confirmDraft">人工确认入库</button>
-          </div>
-          <p v-if="draftGenerated && !draftConfirmed" class="showcase-feedback">知识草稿已生成，发布前仍需人工审核。</p>
-          <p v-if="draftConfirmed" class="showcase-feedback">知识草稿已由人工确认并完成沉淀。</p>
+          <dl class="ticket-workbench__summary-list">
+            <div><dt>eval case</dt><dd>{{ selectedTicket.evalCaseId }}</dd></div>
+            <div><dt>citation warning</dt><dd>{{ selectedTicket.review.citationWarning }}</dd></div>
+            <div><dt>review required</dt><dd>{{ selectedTicket.review.requiredReason }}</dd></div>
+          </dl>
         </section>
       </aside>
     </section>
@@ -612,816 +780,851 @@ const confirmDraft = () => {
 </template>
 
 <style scoped>
-.showcase-ticket-workbench {
-  --showcase-canvas: #07101d;
-  --showcase-canvas-deep: #040912;
-  --showcase-panel: #0c1726;
-  --showcase-panel-strong: #101f33;
-  --showcase-border: rgba(151, 180, 214, 0.16);
-  --showcase-border-strong: rgba(91, 141, 239, 0.28);
-  --showcase-text: #eef5ff;
-  --showcase-secondary: #c7d5ea;
-  --showcase-muted: #7e91ab;
-  --showcase-blue: #3d7cff;
-  --showcase-cyan: #21c7d9;
-  --showcase-green: #2bd88f;
-  --showcase-orange: #ffb45c;
-  --showcase-red: #ff5c7a;
-  --showcase-purple: #8b7cf6;
+.ticket-workbench {
+  --workbench-panel: rgba(12, 23, 38, 0.9);
+  --workbench-panel-strong: rgba(16, 31, 51, 0.94);
+  --workbench-border: rgba(145, 174, 207, 0.16);
+  --workbench-text: #eef5ff;
+  --workbench-secondary: #c7d5ea;
+  --workbench-muted: #7e91ab;
+  --workbench-blue: #3d7cff;
+  --workbench-cyan: #21c7d9;
+  --workbench-green: #2bd88f;
+  --workbench-amber: #ffb45c;
+  --workbench-red: #ff5c7a;
+  --workbench-violet: #8b7cf6;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
-  min-height: calc(100vh - 104px);
-  color: var(--showcase-text);
+  min-width: 0;
+  color: var(--workbench-text);
 }
 
-.showcase-workbench-header,
-.showcase-panel {
-  border: 1px solid var(--showcase-border);
-  background:
-    linear-gradient(180deg, rgba(16, 31, 51, 0.92), rgba(8, 17, 31, 0.96)),
-    var(--showcase-panel);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+.ticket-workbench *,
+.ticket-workbench *::before,
+.ticket-workbench *::after {
+  box-sizing: border-box;
 }
 
-.showcase-workbench-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  min-height: 56px;
-  padding: 10px 14px;
-  border-radius: 8px;
-}
-
-.showcase-workbench-header h1,
-.showcase-panel-heading h2,
-.showcase-detail-header h1,
-.showcase-section-heading h2,
-.showcase-block-title h3 {
+.ticket-workbench h1,
+.ticket-workbench h2,
+.ticket-workbench h3,
+.ticket-workbench p,
+.ticket-workbench dl,
+.ticket-workbench dd,
+.ticket-workbench blockquote {
   margin: 0;
-  letter-spacing: 0;
 }
 
-.showcase-workbench-header h1 {
-  font-size: 24px;
-  line-height: 1.12;
+.ticket-workbench__hero,
+.ticket-workbench__panel,
+.ticket-workbench__context-card,
+.ticket-workbench__analysis-grid article,
+.ticket-workbench__risk,
+.ticket-workbench__rail-card {
+  border: 1px solid var(--workbench-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(16, 31, 51, 0.9), rgba(8, 17, 31, 0.95)),
+    var(--workbench-panel);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
 }
 
-.showcase-eyebrow {
-  margin: 0 0 4px;
-  color: #8db9ff;
+.ticket-workbench__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 118px;
+  padding: 15px 16px;
+  border-color: rgba(91, 141, 239, 0.25);
+  background:
+    radial-gradient(circle at 84% 0, rgba(33, 199, 217, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(16, 31, 51, 0.96), rgba(8, 17, 31, 0.92));
+}
+
+.ticket-workbench__eyebrow {
+  color: #9fc4ff;
   font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 900;
+  line-height: 1.35;
 }
 
-.showcase-header-metrics {
-  display: flex;
-  flex-wrap: wrap;
+.ticket-workbench__hero h1 {
+  margin-top: 6px;
+  font-size: clamp(28px, 2.1vw, 36px);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.ticket-workbench__hero p {
+  margin-top: 8px;
+  color: var(--workbench-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ticket-workbench__hero small {
+  display: block;
+  margin-top: 8px;
+  color: var(--workbench-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ticket-workbench__hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
   gap: 8px;
 }
 
-.showcase-header-metrics span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 10px;
-  border: 1px solid rgba(91, 141, 239, 0.18);
-  border-radius: 6px;
-  background: rgba(4, 10, 22, 0.42);
-  color: var(--showcase-secondary);
-  font-size: 12px;
-}
-
-.showcase-header-metrics strong {
-  color: var(--showcase-cyan);
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-}
-
-.showcase-workspace-grid {
+.ticket-workbench__hero-stats section {
   display: grid;
-  grid-template-columns: minmax(290px, 330px) minmax(0, 1fr) minmax(340px, 390px);
-  gap: 12px;
-  min-height: 0;
+  gap: 5px;
+  min-height: 72px;
+  border: 1px solid rgba(151, 180, 214, 0.12);
+  border-left: 3px solid var(--workbench-cyan);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(4, 9, 18, 0.38);
 }
 
-.showcase-panel {
+.ticket-workbench__hero-stats strong {
+  color: var(--workbench-text);
+  font: 700 22px/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.ticket-workbench__hero-stats span {
+  color: var(--workbench-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.ticket-workbench__grid {
+  display: grid;
+  grid-template-columns: minmax(255px, 0.88fr) minmax(420px, 1.28fr) minmax(292px, 0.96fr);
+  gap: 10px;
   min-width: 0;
-  min-height: 0;
-  border-radius: 8px;
+  align-items: start;
+}
+
+.ticket-workbench__panel {
+  min-width: 0;
   overflow: hidden;
 }
 
-.showcase-queue-panel,
-.showcase-detail-panel,
-.showcase-copilot-panel {
-  display: flex;
-  flex-direction: column;
+.ticket-workbench__queue,
+.ticket-workbench__evidence {
+  display: grid;
+  align-content: start;
+  gap: 0;
 }
 
-.showcase-panel-heading {
+.ticket-workbench__detail {
+  display: grid;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(61, 124, 255, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(12, 23, 38, 0.94), rgba(6, 13, 24, 0.98));
+}
+
+.ticket-workbench__panel-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px;
-  border-bottom: 1px solid var(--showcase-border);
+  border-bottom: 1px solid var(--workbench-border);
+  padding: 12px;
 }
 
-.showcase-panel-heading h2 {
-  font-size: 18px;
+.ticket-workbench__panel-heading--compact {
+  padding-bottom: 10px;
 }
 
-.showcase-panel-heading--compact {
-  padding-bottom: 12px;
+.ticket-workbench__panel-heading h2 {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
-.showcase-count-badge,
-.showcase-connected-pill,
-.showcase-state-pill,
-.showcase-priority-pill {
+.ticket-workbench__panel-heading > span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-  font-weight: 800;
+  min-width: 31px;
+  min-height: 27px;
+  border: 1px solid rgba(33, 199, 217, 0.26);
+  border-radius: 7px;
+  color: #9fe8f1;
+  background: rgba(33, 199, 217, 0.08);
+  font: 800 12px/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
 }
 
-.showcase-count-badge {
-  min-width: 34px;
-  height: 28px;
-  color: var(--showcase-text);
-  background: rgba(61, 124, 255, 0.2);
-  border: 1px solid rgba(61, 124, 255, 0.42);
-}
-
-.showcase-connected-pill {
-  max-width: 160px;
-  min-height: 26px;
-  padding: 0 9px;
-  color: var(--showcase-green);
-  background: rgba(43, 216, 143, 0.1);
-  border: 1px solid rgba(43, 216, 143, 0.26);
-  text-align: center;
-}
-
-.showcase-search {
+.ticket-workbench__search {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
   gap: 8px;
-  margin: 12px;
-  padding: 9px 10px;
-  border: 1px solid var(--showcase-border);
+  align-items: center;
+  margin: 10px;
+  border: 1px solid rgba(151, 180, 214, 0.13);
   border-radius: 8px;
+  padding: 8px 9px;
   background: rgba(4, 10, 22, 0.42);
 }
 
-.showcase-search span {
+.ticket-workbench__search span {
   color: #9fc4ff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.showcase-search input {
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--showcase-text);
-  font: inherit;
-}
-
-.showcase-search input::placeholder {
-  color: rgba(199, 213, 234, 0.54);
-}
-
-.showcase-search:focus-within {
-  border-color: rgba(61, 124, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(61, 124, 255, 0.12);
-}
-
-.showcase-filter-group {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0 12px 12px;
-}
-
-.showcase-filter-button,
-.showcase-action-button,
-.showcase-review-button,
-.showcase-link-button {
-  border: 1px solid var(--showcase-border);
-  border-radius: 7px;
-  background: rgba(10, 21, 38, 0.84);
-  color: var(--showcase-secondary);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
-}
-
-.showcase-filter-button {
-  min-height: 34px;
-}
-
-.showcase-filter-button:hover,
-.showcase-action-button:hover,
-.showcase-review-button:hover,
-.showcase-link-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(61, 124, 255, 0.46);
-  color: var(--showcase-text);
-}
-
-.showcase-filter-button--active {
-  color: var(--showcase-text);
-  background: linear-gradient(180deg, rgba(61, 124, 255, 0.34), rgba(61, 124, 255, 0.15));
-  border-color: rgba(61, 124, 255, 0.62);
-}
-
-.showcase-ticket-list {
-  display: grid;
-  gap: 8px;
-  min-height: 0;
-  padding: 0 12px 14px;
-  overflow: auto;
-}
-
-.showcase-ticket-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 5px 8px;
-  min-height: 108px;
-  padding: 12px 10px 11px 14px;
-  border: 1px solid rgba(151, 180, 214, 0.13);
-  border-left: 4px solid var(--showcase-orange);
-  border-radius: 8px;
-  background: rgba(8, 18, 33, 0.76);
-  color: var(--showcase-text);
-  text-align: left;
-}
-
-.showcase-ticket-card:hover {
-  border-color: rgba(61, 124, 255, 0.38);
-}
-
-.showcase-ticket-card--active {
-  border-color: rgba(61, 124, 255, 0.68);
-  border-left-color: var(--showcase-red);
-  background: linear-gradient(145deg, rgba(61, 124, 255, 0.2), rgba(139, 124, 246, 0.12));
-  box-shadow: 0 0 0 1px rgba(61, 124, 255, 0.24), 0 0 24px rgba(61, 124, 255, 0.2);
-}
-
-.showcase-ticket-card strong,
-.showcase-ticket-card small {
-  color: var(--showcase-muted);
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
-}
-
-.showcase-ticket-card b {
-  grid-column: 1 / -1;
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.showcase-ticket-time {
-  color: #9fc4ff;
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
-}
-
-.showcase-ticket-priority {
-  justify-self: end;
-  padding: 3px 6px;
-  border-radius: 6px;
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
   font-size: 11px;
   font-weight: 900;
 }
 
-.showcase-ticket-priority[data-priority='P1'],
-.showcase-priority-pill[data-priority='P1'] {
-  color: var(--showcase-red);
-  background: rgba(255, 92, 122, 0.12);
-  border: 1px solid rgba(255, 92, 122, 0.34);
+.ticket-workbench__search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--workbench-text);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
 }
 
-.showcase-ticket-priority[data-priority='P2'],
-.showcase-priority-pill[data-priority='P2'] {
-  color: var(--showcase-orange);
-  background: rgba(255, 180, 92, 0.1);
-  border: 1px solid rgba(255, 180, 92, 0.32);
+.ticket-workbench__search:focus-within {
+  border-color: rgba(61, 124, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(61, 124, 255, 0.12);
 }
 
-.showcase-ticket-priority[data-priority='P3'],
-.showcase-priority-pill[data-priority='P3'] {
-  color: var(--showcase-cyan);
-  background: rgba(33, 199, 217, 0.1);
-  border: 1px solid rgba(33, 199, 217, 0.32);
+.ticket-workbench__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 10px 10px;
 }
 
-.showcase-ticket-tags {
+.ticket-workbench button {
+  font: inherit;
+}
+
+.ticket-workbench__filters button,
+.ticket-workbench__action-bar button,
+.ticket-workbench__review-actions button {
+  min-height: 32px;
+  border: 1px solid rgba(151, 180, 214, 0.14);
+  border-radius: 7px;
+  color: var(--workbench-secondary);
+  background: rgba(10, 21, 38, 0.78);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.ticket-workbench__filters button:hover,
+.ticket-workbench__action-bar button:hover,
+.ticket-workbench__review-actions button:hover {
+  border-color: rgba(61, 124, 255, 0.48);
+  color: var(--workbench-text);
+}
+
+.ticket-workbench__filter--active {
+  border-color: rgba(33, 199, 217, 0.42) !important;
+  color: #dffbff !important;
+  background: linear-gradient(135deg, rgba(61, 124, 255, 0.22), rgba(33, 199, 217, 0.08)) !important;
+}
+
+.ticket-workbench__ticket-list {
+  display: grid;
+  gap: 8px;
+  max-height: 705px;
+  padding: 0 10px 12px;
+  overflow: auto;
+}
+
+.ticket-workbench__ticket-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 8px;
+  border: 1px solid rgba(151, 180, 214, 0.12);
+  border-left: 3px solid var(--workbench-blue);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--workbench-text);
+  background: rgba(7, 16, 29, 0.72);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ticket-workbench__ticket-card:hover,
+.ticket-workbench__ticket-card--active {
+  border-color: rgba(61, 124, 255, 0.5);
+  background: linear-gradient(145deg, rgba(61, 124, 255, 0.18), rgba(139, 124, 246, 0.08));
+}
+
+.ticket-workbench__ticket-card--active {
+  border-left-color: var(--workbench-cyan);
+  box-shadow: inset 3px 0 0 rgba(33, 199, 217, 0.72);
+}
+
+.ticket-workbench__ticket-id,
+.ticket-workbench__ticket-card small,
+.ticket-workbench__ticket-card dt,
+.ticket-workbench__ticket-card dd {
+  color: var(--workbench-muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
+.ticket-workbench__ticket-id,
+.ticket-workbench__ticket-card dd {
+  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.ticket-workbench__ticket-card strong {
   grid-column: 1 / -1;
+  color: var(--workbench-text);
+  font-size: 12.5px;
+  line-height: 1.32;
+}
+
+.ticket-workbench__ticket-card small {
+  grid-column: 1 / -1;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ticket-workbench__ticket-card dl {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+  border-top: 1px solid rgba(151, 180, 214, 0.08);
+  padding-top: 7px;
+}
+
+.ticket-workbench__ticket-card div,
+.ticket-workbench__meta div,
+.ticket-workbench__analysis-pairs div,
+.ticket-workbench__summary-list div {
+  min-width: 0;
+}
+
+.ticket-workbench__ticket-card dt,
+.ticket-workbench__meta dt,
+.ticket-workbench__analysis-pairs dt,
+.ticket-workbench__summary-list dt {
+  color: var(--workbench-muted);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.ticket-workbench__ticket-card dd {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-workbench__priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  border-radius: 6px;
+  font: 900 11px/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.ticket-workbench__priority[data-priority='P1'] {
+  border: 1px solid rgba(255, 92, 122, 0.34);
+  color: var(--workbench-red);
+  background: rgba(255, 92, 122, 0.1);
+}
+
+.ticket-workbench__priority[data-priority='P2'] {
+  border: 1px solid rgba(255, 180, 92, 0.32);
+  color: var(--workbench-amber);
+  background: rgba(255, 180, 92, 0.09);
+}
+
+.ticket-workbench__priority[data-priority='P3'] {
+  border: 1px solid rgba(33, 199, 217, 0.32);
+  color: var(--workbench-cyan);
+  background: rgba(33, 199, 217, 0.08);
+}
+
+.ticket-workbench__chips,
+.ticket-workbench__keyword-row {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
 }
 
-.showcase-ticket-tags em,
-.showcase-tag-row span {
-  border: 1px solid rgba(33, 199, 217, 0.24);
+.ticket-workbench__chips {
+  grid-column: 1 / -1;
+}
+
+.ticket-workbench__chips span,
+.ticket-workbench__keyword-row span {
+  border: 1px solid rgba(33, 199, 217, 0.18);
   border-radius: 6px;
-  background: rgba(33, 199, 217, 0.08);
-  color: #9feaff;
-  font-size: 11px;
-  font-style: normal;
+  padding: 3px 6px;
+  color: #9fe8f1;
+  background: rgba(33, 199, 217, 0.055);
+  font-size: 10px;
+  font-weight: 760;
 }
 
-.showcase-ticket-tags em {
-  padding: 3px 7px;
-}
-
-.showcase-empty-state {
+.ticket-workbench__empty {
   display: grid;
   place-items: center;
-  min-height: 112px;
-  margin: 0;
-  border: 1px dashed rgba(151, 180, 214, 0.22);
+  min-height: 96px;
+  border: 1px dashed rgba(151, 180, 214, 0.2);
   border-radius: 8px;
-  color: var(--showcase-muted);
+  color: var(--workbench-muted);
+  font-size: 12px;
 }
 
-.showcase-detail-panel {
-  background:
-    radial-gradient(circle at 82% 0, rgba(61, 124, 255, 0.14), transparent 34%),
-    linear-gradient(180deg, rgba(12, 23, 38, 0.94), rgba(6, 13, 24, 0.98));
-}
-
-.showcase-detail-header {
+.ticket-workbench__current {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  padding: 16px;
-  border-bottom: 1px solid var(--showcase-border);
+  gap: 14px;
+  border-bottom: 1px solid var(--workbench-border);
+  padding: 14px 15px;
 }
 
-.showcase-detail-header h1 {
-  max-width: 760px;
-  font-size: 24px;
-  line-height: 1.18;
+.ticket-workbench__current h2 {
+  margin-top: 4px;
+  font-size: clamp(20px, 1.6vw, 27px);
+  line-height: 1.15;
 }
 
-.showcase-detail-header p,
-.showcase-detail-section p,
-.showcase-draft-block p,
-.showcase-risk-block p {
-  margin: 8px 0 0;
-  color: var(--showcase-secondary);
-  font-size: 13px;
-  line-height: 1.72;
-}
-
-.showcase-status-stack {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.showcase-priority-pill,
-.showcase-state-pill {
-  min-width: 66px;
-  min-height: 30px;
-  padding: 0 10px;
-}
-
-.showcase-state-pill {
-  color: #cfe6ff;
-  background: rgba(61, 124, 255, 0.16);
-  border: 1px solid rgba(61, 124, 255, 0.32);
-}
-
-.showcase-metadata-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  border-bottom: 1px solid var(--showcase-border);
-}
-
-.showcase-metadata-grid div {
-  min-width: 0;
-  padding: 12px 14px;
-  border-right: 1px solid rgba(151, 180, 214, 0.12);
-  border-bottom: 1px solid rgba(151, 180, 214, 0.1);
-}
-
-.showcase-metadata-grid div:nth-child(4n) {
-  border-right: 0;
-}
-
-.showcase-metadata-grid dt {
-  color: #8fb0d5;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.showcase-metadata-grid dd {
-  margin: 6px 0 0;
-  color: var(--showcase-text);
-  font-size: 13px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.showcase-detail-section {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--showcase-border);
-}
-
-.showcase-section-heading {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.showcase-section-heading span {
-  color: var(--showcase-cyan);
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.showcase-section-heading h2 {
-  font-size: 16px;
-}
-
-.showcase-tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 12px;
-}
-
-.showcase-tag-row span {
-  padding: 5px 9px;
-}
-
-.showcase-timeline {
-  display: grid;
-  gap: 10px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.showcase-timeline li {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 12px;
-  position: relative;
-}
-
-.showcase-timeline li::before {
-  content: '';
-  position: absolute;
-  left: 63px;
-  top: 8px;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--showcase-cyan);
-  box-shadow: 0 0 0 4px rgba(33, 199, 217, 0.12);
-}
-
-.showcase-timeline time {
-  color: var(--showcase-cyan);
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.showcase-timeline strong {
-  color: var(--showcase-text);
-  font-size: 13px;
-}
-
-.showcase-timeline p {
-  margin: 4px 0 0;
-  color: var(--showcase-secondary);
-  font-size: 12px;
-}
-
-.showcase-action-bar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: auto;
-  padding: 14px 16px 16px;
-}
-
-.showcase-action-button {
-  min-height: 38px;
-}
-
-.showcase-action-button--primary {
-  color: #ffffff;
-  background: linear-gradient(135deg, #2f6bff, #22a8ec);
-  border-color: rgba(84, 166, 255, 0.6);
-}
-
-.showcase-action-button--muted {
-  opacity: 0.58;
-}
-
-.showcase-copilot-panel {
-  overflow: auto;
-}
-
-.showcase-signal-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
-}
-
-.showcase-signal-grid section {
-  min-width: 0;
-  padding: 11px 10px;
-  border: 1px solid rgba(91, 141, 239, 0.18);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 33, 65, 0.72), rgba(11, 21, 38, 0.9));
-}
-
-.showcase-signal-grid span,
-.showcase-block-title span {
-  color: #8fb0d5;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.showcase-signal-grid strong {
-  display: block;
+.ticket-workbench__current p {
   margin-top: 7px;
-  color: var(--showcase-text);
-  font-size: 13px;
-}
-
-.showcase-signal-grid p {
-  margin: 7px 0 0;
-  color: var(--showcase-secondary);
-  font-size: 11px;
+  color: var(--workbench-secondary);
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
-.showcase-copilot-block,
-.showcase-risk-block,
-.showcase-review-block {
-  margin: 0 10px 10px;
-  padding: 10px;
-  border: 1px solid rgba(151, 180, 214, 0.14);
-  border-radius: 8px;
-  background: rgba(7, 16, 29, 0.64);
-}
-
-.showcase-copilot-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-  margin: 0 10px 10px;
-}
-
-.showcase-copilot-pair .showcase-copilot-block {
-  margin: 0;
-}
-
-.showcase-block-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
-}
-
-.showcase-block-title h3,
-.showcase-risk-block h3 {
-  color: var(--showcase-text);
-  font-size: 14px;
-}
-
-.showcase-similar-list,
-.showcase-reference-list {
+.ticket-workbench__status-stack {
   display: grid;
   gap: 7px;
+  align-content: start;
 }
 
-.showcase-similar-list article,
-.showcase-reference-list article {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+.ticket-workbench__status-stack > span:not(.ticket-workbench__priority) {
+  display: inline-flex;
   align-items: center;
-  min-width: 0;
-}
-
-.showcase-similar-list strong,
-.showcase-reference-list strong {
-  color: #9fc4ff;
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
-}
-
-.showcase-similar-list p,
-.showcase-reference-list p {
-  margin: 3px 0 0;
-  color: var(--showcase-text);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.showcase-similar-list span,
-.showcase-reference-list b {
-  padding: 4px 7px;
+  min-height: 25px;
+  border: 1px solid rgba(151, 180, 214, 0.13);
   border-radius: 6px;
-  font-family: 'Cascadia Code', SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 900;
+  padding: 0 8px;
+  color: var(--workbench-secondary);
+  background: rgba(4, 9, 18, 0.35);
+  font-size: 10.5px;
+  font-weight: 850;
 }
 
-.showcase-similar-list span[data-tone='success'] {
-  color: var(--showcase-green);
-  background: rgba(43, 216, 143, 0.11);
-}
-
-.showcase-similar-list span[data-tone='warning'] {
-  color: var(--showcase-orange);
-  background: rgba(255, 180, 92, 0.11);
-}
-
-.showcase-similar-list span[data-tone='info'] {
-  color: var(--showcase-cyan);
-  background: rgba(33, 199, 217, 0.1);
-}
-
-.showcase-reference-list small {
-  color: var(--showcase-muted);
-  font-size: 10px;
-  line-height: 1.25;
-}
-
-.showcase-reference-list b {
-  color: var(--showcase-green);
-}
-
-.showcase-draft-block ol {
+.ticket-workbench__meta {
   display: grid;
-  gap: 4px;
-  margin: 8px 0 0;
-  padding-left: 18px;
-  color: var(--showcase-secondary);
-  font-size: 11px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--workbench-border);
 }
 
-.showcase-draft-block p {
+.ticket-workbench__meta div {
+  border-right: 1px solid rgba(151, 180, 214, 0.1);
+  border-bottom: 1px solid rgba(151, 180, 214, 0.08);
+  padding: 9px 12px;
+}
+
+.ticket-workbench__meta div:nth-child(3n) {
+  border-right: 0;
+}
+
+.ticket-workbench__meta dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--workbench-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ticket-workbench__context-card,
+.ticket-workbench__analysis-grid,
+.ticket-workbench__risk {
+  margin: 0 10px;
+}
+
+.ticket-workbench__context-card {
+  padding: 11px 12px;
+}
+
+.ticket-workbench__section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-workbench__section-title span {
+  display: inline-grid;
+  min-width: 24px;
+  min-height: 24px;
+  place-items: center;
+  border: 1px solid rgba(33, 199, 217, 0.22);
+  border-radius: 6px;
+  color: var(--workbench-cyan);
+  background: rgba(33, 199, 217, 0.07);
+  font: 900 11px/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.ticket-workbench__section-title h3 {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.ticket-workbench__section-title em {
+  margin-left: auto;
+  border: 1px solid rgba(255, 180, 92, 0.22);
+  border-radius: 6px;
+  padding: 4px 7px;
+  color: #ffd5a3;
+  background: rgba(255, 180, 92, 0.06);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.ticket-workbench__context-card ul,
+.ticket-workbench__risk ul {
+  display: grid;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: var(--workbench-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ticket-workbench__analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 10px;
+}
+
+.ticket-workbench__analysis-grid article {
+  padding: 11px 12px;
+  box-shadow: none;
+}
+
+.ticket-workbench__analysis-pairs,
+.ticket-workbench__summary-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ticket-workbench__analysis-pairs dd,
+.ticket-workbench__summary-list dd {
+  margin-top: 3px;
+  color: var(--workbench-secondary);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.ticket-workbench__draft p {
+  margin-top: 10px;
+  color: var(--workbench-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
 
-.showcase-risk-block {
-  border-color: rgba(255, 92, 122, 0.24);
-  background: linear-gradient(180deg, rgba(255, 92, 122, 0.09), rgba(7, 16, 29, 0.7));
+.ticket-workbench__action-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 11px;
 }
 
-.showcase-risk-block h3 {
-  margin: 0;
-  color: #ff9bad;
+.ticket-workbench__action-bar button:first-child {
+  border-color: rgba(61, 124, 255, 0.48);
+  color: #e8f0ff;
+  background: linear-gradient(135deg, rgba(61, 124, 255, 0.55), rgba(33, 199, 217, 0.28));
 }
 
-.showcase-risk-block p {
-  margin-top: 6px;
+.ticket-workbench__feedback {
+  border: 1px solid rgba(255, 180, 92, 0.16);
+  border-radius: 7px;
+  padding: 8px;
+  color: #ffd5a3 !important;
+  background: rgba(255, 180, 92, 0.055);
+  font-size: 10.5px !important;
+}
+
+.ticket-workbench__risk {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 11px 12px;
+  border-color: rgba(255, 180, 92, 0.2);
+  background: linear-gradient(135deg, rgba(255, 180, 92, 0.075), rgba(12, 23, 38, 0.9));
+}
+
+.ticket-workbench__risk h3 {
+  font-size: 14px;
+  color: #ffd5a3;
+}
+
+.ticket-workbench__risk p {
+  margin-top: 5px;
+  color: var(--workbench-muted);
   font-size: 11px;
   line-height: 1.45;
 }
 
-.showcase-review-actions {
+.ticket-workbench__risk ul {
+  margin: 0;
+}
+
+.ticket-workbench__evidence {
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.ticket-workbench__rail-card {
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.ticket-workbench__rail-card > .ticket-workbench__section-title {
+  padding: 11px 12px 0;
+}
+
+.ticket-workbench__evidence-item {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 8px;
+  border-top: 1px solid rgba(151, 180, 214, 0.09);
+  padding: 7px 10px;
 }
 
-.showcase-review-button {
-  min-height: 34px;
+.ticket-workbench__evidence-item strong {
+  color: #9fc4ff;
+  font: 900 11px/1.2 "Cascadia Code", SFMono-Regular, Consolas, monospace;
 }
 
-.showcase-review-button--approve {
-  color: var(--showcase-green);
-  border-color: rgba(43, 216, 143, 0.34);
+.ticket-workbench__evidence-item p {
+  margin-top: 3px;
+  color: var(--workbench-text);
+  font-size: 10.8px;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.ticket-workbench__evidence-item small {
+  display: block;
+  margin-top: 3px;
+  color: var(--workbench-muted);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.ticket-workbench__evidence-item b {
+  align-self: start;
+  border: 1px solid rgba(43, 216, 143, 0.26);
+  border-radius: 6px;
+  padding: 3px 6px;
+  color: var(--workbench-green);
   background: rgba(43, 216, 143, 0.08);
+  font-size: 9.5px;
 }
 
-.showcase-review-button--changes {
-  color: var(--showcase-orange);
-  border-color: rgba(255, 180, 92, 0.36);
-  background: rgba(255, 180, 92, 0.08);
-}
-
-.showcase-review-button--reject {
-  color: var(--showcase-red);
-  border-color: rgba(255, 92, 122, 0.34);
+.ticket-workbench__evidence-item b[data-used='false'] {
+  border-color: rgba(255, 92, 122, 0.28);
+  color: var(--workbench-red);
   background: rgba(255, 92, 122, 0.08);
 }
 
-.showcase-knowledge-actions {
+.ticket-workbench__keyword-row,
+.ticket-workbench__evidence-item dl {
+  grid-column: 1 / -1;
+}
+
+.ticket-workbench__evidence-item dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 7px;
+  gap: 6px;
 }
 
-.showcase-link-button {
-  min-height: 32px;
-  color: #9fc4ff;
+.ticket-workbench__trace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 8px 0 0;
+  padding: 0 10px 10px;
+  list-style: none;
 }
 
-.showcase-feedback {
-  margin: 9px 0 0;
-  color: var(--showcase-green);
-  font-size: 12px;
-  font-weight: 800;
+.ticket-workbench__trace li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  border: 1px solid rgba(151, 180, 214, 0.1);
+  border-left: 3px solid var(--trace-color, var(--workbench-blue));
+  border-radius: 7px;
+  padding: 6px;
+  background: rgba(4, 9, 18, 0.34);
 }
 
-@media (max-width: 1380px) and (min-width: 1261px) {
-  .showcase-workspace-grid {
-    grid-template-columns: minmax(280px, 315px) minmax(0, 1fr) minmax(330px, 372px);
-    gap: 10px;
-  }
+.ticket-workbench__trace li[data-tone='cyan'] { --trace-color: var(--workbench-cyan); }
+.ticket-workbench__trace li[data-tone='green'] { --trace-color: var(--workbench-green); }
+.ticket-workbench__trace li[data-tone='amber'] { --trace-color: var(--workbench-amber); }
+.ticket-workbench__trace li[data-tone='red'] { --trace-color: var(--workbench-red); }
+.ticket-workbench__trace li[data-tone='violet'] { --trace-color: var(--workbench-violet); }
 
-  .showcase-signal-grid {
+.ticket-workbench__trace strong {
+  color: var(--workbench-text);
+  font-size: 10.6px;
+  line-height: 1.2;
+}
+
+.ticket-workbench__trace small {
+  display: block;
+  margin-top: 2px;
+  color: var(--workbench-muted);
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.ticket-workbench__trace span,
+.ticket-workbench__trace em {
+  color: var(--workbench-secondary);
+  font: 800 9px/1.2 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  text-align: left;
+}
+
+.ticket-workbench__trace em {
+  color: var(--workbench-muted);
+  font-style: normal;
+}
+
+.ticket-workbench__summary-list {
+  padding: 0 10px 10px;
+}
+
+.ticket-workbench__summary-list div {
+  border-bottom: 1px solid rgba(151, 180, 214, 0.08);
+  padding-bottom: 6px;
+}
+
+.ticket-workbench__summary-list--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+}
+
+.ticket-workbench__summary-list--compact div:first-child {
+  grid-column: 1 / -1;
+}
+
+.ticket-workbench__summary-list div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ticket-workbench__summary-list dd {
+  overflow-wrap: anywhere;
+}
+
+.ticket-workbench__rail-card blockquote {
+  margin: 0 10px 8px;
+  border-left: 3px solid rgba(33, 199, 217, 0.55);
+  border-radius: 0 7px 7px 0;
+  padding: 7px 8px;
+  color: var(--workbench-secondary);
+  background: rgba(33, 199, 217, 0.055);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.ticket-workbench__review-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0 10px 10px;
+}
+
+.ticket-workbench__review-actions button:first-child {
+  color: var(--workbench-green);
+  border-color: rgba(43, 216, 143, 0.3);
+  background: rgba(43, 216, 143, 0.08);
+}
+
+.ticket-workbench__review-actions button:nth-child(2) {
+  color: var(--workbench-amber);
+  border-color: rgba(255, 180, 92, 0.3);
+  background: rgba(255, 180, 92, 0.075);
+}
+
+.ticket-workbench__review-actions button:last-child {
+  color: var(--workbench-red);
+  border-color: rgba(255, 92, 122, 0.3);
+  background: rgba(255, 92, 122, 0.075);
+}
+
+.ticket-workbench__rail-card--eval {
+  border-color: rgba(139, 124, 246, 0.18);
+}
+
+@media (max-width: 1420px) {
+  .ticket-workbench__hero {
     grid-template-columns: 1fr;
   }
 
-  .showcase-detail-header h1 {
-    font-size: 22px;
+  .ticket-workbench__hero-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ticket-workbench__grid {
+    grid-template-columns: minmax(245px, 0.82fr) minmax(390px, 1.2fr) minmax(280px, 0.9fr);
+  }
+
+  .ticket-workbench__analysis-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 1260px) {
-  .showcase-ticket-workbench {
-    min-height: 0;
-  }
-
-  .showcase-workspace-grid {
+@media (max-width: 1180px) {
+  .ticket-workbench__grid,
+  .ticket-workbench__risk {
     grid-template-columns: 1fr;
   }
 
-  .showcase-queue-panel,
-  .showcase-detail-panel,
-  .showcase-copilot-panel {
-    min-height: auto;
+  .ticket-workbench__ticket-list {
+    max-height: none;
+  }
+
+  .ticket-workbench__evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .showcase-workbench-header,
-  .showcase-detail-header {
+  .ticket-workbench__hero-stats,
+  .ticket-workbench__meta,
+  .ticket-workbench__evidence,
+  .ticket-workbench__action-bar,
+  .ticket-workbench__review-actions {
     grid-template-columns: 1fr;
   }
 
-  .showcase-workbench-header {
-    align-items: flex-start;
-  }
-
-  .showcase-header-metrics,
-  .showcase-action-bar,
-  .showcase-review-actions,
-  .showcase-knowledge-actions,
-  .showcase-metadata-grid,
-  .showcase-signal-grid {
+  .ticket-workbench__current {
     grid-template-columns: 1fr;
   }
 
-  .showcase-metadata-grid div {
+  .ticket-workbench__meta div {
     border-right: 0;
-  }
-
-  .showcase-filter-group {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
