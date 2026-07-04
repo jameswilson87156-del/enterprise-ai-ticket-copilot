@@ -6,6 +6,15 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Restore Sidebar Brand Mark
+
+- 本轮任务：仅修复 App Shell / Sidebar 左上角 Enterprise Ticket RAG Copilot 品牌图标，避免 Evaluation / Metrics 截图中品牌区弱化；未重构布局，未修改 Evaluation 页面指标逻辑。
+- 前端改动：`frontend/src/App.vue` 将原 42px 纯文本 `ET` 标识替换为 44px 深色圆角容器 + 原创 inline SVG ticket / ET 标识；同步收窄品牌文字 CSS selector，避免 `.portfolio-shell__brand span` 覆盖品牌图标样式。
+- 视觉边界：延续深蓝黑背景、低饱和面板、青蓝高亮与蓝紫轻微渐变；没有使用第三方 Logo，没有使用 Image2 图，没有接入真实 API Key。
+- 截图：`docs/images/evaluation-metrics.png`、`docs/images/large/evaluation-metrics.png` 均由本项目本地页面重新生成；截图脚本默认 5173 端口被占用后，改用空闲端口 41739 与 `SCREENSHOT_URL=http://127.0.0.1:41739` 通过。脚本全量生成的其他页面截图已恢复，未纳入本轮改动。
+- 验证：`npm run typecheck` 通过；`npm run build` 通过；`npm run screenshots` 默认端口 5173 被占用失败，随后使用 `SCREENSHOT_URL=http://127.0.0.1:41739 npm run screenshots` 通过，并人工目视复核 Evaluation 截图左上角品牌图标清晰可见。
+- 未做事项：未改 README，未改后端，未改 `docs/frontend_reference*`，未改 `frontend/src/data/evaluationMetrics.ts`，未改 RAG metrics 口径，未提交 `.local/` 或 Image2 图。
+
 ### 2026-07-04 — Codex — Evaluation / Metrics 视觉精修
 
 - 本轮任务：仅精修 App Shell 与 Evaluation / Metrics 页面，按本地 ignored 参考图 `.local/design_targets/evaluation_metrics_target_v1.png` 落地真实 Vue 页面；未改 Ticket Workbench、Knowledge、Trace、Human Review 业务页面。

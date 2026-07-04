@@ -157,7 +157,40 @@ onBeforeUnmount(() => {
   <div class="portfolio-shell" :data-active-route="activeRoute">
     <aside class="portfolio-shell__sidebar" aria-label="Showcase navigation">
       <div class="portfolio-shell__brand" aria-label="Enterprise Ticket RAG Copilot">
-        <span class="portfolio-shell__brand-mark" aria-hidden="true">ET</span>
+        <span class="portfolio-shell__brand-mark" aria-hidden="true">
+          <svg class="portfolio-shell__brand-glyph" viewBox="0 0 36 36" focusable="false">
+            <defs>
+              <linearGradient id="portfolio-brand-ticket" x1="7" y1="8" x2="30" y2="29" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#27d3e7" />
+                <stop offset="0.52" stop-color="#3d7cff" />
+                <stop offset="1" stop-color="#8b7cf6" />
+              </linearGradient>
+              <linearGradient id="portfolio-brand-fill" x1="9" y1="10" x2="27" y2="27" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#102a3d" />
+                <stop offset="1" stop-color="#101a3a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M9.4 10.6h17.2c1.2 0 2.1.9 2.1 2.1v3.1c-1.6.5-2.7 1.7-2.7 3.2 0 1.4 1.1 2.7 2.7 3.2v3.1c0 1.2-.9 2.1-2.1 2.1H9.4c-1.2 0-2.1-.9-2.1-2.1v-3.1c1.6-.5 2.7-1.8 2.7-3.2 0-1.5-1.1-2.7-2.7-3.2v-3.1c0-1.2.9-2.1 2.1-2.1Z"
+              fill="url(#portfolio-brand-fill)"
+              stroke="url(#portfolio-brand-ticket)"
+              stroke-width="1.5"
+            />
+            <path d="M13 15.2h10M13 22.8h10" stroke="#77e8f6" stroke-width="1.15" stroke-linecap="round" opacity="0.72" />
+            <text
+              x="18"
+              y="22.6"
+              fill="#f1fcff"
+              font-family="Cascadia Code, SFMono-Regular, Consolas, monospace"
+              font-size="10.8"
+              font-weight="900"
+              letter-spacing="-0.8"
+              text-anchor="middle"
+            >ET</text>
+            <circle cx="28.6" cy="13.2" r="1" fill="#b7f8ff" opacity="0.9" />
+            <circle cx="28.6" cy="24.8" r="1" fill="#c8c2ff" opacity="0.86" />
+          </svg>
+        </span>
         <div>
           <strong>Enterprise Ticket</strong>
           <span>RAG Copilot</span>
@@ -377,44 +410,62 @@ onBeforeUnmount(() => {
 
 .portfolio-shell__brand {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   min-height: 48px;
 }
 
 .portfolio-shell__brand-mark {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   place-items: center;
-  border: 1px solid rgba(33, 199, 217, 0.34);
-  border-radius: 8px;
+  border: 1px solid rgba(112, 205, 255, 0.42);
+  border-radius: 12px;
   color: #dff8ff;
   background:
-    linear-gradient(135deg, rgba(33, 199, 217, 0.24), rgba(61, 124, 255, 0.2)),
-    rgba(4, 10, 22, 0.8);
-  box-shadow: 0 14px 30px rgba(61, 124, 255, 0.18);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 13px;
-  font-weight: 900;
+    radial-gradient(circle at 28% 18%, rgba(33, 199, 217, 0.34), transparent 42%),
+    linear-gradient(135deg, rgba(5, 18, 33, 0.98), rgba(18, 31, 64, 0.96) 54%, rgba(38, 30, 82, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 14px 30px rgba(3, 10, 26, 0.34);
 }
 
-.portfolio-shell__brand strong,
-.portfolio-shell__brand span {
+.portfolio-shell__brand-mark::after {
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  content: "";
+}
+
+.portfolio-shell__brand-glyph {
+  position: relative;
+  z-index: 1;
+  width: 33px;
+  height: 33px;
+  filter: drop-shadow(0 2px 5px rgba(33, 199, 217, 0.22));
+}
+
+.portfolio-shell__brand > div > strong,
+.portfolio-shell__brand > div > span {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.portfolio-shell__brand strong {
+.portfolio-shell__brand > div > strong {
   color: var(--shell-text);
   font-size: 14px;
   line-height: 1.25;
 }
 
-.portfolio-shell__brand span {
+.portfolio-shell__brand > div > span {
   margin-top: 3px;
   color: var(--shell-muted);
   font-size: 12px;
