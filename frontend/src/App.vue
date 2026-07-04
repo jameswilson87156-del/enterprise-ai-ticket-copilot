@@ -58,13 +58,13 @@ const routeAliases: Record<string, ShowcaseRoute> = {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', caption: 'system cockpit', route: 'dashboard' },
-  { label: 'Ticket Workbench', caption: 'queue + copilot', route: 'ticket-detail' },
-  { label: 'Knowledge Base', caption: 'keyword sources', route: 'knowledge-base' },
-  { label: 'Retrieval Evidence', caption: 'Top-K citations', route: 'retrieval-evidence' },
-  { label: 'Trace Timeline', caption: 'run audit trail', route: 'trace-timeline' },
-  { label: 'Human Review', caption: 'review gate', route: 'human-review' },
-  { label: 'Evaluation / Metrics', caption: 'local eval loop', route: 'evaluation-metrics' }
+  { label: 'Dashboard', caption: '系统总览', route: 'dashboard' },
+  { label: 'Ticket Workbench', caption: '工单工作台', route: 'ticket-detail' },
+  { label: 'Knowledge Base', caption: '知识库管理', route: 'knowledge-base' },
+  { label: 'Retrieval Evidence', caption: '检索证据', route: 'retrieval-evidence' },
+  { label: 'Trace Timeline', caption: '运行链路', route: 'trace-timeline' },
+  { label: 'Human Review', caption: '人工复核', route: 'human-review' },
+  { label: 'Evaluation / Metrics', caption: '本地评测', route: 'evaluation-metrics' }
 ]
 
 const showcaseComponents: Record<ShowcaseRoute, Component> = {
@@ -116,9 +116,9 @@ const routeMeta: Record<ShowcaseRoute, RouteMeta> = {
   },
   'evaluation-metrics': {
     eyebrow: 'Evaluation / Metrics',
-    title: 'Evaluation / Metrics',
-    description: 'Local reproducible evaluation for synthetic demo cases, citation gating, and review gate.',
-    contextTitle: 'Evaluation context'
+    title: '评测指标中心',
+    description: '本地 RAG 评测与引用证据指标。',
+    contextTitle: '评测上下文'
   }
 }
 
@@ -181,25 +181,30 @@ onBeforeUnmount(() => {
         </button>
       </nav>
 
-      <section class="portfolio-shell__boundary" aria-label="Demo boundary">
-        <span>Project Mode</span>
-        <strong>Showcase Demo</strong>
-        <p>synthetic dataset, local keyword retrieval, citation gating, local-rule fallback.</p>
+      <section class="portfolio-shell__team" aria-label="当前演示空间">
+        <span class="portfolio-shell__team-mark" aria-hidden="true">ET</span>
+        <div>
+          <strong>Enterprise Team</strong>
+          <small>Showcase Demo</small>
+        </div>
       </section>
     </aside>
 
     <section class="portfolio-shell__workspace">
-      <header class="portfolio-shell__topbar" aria-label="Runtime status">
-        <div class="portfolio-shell__topbar-title">
+      <header
+        class="portfolio-shell__topbar"
+        :class="{ 'portfolio-shell__topbar--evaluation': activeRoute === 'evaluation-metrics' }"
+        aria-label="Runtime status"
+      >
+        <div v-if="activeRoute !== 'evaluation-metrics'" class="portfolio-shell__topbar-title">
           <span>{{ activeMeta.eyebrow }}</span>
           <strong>{{ activeNavLabel }}</strong>
         </div>
         <div class="portfolio-shell__status-strip">
-          <span>Project Mode: Showcase Demo</span>
-          <span>Provider: local-rule fallback</span>
-          <span>Retrieval: keyword retrieval</span>
-          <span>Eval Dataset: {{ evaluationSnapshot.sampleCount }} synthetic cases</span>
-          <span>Demo Boundary</span>
+          <span>Showcase Demo</span>
+          <span>Provider：local-rule fallback</span>
+          <span>Retrieval：keyword retrieval</span>
+          <span>Eval Dataset：{{ evaluationSnapshot.sampleCount }} synthetic cases</span>
         </div>
       </header>
 
@@ -209,53 +214,112 @@ onBeforeUnmount(() => {
         </section>
 
         <aside v-if="showContextPanel" class="portfolio-shell__context" :aria-label="activeMeta.contextTitle">
-          <section class="portfolio-shell__context-card portfolio-shell__context-card--strong">
-            <span>Provider status</span>
-            <strong>local-rule fallback active</strong>
-            <p>OpenAI-compatible provider path is optional and not configured in this no-key local run.</p>
-          </section>
+          <template v-if="activeRoute === 'evaluation-metrics'">
+            <section class="portfolio-shell__context-card portfolio-shell__context-card--insight">
+              <h2>当前评测结论</h2>
+              <p>
+                当前 demo 评测中，Top-K 命中表现稳定；引用准确率和失败样本仍是后续 Hybrid retrieval、Rerank 与真实 Provider 评测的优化重点。
+              </p>
+            </section>
 
-          <section class="portfolio-shell__context-card">
-            <span>Eval snapshot</span>
-            <div class="portfolio-shell__mini-metrics">
-              <b>{{ evaluationSnapshot.topKHitRate }}</b>
-              <small>Top-K Hit Rate</small>
-              <b>{{ evaluationSnapshot.citationPrecision }}</b>
-              <small>Citation Precision</small>
-              <b>{{ evaluationSnapshot.avgRetrievalLatency }}</b>
-              <small>Avg Retrieval Latency</small>
-            </div>
-          </section>
+            <section class="portfolio-shell__context-card">
+              <h2>评测快照</h2>
+              <div class="portfolio-shell__mini-metrics portfolio-shell__mini-metrics--summary">
+                <section>
+                  <b>{{ evaluationSnapshot.topKHitRate }}</b>
+                  <small>Top-K 命中率</small>
+                </section>
+                <section>
+                  <b>{{ evaluationSnapshot.citationPrecision }}</b>
+                  <small>引用准确率</small>
+                </section>
+                <section>
+                  <b>{{ evaluationSnapshot.avgRetrievalLatency }}</b>
+                  <small>平均检索耗时</small>
+                </section>
+              </div>
+            </section>
 
-          <section class="portfolio-shell__context-card">
-            <span>Provider / retrieval scope</span>
-            <div class="portfolio-shell__status-list">
-              <article v-for="item in providerStatusItems" :key="item.label" :data-tone="item.tone">
-                <strong>{{ item.value }}</strong>
-                <span>{{ item.label }}</span>
-                <small>{{ item.note }}</small>
-              </article>
-            </div>
-          </section>
+            <section class="portfolio-shell__context-card">
+              <h2>Provider 与检索范围</h2>
+              <dl class="portfolio-shell__scope-pairs">
+                <div><dt>真实 Provider</dt><dd>未配置</dd></div>
+                <div><dt>Vector DB</dt><dd>未启用</dd></div>
+                <div><dt>检索方式</dt><dd>keyword retrieval</dd></div>
+                <div><dt>Provider 路径</dt><dd>local-rule fallback</dd></div>
+                <div><dt>API Key</dt><dd>未提交 / 未使用</dd></div>
+              </dl>
+            </section>
 
-          <section class="portfolio-shell__context-card">
-            <span>Recent trace / review</span>
-            <ol class="portfolio-shell__trace-list">
-              <li v-for="run in recentTicketRuns.slice(0, 3)" :key="run.caseId">
-                <strong>{{ run.ticketId }}</strong>
-                <span>{{ run.citationStatus }} / {{ run.reviewStatus }}</span>
-                <small>{{ run.caseId }} · {{ run.providerPath }}</small>
-              </li>
-            </ol>
-          </section>
+            <section class="portfolio-shell__context-card">
+              <h2>最近 Trace / Review</h2>
+              <ol class="portfolio-shell__trace-list">
+                <li v-for="run in recentTicketRuns.slice(0, 3)" :key="run.caseId">
+                  <strong>{{ run.ticketId }}</strong>
+                  <span>{{ run.citationStatus }} · {{ run.reviewStatus }}</span>
+                  <small>{{ run.caseId }} · {{ run.providerPath }}</small>
+                </li>
+              </ol>
+              <a class="portfolio-shell__context-link" href="#trace-timeline">查看全部 Trace / Review <span aria-hidden="true">→</span></a>
+            </section>
 
-          <section class="portfolio-shell__context-card portfolio-shell__context-card--boundary">
-            <span>Boundary note</span>
-            <p>Demo metrics are generated from synthetic evaluation cases and local scripts. They are used for portfolio verification, not production claims.</p>
-            <div>
-              <small v-for="item in boundaryStatements.slice(0, 4)" :key="item">{{ item }}</small>
-            </div>
-          </section>
+            <section class="portfolio-shell__context-card portfolio-shell__context-card--boundary">
+              <h2>Demo 边界说明</h2>
+              <p>本页指标来自 synthetic evaluation cases 与本地评测脚本。</p>
+              <p>用于展示检索、引用证据、fallback 与 review gate 的评测边界。</p>
+              <p>不代表真实向量 RAG、真实模型准确率、生产数据或真实用户流量。</p>
+            </section>
+          </template>
+
+          <template v-else>
+            <section class="portfolio-shell__context-card portfolio-shell__context-card--strong">
+              <span>Provider status</span>
+              <strong>local-rule fallback active</strong>
+              <p>OpenAI-compatible provider path is optional and not configured in this no-key local run.</p>
+            </section>
+
+            <section class="portfolio-shell__context-card">
+              <span>Eval snapshot</span>
+              <div class="portfolio-shell__mini-metrics">
+                <b>{{ evaluationSnapshot.topKHitRate }}</b>
+                <small>Top-K Hit Rate</small>
+                <b>{{ evaluationSnapshot.citationPrecision }}</b>
+                <small>Citation Precision</small>
+                <b>{{ evaluationSnapshot.avgRetrievalLatency }}</b>
+                <small>Avg Retrieval Latency</small>
+              </div>
+            </section>
+
+            <section class="portfolio-shell__context-card">
+              <span>Provider / retrieval scope</span>
+              <div class="portfolio-shell__status-list">
+                <article v-for="item in providerStatusItems" :key="item.label" :data-tone="item.tone">
+                  <strong>{{ item.value }}</strong>
+                  <span>{{ item.label }}</span>
+                  <small>{{ item.note }}</small>
+                </article>
+              </div>
+            </section>
+
+            <section class="portfolio-shell__context-card">
+              <span>Recent trace / review</span>
+              <ol class="portfolio-shell__trace-list">
+                <li v-for="run in recentTicketRuns.slice(0, 3)" :key="run.caseId">
+                  <strong>{{ run.ticketId }}</strong>
+                  <span>{{ run.citationStatus }} / {{ run.reviewStatus }}</span>
+                  <small>{{ run.caseId }} · {{ run.providerPath }}</small>
+                </li>
+              </ol>
+            </section>
+
+            <section class="portfolio-shell__context-card portfolio-shell__context-card--boundary">
+              <span>Boundary note</span>
+              <p>Demo metrics are generated from synthetic evaluation cases and local scripts. They are used for portfolio verification, not production claims.</p>
+              <div>
+                <small v-for="item in boundaryStatements.slice(0, 4)" :key="item">{{ item }}</small>
+              </div>
+            </section>
+          </template>
         </aside>
       </main>
     </section>
@@ -421,34 +485,51 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-.portfolio-shell__boundary {
+.portfolio-shell__team {
   display: grid;
-  gap: 6px;
-  border: 1px solid rgba(255, 180, 92, 0.18);
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  border: 1px solid var(--shell-border);
   border-radius: 8px;
-  padding: 12px;
-  background: rgba(255, 180, 92, 0.06);
+  padding: 10px;
+  background: rgba(12, 23, 38, 0.58);
 }
 
-.portfolio-shell__boundary span,
+.portfolio-shell__team-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: #d9f7fb;
+  background: rgba(33, 199, 217, 0.13);
+  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}
+
+.portfolio-shell__team strong,
+.portfolio-shell__team small {
+  display: block;
+}
+
+.portfolio-shell__team strong {
+  color: var(--shell-secondary);
+  font-size: 12px;
+}
+
+.portfolio-shell__team small {
+  margin-top: 4px;
+  color: var(--shell-muted);
+  font-size: 10.5px;
+}
+
 .portfolio-shell__context-card > span,
 .portfolio-shell__topbar-title span {
   color: #9fc4ff;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0;
-}
-
-.portfolio-shell__boundary strong {
-  color: var(--shell-text);
-  font-size: 13px;
-}
-
-.portfolio-shell__boundary p {
-  margin: 0;
-  color: var(--shell-muted);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .portfolio-shell__workspace {
@@ -469,6 +550,14 @@ onBeforeUnmount(() => {
   padding: 9px 16px;
   background: rgba(4, 9, 18, 0.9);
   backdrop-filter: blur(18px);
+}
+
+.portfolio-shell__topbar--evaluation {
+  grid-template-columns: 1fr;
+}
+
+.portfolio-shell__topbar--evaluation .portfolio-shell__status-strip {
+  justify-content: flex-start;
 }
 
 .portfolio-shell__topbar-title {
@@ -519,23 +608,18 @@ onBeforeUnmount(() => {
   color: #d8d2ff;
 }
 
-.portfolio-shell__status-strip span:nth-child(5) {
-  border-color: rgba(255, 180, 92, 0.24);
-  color: #ffd6a8;
-}
-
 .portfolio-shell__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
-  width: min(100%, 1680px);
+  width: min(100%, 1720px);
   min-width: 0;
   margin: 0 auto;
   padding: 12px 14px 18px;
 }
 
 .portfolio-shell__body--with-context {
-  grid-template-columns: minmax(0, 1fr) 338px;
+  grid-template-columns: minmax(0, 1fr) 360px;
 }
 
 .portfolio-shell__content {
@@ -554,10 +638,17 @@ onBeforeUnmount(() => {
   gap: 8px;
   border: 1px solid var(--shell-border);
   border-radius: 8px;
-  padding: 11px;
+  padding: 12px;
   background:
     linear-gradient(180deg, rgba(16, 31, 51, 0.82), rgba(8, 17, 31, 0.92)),
     var(--shell-panel);
+}
+
+.portfolio-shell__context-card h2 {
+  margin: 0;
+  color: var(--shell-text);
+  font-size: 13px;
+  line-height: 1.3;
 }
 
 .portfolio-shell__context-card--strong {
@@ -567,7 +658,12 @@ onBeforeUnmount(() => {
 
 .portfolio-shell__context-card--boundary {
   border-color: rgba(255, 180, 92, 0.18);
-  background: linear-gradient(135deg, rgba(255, 180, 92, 0.09), rgba(12, 23, 38, 0.88));
+  background: linear-gradient(135deg, rgba(255, 180, 92, 0.055), rgba(12, 23, 38, 0.88));
+}
+
+.portfolio-shell__context-card--insight {
+  border-color: rgba(139, 124, 246, 0.2);
+  background: linear-gradient(135deg, rgba(139, 124, 246, 0.085), rgba(12, 23, 38, 0.9));
 }
 
 .portfolio-shell__context-card strong {
@@ -599,6 +695,65 @@ onBeforeUnmount(() => {
 .portfolio-shell__mini-metrics small {
   color: var(--shell-muted);
   font-size: 11px;
+}
+
+.portfolio-shell__mini-metrics--summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+.portfolio-shell__mini-metrics--summary section {
+  display: grid;
+  gap: 4px;
+  border-right: 1px solid var(--shell-border);
+  padding: 2px 8px;
+}
+
+.portfolio-shell__mini-metrics--summary section:first-child {
+  padding-left: 0;
+}
+
+.portfolio-shell__mini-metrics--summary section:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.portfolio-shell__mini-metrics--summary b {
+  font-size: 12px;
+}
+
+.portfolio-shell__mini-metrics--summary small {
+  line-height: 1.35;
+}
+
+.portfolio-shell__scope-pairs {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.portfolio-shell__scope-pairs div {
+  display: grid;
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 10px;
+  border-bottom: 1px solid rgba(151, 180, 214, 0.08);
+  padding: 7px 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.portfolio-shell__scope-pairs div:last-child {
+  border-bottom: 0;
+}
+
+.portfolio-shell__scope-pairs dt {
+  color: var(--shell-muted);
+}
+
+.portfolio-shell__scope-pairs dd {
+  margin: 0;
+  color: var(--shell-secondary);
+  overflow-wrap: anywhere;
 }
 
 .portfolio-shell__status-list {
@@ -670,6 +825,21 @@ onBeforeUnmount(() => {
   color: var(--shell-muted);
   font-size: 11px;
   line-height: 1.35;
+}
+
+.portfolio-shell__context-link {
+  width: fit-content;
+  color: #69a8ff;
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.portfolio-shell__context-link:hover,
+.portfolio-shell__context-link:focus-visible {
+  color: #acd2ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .portfolio-shell__context-card--boundary div {
@@ -763,9 +933,18 @@ onBeforeUnmount(() => {
     padding: 12px;
   }
 
-  .portfolio-shell__nav,
   .portfolio-shell__context {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-shell__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .portfolio-shell__nav-item {
+    min-height: 44px;
+    padding: 6px 7px;
   }
 
   .portfolio-shell__body {

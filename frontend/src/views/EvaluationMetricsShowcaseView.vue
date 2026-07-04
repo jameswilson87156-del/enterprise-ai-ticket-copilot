@@ -1,207 +1,144 @@
 <script setup lang="ts">
 import {
-  baselineRows,
-  boundaryStatements,
   currentScopeItems,
-  evaluationCases,
+  evaluationBaselineRows,
   evaluationMetricCards,
   evaluationSnapshot,
-  failureAnalysis,
-  nextStageItems,
-  reproducibilityCommands,
-  reproducibilityReports
+  nextStageItems
 } from '../data/evaluationMetrics'
 
 const primaryMetricCards = evaluationMetricCards.slice(0, 8)
-const rankMetricCards = evaluationMetricCards.slice(8)
+
+const supplementalMetrics = [
+  {
+    label: 'MRR',
+    value: evaluationSnapshot.mrr,
+    note: '可选本地排序指标'
+  },
+  {
+    label: 'NDCG@K',
+    value: evaluationSnapshot.ndcgAtK,
+    note: '可选二值相关性指标'
+  },
+  {
+    label: '本地路径状态',
+    value: '已启用',
+    note: '无 API Key 环境预期路径'
+  },
+  {
+    label: '知识缺失回退',
+    value: evaluationSnapshot.knowledgeMissFallbackRate,
+    note: '无期望来源或不可检索'
+  }
+]
 </script>
 
 <template>
-  <section class="evaluation-showcase" data-screenshot="evaluation-metrics" aria-label="Evaluation Metrics Showcase">
+  <section class="evaluation-showcase" data-screenshot="evaluation-metrics" aria-label="评测指标中心">
     <header class="evaluation-showcase__hero">
-      <div>
-        <p class="evaluation-showcase__eyebrow">Evaluation / Metrics</p>
-        <h1>Evaluation / Metrics</h1>
-        <p>
-          基于 {{ evaluationSnapshot.sampleCount }} 条自建企业工单 synthetic demo 评测集的本地评测结果。
-          当前只覆盖 local keyword retrieval、citation gating、Human Review gate 与 local-rule fallback。
+      <div class="evaluation-showcase__intro">
+        <p class="evaluation-showcase__eyebrow">Evaluation / Metrics · 本地 RAG 评测与引用证据指标</p>
+        <h1>评测指标中心</h1>
+        <p class="evaluation-showcase__summary">
+          基于自建工单评测集，评估检索命中、引用证据、失败样本与人工复核门禁。
         </p>
-        <div class="evaluation-showcase__hero-tags">
-          <span>{{ evaluationSnapshot.datasetType }}</span>
+        <div class="evaluation-showcase__hero-tags" aria-label="当前评测范围">
+          <span>synthetic demo dataset</span>
           <span>Top-K: {{ evaluationSnapshot.topK }}</span>
-          <span>{{ evaluationSnapshot.providerMode }}</span>
+          <span>local keyword retrieval</span>
+          <span>citation gating</span>
+          <span>local-rule fallback</span>
         </div>
       </div>
 
-      <aside class="evaluation-showcase__dataset-card" aria-label="Dataset summary">
-        <span>Dataset</span>
-        <strong>{{ evaluationSnapshot.datasetPath }}</strong>
-        <p>Generated at {{ evaluationSnapshot.generatedAt }}. Contains real user data: {{ evaluationSnapshot.containsRealUserData ? 'yes' : 'no' }}.</p>
+      <aside class="evaluation-showcase__dataset-card" aria-label="评测数据集">
+        <div class="evaluation-showcase__dataset-title">
+          <span aria-hidden="true">▤</span>
+          <strong>评测数据集</strong>
+        </div>
+        <code>{{ evaluationSnapshot.datasetPath }}</code>
+        <dl>
+          <div>
+            <dt>生成时间</dt>
+            <dd>2026-07-04 14:00</dd>
+          </div>
+          <div>
+            <dt>包含真实用户数据</dt>
+            <dd>{{ evaluationSnapshot.containsRealUserData ? '是' : '否' }}</dd>
+          </div>
+        </dl>
       </aside>
     </header>
 
-    <section class="evaluation-showcase__metrics" aria-label="Metrics overview">
+    <section class="evaluation-showcase__metrics" aria-label="核心评测指标">
       <article v-for="metric in primaryMetricCards" :key="metric.label" :data-tone="metric.tone">
-        <span>{{ metric.label }}</span>
+        <div class="evaluation-showcase__metric-label">
+          <span class="evaluation-showcase__metric-dot" aria-hidden="true"></span>
+          <span>{{ metric.label }}</span>
+        </div>
         <strong>{{ metric.value }}</strong>
         <p>{{ metric.note }}</p>
-        <small>{{ metric.source }}</small>
+        <a v-if="metric.label === '失败样本数'" href="#trace-timeline">查看失败案例 <span aria-hidden="true">→</span></a>
+        <a v-else-if="metric.label === '需人工复核'" href="#human-review">查看 Review <span aria-hidden="true">→</span></a>
       </article>
     </section>
 
-    <section class="evaluation-showcase__rank-row" aria-label="Optional rank metrics">
-      <article v-for="metric in rankMetricCards" :key="metric.label" :data-tone="metric.tone">
+    <section class="evaluation-showcase__supplemental" aria-label="补充评测指标">
+      <article v-for="metric in supplementalMetrics" :key="metric.label">
         <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
+        <strong :class="{ 'evaluation-showcase__status-value': metric.value === '已启用' }">{{ metric.value }}</strong>
         <small>{{ metric.note }}</small>
       </article>
-      <article>
-        <span>Provider Fallback Rate</span>
-        <strong>{{ evaluationSnapshot.providerFallbackRate }}</strong>
-        <small>Expected in no-key local run; not a model quality metric.</small>
-      </article>
-      <article>
-        <span>Knowledge Miss Fallback</span>
-        <strong>{{ evaluationSnapshot.knowledgeMissFallbackRate }}</strong>
-        <small>No expected source or no reliable retrieved source.</small>
-      </article>
     </section>
 
-    <section class="evaluation-showcase__grid evaluation-showcase__grid--scope" aria-label="Baseline and scope">
-      <article class="evaluation-showcase__panel">
+    <section class="evaluation-showcase__planning-grid" aria-label="Baseline 与下一阶段实验计划">
+      <article class="evaluation-showcase__panel evaluation-showcase__panel--baseline">
         <div class="evaluation-showcase__panel-heading">
           <div>
             <p class="evaluation-showcase__eyebrow">Baseline / Scope</p>
             <h2>当前版本 baseline</h2>
           </div>
-          <span>{{ evaluationSnapshot.primaryBaseline }}</span>
+          <a href="#evaluation-metrics" title="本地演示入口">查看 baseline 详情 <span aria-hidden="true">→</span></a>
         </div>
-        <div class="evaluation-showcase__scope-list">
+
+        <div class="evaluation-showcase__scope-list" aria-label="Baseline 范围">
           <span v-for="item in currentScopeItems" :key="item">{{ item }}</span>
         </div>
-        <div class="evaluation-showcase__baseline-table" role="table" aria-label="Baseline comparison">
+
+        <div class="evaluation-showcase__baseline-table" role="table" aria-label="Baseline 对比">
           <div class="evaluation-showcase__baseline-head" role="row">
-            <span>Baseline</span>
-            <span>Top-K Hit</span>
-            <span>Citation Coverage</span>
-            <span>Citation Precision</span>
-            <span>Failed</span>
-            <span>Review</span>
+            <span role="columnheader">策略方案</span>
+            <span role="columnheader">Top-K 命中率</span>
+            <span role="columnheader">引用覆盖率</span>
+            <span role="columnheader">引用准确率</span>
+            <span role="columnheader">失败样本数</span>
           </div>
-          <article v-for="row in baselineRows" :key="row.name" class="evaluation-showcase__baseline-row" role="row">
-            <div>
-              <strong>{{ row.name }}</strong>
-              <small>{{ row.scope }}</small>
+          <article v-for="row in evaluationBaselineRows" :key="row.name" class="evaluation-showcase__baseline-row" role="row">
+            <div role="cell">
+              <strong>{{ row.label }}</strong>
+              <small>{{ row.name }}</small>
             </div>
-            <span>{{ row.topKHitRate }}</span>
-            <span>{{ row.citationCoverage }}</span>
-            <span>{{ row.citationPrecision }}</span>
-            <span>{{ row.failedCases }}</span>
-            <span>{{ row.humanReviewRequired }}</span>
+            <span role="cell">{{ row.topKHitRate }}</span>
+            <span role="cell">{{ row.citationCoverage }}</span>
+            <span role="cell">{{ row.citationPrecision }}</span>
+            <span role="cell">{{ row.failedCases }}</span>
           </article>
         </div>
       </article>
 
-      <article class="evaluation-showcase__panel">
+      <article class="evaluation-showcase__panel evaluation-showcase__panel--next">
         <div class="evaluation-showcase__panel-heading">
           <div>
-            <p class="evaluation-showcase__eyebrow">Next-stage</p>
-            <h2>下一阶段真实模型评测</h2>
+            <p class="evaluation-showcase__eyebrow">Planned Experiments</p>
+            <h2>下一阶段实验计划</h2>
           </div>
-          <span>not claimed</span>
+          <span class="evaluation-showcase__planned-badge">规划中</span>
         </div>
         <div class="evaluation-showcase__next-list">
           <span v-for="item in nextStageItems" :key="item">{{ item }}</span>
         </div>
         <p class="evaluation-showcase__plain-note">
-          当前版本不包含 BM25、embedding、Vector DB、Hybrid、Rerank 或真实 Provider 小规模实验。
-          Answer Relevance、Faithfulness、Token Cost 等指标需要真实模型输入输出和人工标注后再写。
-        </p>
-      </article>
-    </section>
-
-    <section class="evaluation-showcase__grid evaluation-showcase__grid--cases" aria-label="Evaluation cases and failure analysis">
-      <article class="evaluation-showcase__panel evaluation-showcase__panel--cases">
-        <div class="evaluation-showcase__panel-heading">
-          <div>
-            <p class="evaluation-showcase__eyebrow">Evaluation Cases</p>
-            <h2>样本运行结果</h2>
-          </div>
-          <span>{{ evaluationCases.length }} shown / {{ evaluationSnapshot.sampleCount }} total</span>
-        </div>
-        <div class="evaluation-showcase__case-table" role="table" aria-label="Evaluation case table">
-          <div class="evaluation-showcase__case-head" role="row">
-            <span>Case</span>
-            <span>Category</span>
-            <span>Expected Knowledge</span>
-            <span>Hit / Miss</span>
-            <span>Citation</span>
-            <span>Review</span>
-          </div>
-          <article v-for="item in evaluationCases" :key="item.id" class="evaluation-showcase__case-row" :data-status="item.topKStatus" role="row">
-            <div>
-              <strong>{{ item.id }}</strong>
-              <small>{{ item.priority }}</small>
-            </div>
-            <span>{{ item.category }}</span>
-            <span>{{ item.expectedKnowledgeIds.length ? item.expectedKnowledgeIds.join(', ') : 'fallback expected' }}</span>
-            <span>{{ item.topKStatus }}</span>
-            <span>{{ item.citationStatus }}</span>
-            <span>{{ item.reviewRequired ? 'required' : 'not required' }}</span>
-            <small class="evaluation-showcase__case-reason">{{ item.failureReason }}</small>
-          </article>
-        </div>
-      </article>
-
-      <aside class="evaluation-showcase__panel evaluation-showcase__panel--failure" aria-label="Failure analysis">
-        <div class="evaluation-showcase__panel-heading">
-          <div>
-            <p class="evaluation-showcase__eyebrow">Failure Analysis</p>
-            <h2>失败类型分布</h2>
-          </div>
-          <span>failed {{ evaluationSnapshot.failedCaseCount }}</span>
-        </div>
-        <div class="evaluation-showcase__failure-list">
-          <section v-for="item in failureAnalysis" :key="item.label" :data-tone="item.tone">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.count }}</strong>
-            <p>{{ item.note }}</p>
-          </section>
-        </div>
-      </aside>
-    </section>
-
-    <section class="evaluation-showcase__grid evaluation-showcase__grid--bottom" aria-label="Reproducibility and boundary">
-      <article class="evaluation-showcase__panel">
-        <div class="evaluation-showcase__panel-heading">
-          <div>
-            <p class="evaluation-showcase__eyebrow">Reproducibility</p>
-            <h2>本地复现命令与报告路径</h2>
-          </div>
-          <span>local only</span>
-        </div>
-        <div class="evaluation-showcase__commands">
-          <code v-for="command in reproducibilityCommands" :key="command">{{ command }}</code>
-        </div>
-        <div class="evaluation-showcase__reports">
-          <span v-for="report in reproducibilityReports" :key="report">{{ report }}</span>
-        </div>
-      </article>
-
-      <article class="evaluation-showcase__panel evaluation-showcase__panel--boundary">
-        <div class="evaluation-showcase__panel-heading">
-          <div>
-            <p class="evaluation-showcase__eyebrow">Boundary</p>
-            <h2>不能夸大的能力边界</h2>
-          </div>
-          <span>portfolio-safe</span>
-        </div>
-        <div class="evaluation-showcase__boundary-list">
-          <span v-for="item in boundaryStatements" :key="item">{{ item }}</span>
-        </div>
-        <p class="evaluation-showcase__plain-note">
-          Demo metrics are generated from synthetic evaluation cases and local scripts.
-          They are used for portfolio verification, not production claims.
+          当前版本不包含 BM25、embedding、Vector DB、Hybrid、Rerank 或真实模型质量评测；相关指标需在真实模型接入后追加。
         </p>
       </article>
     </section>
@@ -210,83 +147,89 @@ const rankMetricCards = evaluationMetricCards.slice(8)
 
 <style scoped>
 .evaluation-showcase {
-  --eval-panel: rgba(12, 23, 38, 0.9);
-  --eval-border: rgba(151, 180, 214, 0.15);
-  --eval-border-strong: rgba(91, 141, 239, 0.26);
-  --eval-text: #eef5ff;
-  --eval-secondary: #c7d5ea;
-  --eval-muted: #7e91ab;
-  --eval-blue: #3d7cff;
-  --eval-cyan: #21c7d9;
-  --eval-green: #2bd88f;
-  --eval-amber: #ffb45c;
-  --eval-red: #ff5c7a;
-  --eval-violet: #8b7cf6;
+  --eval-panel: rgba(11, 24, 39, 0.88);
+  --eval-panel-strong: rgba(14, 29, 47, 0.94);
+  --eval-border: rgba(145, 174, 207, 0.17);
+  --eval-text: #edf4ff;
+  --eval-secondary: #bdcbe0;
+  --eval-muted: #788ca6;
+  --eval-blue: #4b8cff;
+  --eval-cyan: #32c8d6;
+  --eval-green: #36d48d;
+  --eval-amber: #f4ae42;
+  --eval-red: #ff635f;
+  --eval-violet: #a27af4;
   display: grid;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
   color: var(--eval-text);
 }
 
+.evaluation-showcase *,
+.evaluation-showcase *::before,
+.evaluation-showcase *::after {
+  box-sizing: border-box;
+}
+
 .evaluation-showcase h1,
 .evaluation-showcase h2,
-.evaluation-showcase p {
+.evaluation-showcase p,
+.evaluation-showcase dl,
+.evaluation-showcase dd {
   margin: 0;
-  letter-spacing: 0;
 }
 
 .evaluation-showcase__hero,
 .evaluation-showcase__panel,
 .evaluation-showcase__metrics article,
-.evaluation-showcase__rank-row article {
+.evaluation-showcase__supplemental {
   border: 1px solid var(--eval-border);
-  border-radius: 8px;
+  border-radius: 9px;
   background:
-    linear-gradient(180deg, rgba(16, 31, 51, 0.9), rgba(8, 17, 31, 0.94)),
+    linear-gradient(180deg, rgba(16, 32, 51, 0.9), rgba(7, 17, 30, 0.94)),
     var(--eval-panel);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.16);
 }
 
 .evaluation-showcase__hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
-  gap: 14px;
-  border-color: var(--eval-border-strong);
-  padding: 17px;
-  background:
-    linear-gradient(135deg, rgba(16, 31, 51, 0.96), rgba(8, 17, 31, 0.9)),
-    repeating-linear-gradient(90deg, rgba(151, 180, 214, 0.04) 0 1px, transparent 1px 48px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.43fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 15px 16px;
+}
+
+.evaluation-showcase__intro {
+  align-self: center;
 }
 
 .evaluation-showcase__eyebrow {
-  margin: 0 0 6px;
-  color: #9fc4ff;
+  color: #a8c8f7;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .evaluation-showcase__hero h1 {
-  color: var(--eval-text);
-  font-size: 34px;
-  line-height: 1.05;
+  margin-top: 7px;
+  font-size: clamp(27px, 2.2vw, 36px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
 }
 
-.evaluation-showcase__hero p {
-  max-width: 780px;
-  margin-top: 9px;
+.evaluation-showcase__summary {
+  margin-top: 9px !important;
   color: var(--eval-secondary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
 .evaluation-showcase__hero-tags,
 .evaluation-showcase__scope-list,
-.evaluation-showcase__next-list,
-.evaluation-showcase__reports,
-.evaluation-showcase__boundary-list {
+.evaluation-showcase__next-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
 }
 
 .evaluation-showcase__hero-tags {
@@ -294,45 +237,73 @@ const rankMetricCards = evaluationMetricCards.slice(8)
 }
 
 .evaluation-showcase__hero-tags span,
-.evaluation-showcase__panel-heading > span,
 .evaluation-showcase__scope-list span,
 .evaluation-showcase__next-list span,
-.evaluation-showcase__reports span,
-.evaluation-showcase__boundary-list span {
+.evaluation-showcase__planned-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 25px;
-  border: 1px solid rgba(33, 199, 217, 0.16);
-  border-radius: 7px;
-  padding: 4px 8px;
-  color: #9fe8f1;
-  background: rgba(33, 199, 217, 0.06);
-  font-size: 11px;
-  font-weight: 850;
+  min-height: 24px;
+  border: 1px solid rgba(75, 140, 255, 0.18);
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: #9fc4ff;
+  background: rgba(75, 140, 255, 0.055);
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+.evaluation-showcase__hero-tags span:nth-child(3),
+.evaluation-showcase__hero-tags span:nth-child(4),
+.evaluation-showcase__scope-list span:not(:last-child) {
+  border-color: rgba(54, 212, 141, 0.16);
+  color: #7addad;
+  background: rgba(54, 212, 141, 0.045);
 }
 
 .evaluation-showcase__dataset-card {
   display: grid;
-  gap: 7px;
-  border: 1px solid rgba(33, 199, 217, 0.18);
-  border-left: 3px solid var(--eval-cyan);
+  align-content: center;
+  gap: 10px;
+  border: 1px solid rgba(145, 174, 207, 0.16);
   border-radius: 8px;
-  padding: 11px;
-  background: rgba(4, 9, 18, 0.38);
+  padding: 13px 14px;
+  background: rgba(5, 13, 24, 0.46);
 }
 
-.evaluation-showcase__dataset-card span,
-.evaluation-showcase__dataset-card p {
-  color: var(--eval-muted);
-  font-size: 11px;
-  line-height: 1.4;
+.evaluation-showcase__dataset-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--eval-secondary);
+  font-size: 13px;
 }
 
-.evaluation-showcase__dataset-card strong {
-  color: var(--eval-text);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
+.evaluation-showcase__dataset-title > span {
+  color: var(--eval-cyan);
+  font-size: 17px;
+}
+
+.evaluation-showcase__dataset-card code {
   overflow-wrap: anywhere;
+  color: #dbe9fb;
+  font: 11px/1.45 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.evaluation-showcase__dataset-card dl {
+  display: grid;
+  gap: 7px;
+}
+
+.evaluation-showcase__dataset-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--eval-muted);
+  font-size: 10.5px;
+}
+
+.evaluation-showcase__dataset-card dd {
+  color: var(--eval-secondary);
 }
 
 .evaluation-showcase__metrics {
@@ -341,86 +312,121 @@ const rankMetricCards = evaluationMetricCards.slice(8)
   gap: 8px;
 }
 
-.evaluation-showcase__metrics article,
-.evaluation-showcase__rank-row article {
+.evaluation-showcase__metrics article {
+  position: relative;
   display: grid;
-  gap: 5px;
-  min-height: 88px;
-  border-top: 3px solid var(--eval-blue);
-  padding: 10px 11px;
+  align-content: start;
+  gap: 7px;
+  min-height: 128px;
+  padding: 12px 13px;
+  overflow: hidden;
 }
 
-.evaluation-showcase__metrics article[data-tone='green'] {
-  border-top-color: var(--eval-green);
+.evaluation-showcase__metrics article::after {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 2px;
+  height: 100%;
+  background: var(--metric-color, var(--eval-blue));
+  content: '';
+  opacity: 0.82;
 }
 
-.evaluation-showcase__metrics article[data-tone='cyan'],
-.evaluation-showcase__rank-row article[data-tone='cyan'] {
-  border-top-color: var(--eval-cyan);
+.evaluation-showcase__metrics article[data-tone='green'] { --metric-color: var(--eval-green); }
+.evaluation-showcase__metrics article[data-tone='cyan'] { --metric-color: var(--eval-cyan); }
+.evaluation-showcase__metrics article[data-tone='amber'] { --metric-color: var(--eval-amber); }
+.evaluation-showcase__metrics article[data-tone='red'] { --metric-color: var(--eval-red); }
+.evaluation-showcase__metrics article[data-tone='violet'] { --metric-color: var(--eval-violet); }
+
+.evaluation-showcase__metric-label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--eval-secondary);
+  font-size: 11.5px;
+  font-weight: 760;
 }
 
-.evaluation-showcase__metrics article[data-tone='amber'] {
-  border-top-color: var(--eval-amber);
+.evaluation-showcase__metric-dot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--metric-color, var(--eval-blue));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--metric-color, var(--eval-blue)) 12%, transparent);
 }
 
-.evaluation-showcase__metrics article[data-tone='red'] {
-  border-top-color: var(--eval-red);
-}
-
-.evaluation-showcase__metrics article[data-tone='violet'] {
-  border-top-color: var(--eval-violet);
-}
-
-.evaluation-showcase__metrics span,
-.evaluation-showcase__metrics p,
-.evaluation-showcase__metrics small,
-.evaluation-showcase__rank-row span,
-.evaluation-showcase__rank-row small {
-  color: var(--eval-muted);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.evaluation-showcase__metrics span,
-.evaluation-showcase__rank-row span {
-  font-weight: 900;
-}
-
-.evaluation-showcase__metrics strong,
-.evaluation-showcase__rank-row strong {
+.evaluation-showcase__metrics strong {
   color: var(--eval-text);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 23px;
-  line-height: 1;
+  font: 500 clamp(24px, 2vw, 33px)/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  letter-spacing: -0.035em;
 }
 
-.evaluation-showcase__rank-row {
+.evaluation-showcase__metrics p {
+  color: var(--eval-muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.evaluation-showcase a {
+  width: fit-content;
+  color: #69a8ff;
+  font-size: 10.5px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.evaluation-showcase a:hover,
+.evaluation-showcase a:focus-visible {
+  color: #a9d1ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.evaluation-showcase__supplemental {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.evaluation-showcase__rank-row article {
-  min-height: 72px;
+  padding: 9px 12px;
   box-shadow: none;
 }
 
-.evaluation-showcase__grid {
+.evaluation-showcase__supplemental article {
   display: grid;
-  gap: 10px;
+  gap: 4px;
   min-width: 0;
+  border-right: 1px solid rgba(145, 174, 207, 0.12);
+  padding: 2px 14px;
 }
 
-.evaluation-showcase__grid--scope {
-  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+.evaluation-showcase__supplemental article:first-child {
+  padding-left: 2px;
 }
 
-.evaluation-showcase__grid--cases {
-  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+.evaluation-showcase__supplemental article:last-child {
+  border-right: 0;
 }
 
-.evaluation-showcase__grid--bottom {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.95fr);
+.evaluation-showcase__supplemental span,
+.evaluation-showcase__supplemental small {
+  color: var(--eval-muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.evaluation-showcase__supplemental strong {
+  color: #c5d3e6;
+  font: 500 17px/1.2 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.evaluation-showcase__supplemental .evaluation-showcase__status-value {
+  color: var(--eval-green);
+  font-family: inherit;
+  font-weight: 750;
+}
+
+.evaluation-showcase__planning-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.07fr) minmax(330px, 0.93fr);
+  gap: 9px;
 }
 
 .evaluation-showcase__panel {
@@ -433,232 +439,141 @@ const rankMetricCards = evaluationMetricCards.slice(8)
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  min-height: 52px;
   border-bottom: 1px solid var(--eval-border);
   padding: 10px 12px;
 }
 
 .evaluation-showcase__panel-heading h2 {
-  color: var(--eval-text);
-  font-size: 16px;
+  margin-top: 2px;
+  font-size: 15px;
   line-height: 1.2;
 }
 
 .evaluation-showcase__scope-list,
-.evaluation-showcase__next-list,
-.evaluation-showcase__commands,
-.evaluation-showcase__reports,
-.evaluation-showcase__boundary-list {
-  padding: 10px 12px 0;
+.evaluation-showcase__next-list {
+  padding: 9px 11px 0;
 }
 
 .evaluation-showcase__next-list span,
-.evaluation-showcase__boundary-list span {
-  border-color: rgba(255, 180, 92, 0.17);
-  color: #ffd6a8;
-  background: rgba(255, 180, 92, 0.06);
+.evaluation-showcase__planned-badge {
+  border-color: rgba(162, 122, 244, 0.16);
+  color: #c7b2f3;
+  background: rgba(162, 122, 244, 0.045);
 }
 
-.evaluation-showcase__baseline-table,
-.evaluation-showcase__case-table {
+.evaluation-showcase__baseline-table {
   display: grid;
-  gap: 5px;
-  padding: 10px;
+  gap: 4px;
+  padding: 9px 10px 10px;
 }
 
 .evaluation-showcase__baseline-head,
 .evaluation-showcase__baseline-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1.4fr) repeat(5, minmax(76px, 0.62fr));
+  grid-template-columns: minmax(170px, 1.35fr) repeat(4, minmax(72px, 0.7fr));
   gap: 7px;
   align-items: center;
 }
 
-.evaluation-showcase__baseline-head,
-.evaluation-showcase__case-head {
+.evaluation-showcase__baseline-head {
+  padding: 0 7px 3px;
   color: var(--eval-muted);
-  font-size: 10.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 750;
 }
 
-.evaluation-showcase__baseline-row,
-.evaluation-showcase__case-row {
+.evaluation-showcase__baseline-row {
   min-height: 46px;
-  border: 1px solid rgba(151, 180, 214, 0.09);
-  border-radius: 8px;
+  border: 1px solid rgba(145, 174, 207, 0.08);
+  border-radius: 7px;
   padding: 7px;
-  background: rgba(4, 9, 18, 0.32);
+  background: rgba(4, 11, 21, 0.32);
 }
 
 .evaluation-showcase__baseline-row strong,
-.evaluation-showcase__case-row strong {
+.evaluation-showcase__baseline-row small {
   display: block;
-  color: #9fc4ff;
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
 }
 
-.evaluation-showcase__baseline-row small,
-.evaluation-showcase__case-row small {
-  display: block;
-  margin-top: 3px;
-  color: var(--eval-muted);
-  font-size: 10px;
-  line-height: 1.25;
-}
-
-.evaluation-showcase__baseline-row span,
-.evaluation-showcase__case-row span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--eval-secondary);
+.evaluation-showcase__baseline-row strong {
+  color: #dbe7f7;
   font-size: 11px;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.evaluation-showcase__baseline-row small {
+  margin-top: 3px;
+  color: #63758d;
+  font: 9px/1.25 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+}
+
+.evaluation-showcase__baseline-row > span {
+  color: var(--eval-secondary);
+  font: 10.5px/1.3 "Cascadia Code", SFMono-Regular, Consolas, monospace;
 }
 
 .evaluation-showcase__plain-note {
-  margin: 10px 12px 12px;
-  border: 1px solid rgba(255, 180, 92, 0.16);
-  border-radius: 8px;
+  margin: 10px 11px 11px !important;
+  border: 1px solid rgba(145, 174, 207, 0.12);
+  border-radius: 7px;
   padding: 10px;
-  color: var(--eval-secondary);
-  background: rgba(255, 180, 92, 0.055);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.evaluation-showcase__case-head,
-.evaluation-showcase__case-row {
-  display: grid;
-  grid-template-columns: 78px 74px minmax(150px, 1.1fr) 68px minmax(160px, 1fr) 82px;
-  gap: 7px;
-  align-items: center;
-}
-
-.evaluation-showcase__case-row {
-  border-left: 3px solid var(--eval-green);
-}
-
-.evaluation-showcase__case-row[data-status='review'] {
-  border-left-color: var(--eval-amber);
-}
-
-.evaluation-showcase__case-row[data-status='miss'] {
-  border-left-color: var(--eval-red);
-}
-
-.evaluation-showcase__case-reason {
-  grid-column: 1 / -1;
-}
-
-.evaluation-showcase__failure-list {
-  display: grid;
-  gap: 7px;
-  padding: 10px;
-}
-
-.evaluation-showcase__failure-list section {
-  border: 1px solid rgba(151, 180, 214, 0.1);
-  border-left: 3px solid var(--eval-blue);
-  border-radius: 8px;
-  padding: 9px;
-  background: rgba(4, 9, 18, 0.34);
-}
-
-.evaluation-showcase__failure-list section[data-tone='amber'] {
-  border-left-color: var(--eval-amber);
-}
-
-.evaluation-showcase__failure-list section[data-tone='red'] {
-  border-left-color: var(--eval-red);
-}
-
-.evaluation-showcase__failure-list section[data-tone='violet'] {
-  border-left-color: var(--eval-violet);
-}
-
-.evaluation-showcase__failure-list section[data-tone='cyan'] {
-  border-left-color: var(--eval-cyan);
-}
-
-.evaluation-showcase__failure-list span,
-.evaluation-showcase__failure-list p {
   color: var(--eval-muted);
+  background: rgba(4, 11, 21, 0.32);
   font-size: 11px;
-  line-height: 1.35;
-}
-
-.evaluation-showcase__failure-list strong {
-  display: block;
-  margin: 4px 0;
-  color: var(--eval-text);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 20px;
-}
-
-.evaluation-showcase__commands {
-  display: grid;
-  gap: 8px;
-}
-
-.evaluation-showcase__commands code {
-  display: block;
-  border: 1px solid rgba(33, 199, 217, 0.18);
-  border-radius: 8px;
-  padding: 10px;
-  overflow-wrap: anywhere;
-  color: #dff8ff;
-  background: rgba(3, 7, 14, 0.66);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-}
-
-.evaluation-showcase__reports {
-  padding-bottom: 12px;
-}
-
-.evaluation-showcase__panel--boundary {
-  border-color: rgba(255, 180, 92, 0.18);
+  line-height: 1.55;
 }
 
 @media (max-width: 1180px) {
   .evaluation-showcase__hero,
-  .evaluation-showcase__grid--scope,
-  .evaluation-showcase__grid--cases,
-  .evaluation-showcase__grid--bottom {
+  .evaluation-showcase__planning-grid {
     grid-template-columns: 1fr;
   }
 
   .evaluation-showcase__metrics,
-  .evaluation-showcase__rank-row {
+  .evaluation-showcase__supplemental {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .evaluation-showcase__supplemental article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .evaluation-showcase__supplemental article:nth-child(n + 3) {
+    border-top: 1px solid rgba(145, 174, 207, 0.12);
+    padding-top: 8px;
   }
 }
 
 @media (max-width: 720px) {
-  .evaluation-showcase__hero h1 {
-    font-size: 28px;
-  }
-
+  .evaluation-showcase__hero,
   .evaluation-showcase__metrics,
-  .evaluation-showcase__rank-row,
-  .evaluation-showcase__baseline-head,
-  .evaluation-showcase__baseline-row,
-  .evaluation-showcase__case-head,
-  .evaluation-showcase__case-row {
+  .evaluation-showcase__supplemental {
     grid-template-columns: 1fr;
   }
 
-  .evaluation-showcase__baseline-head,
-  .evaluation-showcase__case-head {
+  .evaluation-showcase__metrics article {
+    min-height: 116px;
+  }
+
+  .evaluation-showcase__supplemental article {
+    border-right: 0;
+    border-bottom: 1px solid rgba(145, 174, 207, 0.12);
+    padding: 8px 2px;
+  }
+
+  .evaluation-showcase__supplemental article:last-child {
+    border-bottom: 0;
+  }
+
+  .evaluation-showcase__baseline-head {
     display: none;
   }
 
-  .evaluation-showcase__baseline-row span,
-  .evaluation-showcase__case-row span {
-    white-space: normal;
+  .evaluation-showcase__baseline-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .evaluation-showcase__baseline-row > div {
+    grid-column: 1 / -1;
   }
 }
 </style>

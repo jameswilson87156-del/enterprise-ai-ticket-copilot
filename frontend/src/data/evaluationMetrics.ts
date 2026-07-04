@@ -16,6 +16,7 @@ export interface MetricCardData {
 }
 
 export interface BaselineRow {
+  label: string
   name: string
   scope: string
   topKHitRate: string
@@ -158,72 +159,72 @@ export const dashboardMetrics: MetricCardData[] = [
 
 export const evaluationMetricCards: MetricCardData[] = [
   {
-    label: 'Samples',
+    label: '评测样本',
     value: String(evaluationSnapshot.sampleCount),
     note: 'synthetic demo cases',
     tone: 'blue',
     source: 'ticket_rag_eval_cases.jsonl'
   },
   {
-    label: 'Top-K Hit Rate',
+    label: 'Top-K 命中率',
     value: evaluationSnapshot.topKHitRate,
-    note: `Top-${evaluationSnapshot.topK} contains expected knowledge IDs`,
+    note: `Top-${evaluationSnapshot.topK} 结果命中预期知识源`,
     tone: 'green',
     source: 'rag_metrics_latest.json'
   },
   {
     label: 'Context Recall@K',
     value: evaluationSnapshot.contextRecallAtK,
-    note: 'expected keywords covered by Top-K context',
+    note: '期望关键词被 Top-K 覆盖',
     tone: 'cyan',
     source: 'rag_metrics_latest.json'
   },
   {
-    label: 'Citation Coverage',
+    label: '引用覆盖率',
     value: evaluationSnapshot.citationCoverage,
-    note: 'simulated answer carries citation IDs',
+    note: 'AI 草稿已附带引用来源',
     tone: 'violet',
     source: 'rag_metrics_latest.json'
   },
   {
-    label: 'Citation Precision',
+    label: '引用准确率',
     value: evaluationSnapshot.citationPrecision,
-    note: 'citations belonging to expected source IDs',
+    note: '引用来源匹配预期知识源',
     tone: 'amber',
     source: 'rag_metrics_latest.json'
   },
   {
-    label: 'Avg Retrieval Latency',
+    label: '平均检索耗时',
     value: evaluationSnapshot.avgRetrievalLatency,
-    note: 'local in-memory scoring only',
+    note: '本地内存检索耗时',
     tone: 'cyan',
     source: 'rag_metrics_latest.json'
   },
   {
-    label: 'Failed Case Count',
+    label: '失败样本数',
     value: String(evaluationSnapshot.failedCaseCount),
-    note: 'retrieval / citation / fallback failures',
+    note: '未命中、引用偏差或 fallback 样本',
     tone: 'red',
     source: 'rag_metrics_latest.json'
   },
   {
-    label: 'Human Review Required',
+    label: '需人工复核',
     value: String(evaluationSnapshot.humanReviewRequiredCount),
-    note: 'review gate triggered by local rules',
+    note: '触发人工复核门禁',
     tone: 'amber',
     source: 'rag_metrics_latest.json'
   },
   {
     label: 'MRR',
     value: evaluationSnapshot.mrr,
-    note: 'optional local rank metric',
+    note: '可选本地排序指标',
     tone: 'slate',
     source: 'rag_metrics_latest.json'
   },
   {
     label: 'NDCG@K',
     value: evaluationSnapshot.ndcgAtK,
-    note: 'optional binary relevance rank metric',
+    note: '可选二值相关性指标',
     tone: 'slate',
     source: 'rag_metrics_latest.json'
   }
@@ -231,6 +232,7 @@ export const evaluationMetricCards: MetricCardData[] = [
 
 export const baselineRows: BaselineRow[] = [
   {
+    label: '关键词检索',
     name: 'keyword_only',
     scope: 'category-aware keyword retrieval; no citation enforcement',
     topKHitRate: '100.00%',
@@ -240,6 +242,7 @@ export const baselineRows: BaselineRow[] = [
     humanReviewRequired: '0'
   },
   {
+    label: '简单关键词评分',
     name: 'naive_keyword_score',
     scope: 'keyword scoring without category weighting',
     topKHitRate: '100.00%',
@@ -249,6 +252,7 @@ export const baselineRows: BaselineRow[] = [
     humanReviewRequired: '0'
   },
   {
+    label: '引用门禁',
     name: 'with_citation_required',
     scope: 'keyword retrieval plus simulated citation IDs',
     topKHitRate: '100.00%',
@@ -258,6 +262,7 @@ export const baselineRows: BaselineRow[] = [
     humanReviewRequired: '0'
   },
   {
+    label: '人工复核门禁',
     name: 'with_human_review_gate',
     scope: 'citation required plus high-risk review gate',
     topKHitRate: '100.00%',
@@ -265,6 +270,25 @@ export const baselineRows: BaselineRow[] = [
     citationPrecision: '81.11%',
     failedCases: '6',
     humanReviewRequired: '15'
+  }
+]
+
+export const evaluationBaselineRows: BaselineRow[] = [
+  {
+    ...baselineRows[0],
+    label: '关键词检索',
+    scope: '分类感知关键词检索'
+  },
+  {
+    ...baselineRows[1],
+    label: '简单关键词评分',
+    scope: '不含分类权重的关键词评分'
+  },
+  {
+    ...baselineRows[3],
+    label: '引用门禁本地版',
+    name: 'citation_gated_local',
+    scope: '关键词检索 + citation gating + review gate'
   }
 ]
 

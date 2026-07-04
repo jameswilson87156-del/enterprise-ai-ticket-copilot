@@ -6,6 +6,21 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Evaluation / Metrics 视觉精修
+
+- 本轮任务：仅精修 App Shell 与 Evaluation / Metrics 页面，按本地 ignored 参考图 `.local/design_targets/evaluation_metrics_target_v1.png` 落地真实 Vue 页面；未改 Ticket Workbench、Knowledge、Trace、Human Review 业务页面。
+- 前置边界：已确认 `.local/` 由 `.gitignore` 忽略；参考图只用于视觉对照，未复制到 `docs/images/`、未放入 README、未加入 Git。参考图与两张真实截图的 SHA-256 均不同。
+- App Shell：导航副标题改为中文业务名；顶部状态栏收敛为 Showcase Demo、Provider、Retrieval、Eval Dataset 四项；移除顶部与侧栏重复的强 Demo Boundary，Evaluation 路由使用专属右侧上下文面板。
+- Evaluation：主标题改为“评测指标中心”，副标题与说明中文产品化；保留 8 个核心 KPI，增加失败案例 / Review 轻量入口；MRR、NDCG@K、本地路径状态、知识缺失回退降权为紧凑补充指标。
+- Baseline / Plan：Baseline 表格改为中文主名 + 英文低对比 key，仅展示 3 个产品化策略；下一阶段实验计划明确标记“规划中”，并说明当前不包含 BM25、embedding、Vector DB、Hybrid、Rerank 或真实模型质量评测。
+- 右侧上下文：新增“当前评测结论”，并将 Provider 与检索范围改为键值对；保留评测快照、最近 Trace / Review、Demo 边界说明，明确 synthetic cases、local keyword retrieval、citation gating、local-rule fallback 边界。
+- 响应式：浏览器复核 1920、1440、390 视口，无横向溢出；移动端导航改为双列，页面标题可在首屏范围内出现。
+- 真实截图：`docs/images/evaluation-metrics.png`、`docs/images/large/evaluation-metrics.png` 均由本项目本地页面生成；截图脚本因 5173 / 5174 已被其他本地项目占用，改用空闲端口 41739 与 `SCREENSHOT_URL=http://127.0.0.1:41739` 后通过。
+- 验证：`npm run typecheck` 通过；`npm run build` 通过；`npm run screenshots` 通过；`py .\scripts\evaluate_rag_demo.py` 通过（16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11%，Failed 6，Review 15）；`mvn test` 通过（24 tests，0 failures / errors / skipped）。
+- 安全边界：未使用第三方截图，未提交第三方截图，未将 Image2 参考图写入 `docs/images/` 或 README，未接入真实 API Key，未声明真实向量 RAG、真实模型准确率、生产数据、真实用户流量或生产可用。
+
+---
+
 ### 2026-07-04 — Codex — Frontend Phase 1 Showcase Shell + Evaluation Dashboard
 
 - 本轮任务：严格按 `docs/frontend_reference_research.md`、`docs/frontend_moodboard.md`、`docs/frontend_showcase_design.md` 落地 Phase 1 前端升级，范围限定为 App Shell、Dashboard、Evaluation / Metrics，并保持其他页面可访问。

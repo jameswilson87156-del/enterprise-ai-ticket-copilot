@@ -408,23 +408,23 @@ How it differs from generic AI portfolios:
 ### Evaluation / Metrics
 
 - Page goal:
-  - surface the local evaluation loop as a first-class product page
+  - use the Chinese product title `评测指标中心` and surface the local evaluation loop as a first-class product page
 - Information modules:
-  - dataset summary
-  - key metrics row
-  - baseline comparison
-  - failed cases
-  - retrieval latency summary
-  - human review required cases
-  - boundary notes
+  - compact dataset summary
+  - eight primary KPI cards for samples, retrieval hit/recall, citation quality, latency, failures, and review gate
+  - four lower-emphasis supplemental metrics for MRR, NDCG@K, local path status, and knowledge-miss fallback
+  - productized baseline comparison and clearly labeled next-stage experiment plan
+  - right context rail for current insight, snapshot, Provider/retrieval scope, recent Trace / Review, and demo boundary
 - Reference sources:
   - `Helicone`, `PostHog`, `Langfuse`, `Langfuse README`
 - Visual focus:
   - “measured and explainable” rather than “AI wow factor”
+  - deep blue-black enterprise console, low-saturation panels, fine borders, weak shadow, and limited cyan/violet/amber accents
 - Data boundary:
   - metrics must come from `docs/metrics/rag_metrics_snapshot.md` or `docs/metrics/rag_metrics_latest.json`
   - no invented trend lines
-  - `Provider Fallback Rate = 100%` must be explained as no-key local run
+  - local fallback is shown as `已启用 / 无 API Key 环境预期路径`, not as a 100% failure-style KPI
+  - Top-K 100% and citation coverage 100% must be labeled as synthetic demo results, not production claims
 - README screenshot focus:
   - metric cards + baseline table + boundary note in the same shot
 
