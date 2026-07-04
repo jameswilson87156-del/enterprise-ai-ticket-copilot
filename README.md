@@ -1,83 +1,185 @@
-# Enterprise AI Ticket RAG Copilot
+# Enterprise Ticket RAG Copilot
 
 Portfolio Case Study: [https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag](https://ai-agent-portfolio-hub.vercel.app/projects/ticket-rag)
 
-面向企业客服与内部 IT 工单场景的 AI Copilot 作品集项目，展示工单分析、RAG 知识引用、Trace Evidence、Provider fallback 与 Human Review 人工审核闭环。
+面向企业工单、客服支持和运维知识库场景的 AI RAG Copilot 作品集项目，用来展示工单分析、知识库检索、引用证据、Trace 运行链路、Human Review 门禁和本地 Evaluation / Metrics。
 
-当前项目默认使用 `local-rule fallback`：分类来自本地规则，知识检索来自关键词匹配，回复内容是模板化建议草稿。5 个 Showcase 页面使用本地 Demo 数据，重点呈现产品交互和工程边界，不代表已部署生产级自动客服或无人值守 Agent。
+这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成线上系统、公司内部数据效果或稳定模型接入能力。
+
+## 项目定位
+
+Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手 demo，用来展示 AI 全栈开发能力、Java / Spring Boot 后端能力、Vue / TypeScript 前端能力，以及 RAG 可解释性、Trace 追踪、Human Review 和本地 Evaluation / Metrics。
+
+它不是普通的“问答框 + 知识库上传”RAG demo。项目额外强调：
+
+- **Ticket Workbench**：把工单队列、工单上下文、建议草稿和审核动作放在同一工作台。
+- **Citation Evidence**：展示知识来源、命中关键词、引用状态和证据边界。
+- **Trace Timeline**：展示从 Ticket Input 到 Human Review 的运行步骤和 fallback 原因。
+- **Human Review Gate**：高风险动作、低证据场景和回复草稿都保留人工确认。
+- **Evaluation / Metrics**：用本地 synthetic demo 评测集输出可复现指标快照。
+- **Honest Boundaries**：明确区分 demo、local-rule、optional provider 和后续真实实验。
 
 ## Showcase
 
-以下图片由仓库内 `npm run screenshots` 使用真实浏览器从 Vue Showcase 页面生成，不包含真实企业或客户数据。点击图片可查看 `1920x1200` 大图。
+以下截图均来自本项目 `docs/images/*.png`，由仓库内 Vue Showcase 页面生成；不引用临时目录图片、外部产品截图或参考目标图。`docs/images/large/` 保存对应 `1920x1200` 大图，适合作品集展示或本地预览。
 
-### Dashboard — 企业级 Copilot 总览
+### 1. Dashboard — 系统总览
 
 <a href="docs/images/large/dashboard.png">
-  <img src="docs/images/dashboard.png" alt="Dashboard：企业级 Copilot 总览" width="100%" />
+  <img src="docs/images/dashboard.png" alt="Dashboard：系统总览、Provider 状态、工单指标、RAG / Trace / Review 入口" width="100%" />
 </a>
 
-<table>
-<tr>
-<td width="50%" valign="top">
-<strong>Ticket Workbench — 工单上下文与处理工作台</strong><br /><br />
-<a href="docs/images/large/ticket-detail.png">
-  <img src="docs/images/ticket-detail.png" alt="Ticket Workbench：工单上下文与处理工作台" width="100%" />
+系统总览页展示 Provider 状态、工单指标、Evaluation Snapshot、RAG / Trace / Review 入口和 demo 边界。
+
+### 2. Ticket Workbench — 企业工单处理工作台
+
+<a href="docs/images/large/ticket-workbench.png">
+  <img src="docs/images/ticket-workbench.png" alt="Ticket Workbench：工单队列、分析结果、AI Draft、Citation Evidence、Trace 入口和 Human Review" width="100%" />
 </a>
-</td>
-<td width="50%" valign="top">
-<strong>Knowledge / RAG — 知识引用与证据链</strong><br /><br />
+
+三栏工作台展示工单队列、工单详情、规则分析、AI Draft、Citation Evidence、Trace 入口和 Human Review 状态。
+
+### 3. Evaluation / Metrics — 本地评测指标中心
+
+<a href="docs/images/large/evaluation-metrics.png">
+  <img src="docs/images/evaluation-metrics.png" alt="Evaluation Metrics：synthetic demo 评测集、RAG 指标、baseline 和 fallback 边界" width="100%" />
+</a>
+
+评测页面展示 16 条 synthetic demo 工单评测集、Top-K Hit Rate、Context Recall@K、Citation Coverage、Citation Precision、Failed Cases、Human Review gate 和 baseline 边界。
+
+### 4. Trace Timeline — 运行链路与 Debug 证据
+
+<a href="docs/images/large/trace-timeline.png">
+  <img src="docs/images/trace-timeline.png" alt="Trace Timeline：Ticket Input、Query Rewrite、Retrieval、Citation Attach、Provider skipped、local-rule fallback、Answer Draft、Human Review 和 Raw JSON" width="100%" />
+</a>
+
+Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach、Prompt Build、Provider Call skipped、local-rule fallback、Answer Draft、Human Review 和 Raw JSON / Debug Detail。
+
+### 5. Knowledge Base — 知识库与引用来源
+
 <a href="docs/images/large/knowledge-base.png">
-  <img src="docs/images/knowledge-base.png" alt="Knowledge RAG：知识引用与证据链" width="100%" />
+  <img src="docs/images/knowledge-base.png" alt="Knowledge Base：知识来源、keyword retrieval、citation source、source / chunk / reference 管理" width="100%" />
 </a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<strong>Trace Evidence — Provider、fallback 与 JSON 证据</strong><br /><br />
-<a href="docs/images/large/trace-evidence.png">
-  <img src="docs/images/trace-evidence.png" alt="Trace Evidence：Provider fallback 与 JSON 证据" width="100%" />
-</a>
-</td>
-<td width="50%" valign="top">
-<strong>Human Review — 人工审核决策控制台</strong><br /><br />
+
+知识库页面展示知识来源、keyword retrieval、citation source、source / chunk / reference 管理和知识沉淀边界。
+
+### 6. Human Review — 人工复核门禁
+
 <a href="docs/images/large/human-review.png">
-  <img src="docs/images/human-review.png" alt="Human Review：人工审核决策控制台" width="100%" />
+  <img src="docs/images/human-review.png" alt="Human Review：人工复核门禁、风险原因、修改草稿、approve / request changes / reject" width="100%" />
 </a>
-</td>
-</tr>
-</table>
 
-`docs/images/large/` 保存 5 个页面对应的 `1920x1200` 大图，适合作品集排版或面试展示。
+人工复核页展示风险原因、修改草稿、Approve / Request Changes / Reject 的审核动作和 demo 状态流转。
 
-## 核心能力
+兼容截图：`docs/images/trace-evidence.png` 仍保留，用于旧 Trace Evidence 链接；当前内容与 Trace Timeline 页面一致。
 
-- **多页面企业工作台**：统一展示 Dashboard、Ticket Workbench、Knowledge / RAG、Trace Evidence 与 Human Review。
-- **工单辅助分析**：根据标题、描述、系统名和错误日志执行本地规则分类与优先级建议。
-- **建议草稿**：默认由规则、知识命中和模板生成排查步骤、风险提示与回复草稿，提交前需要人工确认。
-- **RAG Reference 展示**：呈现知识标题、来源路径、关键词命中、相关度和引用片段；当前不是 embedding 或向量检索。
-- **Provider fallback**：已实现 OpenAI-compatible `/chat/completions` 可选路径；未配置、超时或调用失败时记录原因并回退到 local-rule。
-- **Trace Evidence**：聚合分析记录、`generation_record`、状态历史和知识引用，并展示 Provider、model、latency、fallback 与 JSON 摘要。
-- **Human Review 门禁**：提供 Approve、Request Changes、Reject 的 demo 状态闭环，状态流转、回复和知识发布都要求人工确认。
-- **可复现展示**：本地 Demo 数据无需外部服务即可运行，截图脚本覆盖 5 个路由和桌面/移动端横向溢出检查。
+## Core Features
 
-> Trace 页面中的 Tool Call 仅是 evidence view / demo evidence，用于说明证据位设计；项目没有完整 Tool Runtime，也不代表工具已被自动执行。
+- **Ticket Workbench**：企业工单队列、详情上下文、规则分析结果、建议草稿和审核入口。
+- **Knowledge Base**：知识来源、关键词命中、引用片段和知识沉淀状态。
+- **Retrieval Evidence**：Top-K keyword retrieval、citation IDs、命中关键词和证据摘要。
+- **Trace Timeline**：Ticket Input、Query Rewrite、Retrieval、Citation Attach、Provider skipped、fallback、Answer Draft、Human Review 和 Raw JSON。
+- **Human Review**：高风险或低证据场景进入人工确认，展示 approve / request changes / reject 状态。
+- **Evaluation / Metrics**：本地 synthetic demo 评测集、baseline、指标快照和失败样本解释。
+- **Provider Fallback**：OpenAI-compatible provider 可选；未配置 Key 或失败时记录 reason 并回退 local-rule。
+- **Citation Gating**：建议草稿必须展示引用来源或进入 fallback / review。
+- **Local Demo Dataset**：前端 showcase 和评测脚本都可在本地无外部服务运行。
 
-## 技术栈
+## Tech Stack
 
 | 层级 | 技术 |
 | --- | --- |
-| 前端 | Vue 3、TypeScript、Vite、原生 CSS Design Tokens |
 | 后端 | Java 17、Spring Boot 3、MyBatis-Plus、Bean Validation、SpringDoc OpenAPI |
-| 数据 | MySQL 8；H2 内存库用于自动化测试 |
-| 工程 | Maven、JUnit / Spring Boot Test、Playwright Core、GitHub Actions CI |
+| 数据 | MySQL-compatible schema；H2 用于自动化测试 |
+| 前端 | Vue 3、TypeScript、Vite、原生 CSS Design Tokens |
+| 工程 | Maven、JUnit / Spring Boot Test、Playwright screenshot pipeline、GitHub Actions CI |
+| AI / RAG / Evaluation | keyword retrieval、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic demo evaluation dataset、RAG metrics script |
 
-后端提供工单、Trace Evidence、Provider/fallback、JWT + RBAC demo 和 Human Review 接口。完整接口以 [docs/API.md](docs/API.md) 和本地 Swagger UI 为准，不把 demo 能力描述成生产级业务系统。
+后端接口覆盖工单流转、知识匹配、Trace Evidence、Provider / fallback、JWT + RBAC demo 和 Human Review。完整接口以 [docs/API.md](docs/API.md) 和本地 Swagger UI 为准。
 
-## 本地运行
+## Architecture / Workflow
+
+```mermaid
+flowchart LR
+  ticket["Ticket Input"] --> rewrite["Query Rewrite"]
+  rewrite --> retrieval["Keyword Retrieval"]
+  retrieval --> citation["Citation Evidence"]
+  citation --> prompt["Prompt Build"]
+  prompt --> provider{"OpenAI-compatible Provider configured?"}
+  provider -- "optional path" --> model["Provider Call"]
+  provider -- "no API key / disabled / error" --> fallback["local-rule fallback"]
+  model --> draft["Answer Draft"]
+  fallback --> draft
+  draft --> review["Human Review"]
+  review --> trace["Trace / Metrics"]
+```
+
+Provider Call 是可选路径；未配置临时环境变量或调用失败时会记录 fallback reason，并使用本地规则与模板草稿继续 demo。状态变化、知识发布和对外回复都不应绕过 Human Review。
+
+## Evaluation / Metrics
+
+本项目补充了一个本地可复现的 RAG / Citation / Trace Evaluation 最小闭环，用于验证 demo 的 keyword retrieval、citation gating 和 Human Review gate 是否可解释。
+
+| 项目 | 当前值 |
+| --- | --- |
+| 评测集 | [data/eval/ticket_rag_eval_cases.jsonl](data/eval/ticket_rag_eval_cases.jsonl) |
+| 样本数量 | 16 条 synthetic enterprise ticket demo cases |
+| 评测脚本 | [scripts/evaluate_rag_demo.py](scripts/evaluate_rag_demo.py) |
+| 指标 JSON | [docs/metrics/rag_metrics_latest.json](docs/metrics/rag_metrics_latest.json) |
+| 指标快照 | [docs/metrics/rag_metrics_snapshot.md](docs/metrics/rag_metrics_snapshot.md) |
+| 评测方案 | [docs/evaluation/RAG_EVALUATION_PLAN.md](docs/evaluation/RAG_EVALUATION_PLAN.md) |
+
+运行命令：
+
+```powershell
+py .\scripts\evaluate_rag_demo.py
+```
+
+当前快照来自 `docs/metrics/rag_metrics_latest.json`，Top-K = 3：
+
+| 指标 | 当前结果 | 说明 |
+| --- | ---: | --- |
+| Samples | 16 | synthetic demo cases |
+| Top-K Hit Rate | 100.00% | 有期望知识 ID 的样本中，Top-3 至少命中一个期望来源 |
+| Context Recall@K | 90.00% | 期望关键词在 Top-3 demo 知识上下文中的平均覆盖 |
+| Citation Coverage | 100.00% | 需要引用的样本均附带模拟 citation IDs |
+| Citation Precision | 81.11% | citation IDs 中属于期望知识 ID 的比例 |
+| Avg Retrieval Latency | 0.0437 ms | 本地内存关键词评分耗时，不代表线上性能 |
+| Knowledge Miss Fallback Rate | 6.25% | 缺知识或无期望来源的 fallback 样本比例 |
+| Provider Fallback Rate | 100.00% | 本轮未配置真实 API Key，预期全部走 local-rule fallback |
+| Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
+| Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
+
+这些结果来自 synthetic demo dataset + local keyword retrieval + citation gating，不代表真实向量检索、真实模型质量、线上效果或公司内部数据效果。
+
+### Baseline / Scope
+
+当前已实现 baseline：
+
+- `keyword_only`
+- `naive_keyword_score`
+- `with_citation_required`
+- `with_human_review_gate`
+- `local-rule fallback`
+
+下一阶段可以独立比较：
+
+- BM25
+- Vector DB
+- Hybrid retrieval
+- Rerank
+- real provider evaluation
+- Answer Relevance
+- Faithfulness
+- Token Cost
+
+当前版本没有实现 Vector DB、Hybrid、Rerank 或真实模型质量评测；只有实际跑通并保存证据后，才能把新指标写入 `docs/metrics/`。
+
+## Local Run
 
 ### 前端 Showcase
 
-无需后端或 MySQL，直接使用本地 Demo 数据：
+无需后端或 MySQL，直接使用本地 demo 数据：
 
 ```bash
 cd frontend
@@ -85,15 +187,16 @@ npm install
 npm run dev:demo
 ```
 
-默认访问 `http://localhost:5173`。可通过 hash 进入 5 个页面：
+默认访问 `http://localhost:5173`。可通过 hash 进入页面：
 
 - `#dashboard`
 - `#ticket-detail`
+- `#evaluation-metrics`
+- `#trace-timeline`
 - `#knowledge-base`
-- `#trace-evidence`
 - `#human-review`
 
-前端验证命令：
+前端验证与截图：
 
 ```bash
 cd frontend
@@ -101,31 +204,17 @@ npm run build
 npm run screenshots
 ```
 
-`npm run screenshots` 会重新生成 `docs/images/` 中的已跟踪图片；只需查看项目时不必执行。
+`npm run screenshots` 会重新生成 `docs/images/` 中的已跟踪图片；只查看项目时不必执行。
 
-### 后端测试
+### 后端测试与启动
 
 ```bash
 cd backend
 mvn test
+mvn spring-boot:run
 ```
 
-### 本地 MySQL 闭环
-
-1. 创建数据库：
-
-```sql
-CREATE DATABASE enterprise_ai_ticket_copilot DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-2. 导入表结构和演示数据：
-
-```bash
-mysql -uroot -p enterprise_ai_ticket_copilot < backend/src/main/resources/schema.sql
-mysql -uroot -p enterprise_ai_ticket_copilot < backend/src/main/resources/demo-data.sql
-```
-
-3. 复制本地配置模板并填写自己的 MySQL 账号：
+如需连接本地 MySQL，请先复制配置模板并填写自己的本机账号：
 
 ```powershell
 Copy-Item backend/src/main/resources/application-example.yml backend/src/main/resources/application-local.yml
@@ -137,127 +226,92 @@ macOS / Linux：
 cp backend/src/main/resources/application-example.yml backend/src/main/resources/application-local.yml
 ```
 
-`application-local.yml` 已加入 `.gitignore`，不要提交数据库密码或 API Key。
-
-4. 启动后端和前端：
-
-```bash
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=local
-```
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-后端启动后可访问：
+`application-local.yml` 已加入 `.gitignore`，不要提交数据库密码或 API Key。后端启动后可访问：
 
 - 健康检查：`http://localhost:8080/api/health`
 - Swagger UI：`http://localhost:8080/swagger-ui/index.html`
 
-### 可选真实 Provider 调试
-
-项目可以通过现有 OpenAI-compatible 路径调试 OpenAI 或 DeepSeek。仅使用临时环境变量，不要把真实 Key 写入仓库：
-
-```powershell
-$env:TICKET_AI_PROVIDER="openai-compatible"
-$env:TICKET_AI_BASE_URL="<OpenAI 或 DeepSeek 的 OpenAI-compatible base URL>"
-$env:TICKET_AI_MODEL="<model name>"
-$env:TICKET_AI_API_KEY="<temporary API key>"
-$env:TICKET_AI_FALLBACK_TO_LOCAL="true"
-```
-
-具体调用与清理步骤见 [docs/real-provider-verification.md](docs/real-provider-verification.md)。调试时应限制请求次数和 Token 消耗；无论 Provider 是否可用，状态变化和对外回复仍需 Human Review。
-
-## 验证结果
-
-| 验证项 | 最近结果 |
-| --- | --- |
-| `cd frontend && npm run build` | 通过：Vue 类型检查与 Vite 生产构建完成 |
-| `cd frontend && npm run screenshots` | 通过：覆盖 5 个 Showcase 路由及 1366/390 宽度溢出检查 |
-| `cd backend && mvn test` | 通过：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0` |
-
-测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。2026-06-29 的最小 OpenAI 调试已进入 OpenAI-compatible 路径并写入 `AI_PROVIDER` 记录，但调用结果为 `PROVIDER_ERROR` 后回退到 local-rule；因此当前只确认 Provider 路径与 fallback 记录生效，不声明真实模型成功响应已验证。
-
-## Evaluation / Metrics
-
-本项目补充了一个本地可复现的 RAG / Citation / Trace Evaluation 最小闭环。评测集位于 [data/eval/ticket_rag_eval_cases.jsonl](data/eval/ticket_rag_eval_cases.jsonl)，包含 16 条 synthetic enterprise ticket demo cases，覆盖 SSO/MFA、RBAC 权限、数据同步、慢查询、接口 500、部署配置、SLA、高风险回滚、缺知识 fallback 和易误判相似问题。该数据集不包含真实企业用户或客户数据。
-
-本地运行：
+### 本地评测
 
 ```powershell
 py .\scripts\evaluate_rag_demo.py
 ```
 
-如果本机 `python` 可用，也可以运行：
+脚本只使用 Python 标准库，读取本地评测集和内置 demo 知识语料，不连接 MySQL，不调用真实 Provider，不读取 API Key。
 
-```bash
-python scripts/evaluate_rag_demo.py
+### 可选 Provider 调试
+
+项目保留 OpenAI-compatible Provider 调试路径。仅使用临时环境变量，不要把真实 Key 写入仓库：
+
+```powershell
+$env:TICKET_AI_PROVIDER="openai-compatible"
+$env:TICKET_AI_BASE_URL="<OpenAI-compatible base URL>"
+$env:TICKET_AI_MODEL="<model name>"
+$env:TICKET_AI_API_KEY="<temporary API key>"
+$env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 ```
 
-脚本只使用 Python 标准库，读取本地评测集和内置 demo 知识语料，不连接 MySQL，不调用真实 Provider，不读取 API Key。结果会写入 [docs/metrics/rag_metrics_latest.json](docs/metrics/rag_metrics_latest.json) 和 [docs/metrics/rag_metrics_snapshot.md](docs/metrics/rag_metrics_snapshot.md)。
+具体调用与清理步骤见 [docs/real-provider-verification.md](docs/real-provider-verification.md)。无论 Provider 是否可用，状态变化和对外回复仍需 Human Review。
 
-当前快照（来源：`docs/metrics/rag_metrics_latest.json`，Top-K = 3）：
+## 验证结果
 
-| 指标 | 当前结果 | 说明 |
-| --- | ---: | --- |
-| Top-K Hit Rate | 100.00% | 15 条有期望知识 ID 的样本中，Top-3 至少命中一个期望来源 |
-| Context Recall@K | 90.00% | 期望关键词在 Top-3 demo 知识上下文中的平均覆盖 |
-| Citation Coverage | 100.00% | 需要引用的样本均附带模拟 citation IDs |
-| Citation Precision | 81.11% | citation IDs 中属于期望知识 ID 的比例 |
-| Avg Retrieval Latency | 0.0994 ms | 本地内存关键词评分耗时，不代表线上性能 |
-| Knowledge Miss Fallback Rate | 6.25% | 缺知识或无期望来源的 fallback 样本比例 |
-| Provider Fallback Rate | 100.00% | 本轮未配置真实 API Key，预期全部走 local-rule fallback |
-| Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
-| Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
+| 验证项 | 最近记录 |
+| --- | --- |
+| `cd frontend && npm run build` | 通过：Vue 类型检查与 Vite 生产构建完成 |
+| `cd frontend && npm run screenshots` | 通过：覆盖 Showcase 路由及 1366 / 390 宽度溢出检查 |
+| `cd backend && mvn test` | 通过：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0` |
+| `py .\scripts\evaluate_rag_demo.py` | 通过：16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11% |
 
-Baseline 边界：
+测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。本轮 README 整合只修改文档，没有重新运行构建、测试或截图脚本。
 
-- 已实现：`keyword_only`、`naive_keyword_score`、`with_citation_required`、`with_human_review_gate`。
-- 当前没有 BM25、embedding、Vector DB、Hybrid、Rerank，因此不声称真实向量 RAG 或检索增强效果提升。
-- `Provider Fallback Rate = 100.00%` 只说明本轮没有接真实 API Key，不能写成模型质量指标。
+## Resume Bullets
 
-可写进简历的谨慎表达：
+可写：
 
-> 基于 16 条自建企业工单 demo 评测集，完成 keyword retrieval + citation gating 的本地评测，统计 Top-K Hit Rate、Context Recall@K、Citation Coverage、Citation Precision、Retrieval Latency 与 Human Review gate，用于验证 RAG Reference 和 Trace Evidence 的可解释性。
+> 企业工单 RAG Copilot：基于 Spring Boot + Vue 3 实现企业工单知识库智能助手，支持工单分析、keyword retrieval、引用证据、Trace Timeline 与 Human Review 门禁，并构建 16 条 synthetic demo 评测集统计 Top-K Hit Rate、Context Recall@K、Citation Coverage / Precision 等指标。
 
-不应夸大的点：不要写“准确率 99%”“真实向量检索已上线”“Prompt 效果提升 80%”“生产可用”“服务真实用户”或“真实模型已稳定接入”。Answer Relevance、Faithfulness、Hallucination Case Count、Token Cost 和 Prompt v1/v2 效果对比属于下一阶段真实 Provider 小规模评测范围。
+更短版：
 
-完整方案见 [docs/evaluation/RAG_EVALUATION_PLAN.md](docs/evaluation/RAG_EVALUATION_PLAN.md)。
+> 实现企业工单 RAG Copilot Demo，覆盖 Ticket Workbench、Citation Evidence、Trace Timeline、Human Review 与本地 Evaluation / Metrics，基于 16 条自建 synthetic 工单评测集输出可复现指标快照。
 
-## 能力边界
+不建议写：
 
-- 这是 portfolio / demo showcase，不是生产级客服系统。
-- 默认路径是本地规则、关键词知识匹配和模板化建议草稿；没有模型训练。
-- OpenAI-compatible Provider 代码路径已实现，但当前没有成功的真实模型响应验证记录。
-- 当前没有 embedding、Vector DB 或完整 RAG Pipeline；RAG 表示关键词知识引用与证据展示。
-- 当前没有完整 Tool Runtime、Multi-Agent Runtime 或自动规划执行链。
-- JWT + RBAC 仅为 demo 级角色门禁，不是生产级账号、权限和审计体系。
-- 不自动回复客户，不自动关闭工单，不自动执行授权、回滚、重启或外部系统操作。
-- Human Review 是 demo 级人工确认闭环，不是生产级审核任务平台。
+- 服务公司内部用户或客户。
+- 稳定接入真实模型。
+- 向量检索已经落地。
+- 自动处理或关闭工单。
+- 夸大百分比式准确率、夸张提升比例或收益表述。
+
+## Interview Talking Points
+
+- **为什么不只是普通 RAG demo**：它不是单一问答页，而是覆盖工单工作台、证据引用、Trace、人工复核和本地评测。
+- **为什么先做 keyword retrieval baseline**：关键词 baseline 可本地复现、易解释、便于暴露误召回和 citation precision 问题。
+- **如何设计 synthetic eval dataset**：覆盖账号、权限、数据、故障、部署、SLA、回滚、缺知识 fallback 和易误判相似问题。
+- **如何解释指标**：Top-K Hit Rate 看是否召回期望知识；Context Recall 看关键词覆盖；Citation Precision 看引用是否属于期望来源。
+- **为什么 Human Review Required Count 高**：工单场景常涉及权限、故障、数据修复和回滚，demo 故意把风险留给人工确认。
+- **为什么 local-rule fallback 是安全演示路径**：没有 Key 或 Provider 失败时仍可演示完整链路，同时不伪造外部模型结果。
+- **下一阶段如何升级**：固定同一评测集，对比 BM25 / Vector / Hybrid / Rerank，再接入临时 Provider 做 Answer Relevance、Faithfulness 和成本评估。
+
+## Honest Boundaries
+
+- 当前项目使用 synthetic demo tickets 和本地 showcase 常量。
+- 默认生成路径是 local-rule fallback，不是外部模型稳定响应。
+- 当前检索为 keyword retrieval，不是 embedding / Vector DB。
+- 当前 citation gating 是本地 demo 逻辑，用于展示证据约束和失败样本。
+- 仓库不提交真实 API Key、数据库密码或个人本地配置。
+- 不使用公司内部数据、客户数据或业务系统流量。
+- OpenAI-compatible Provider 是 optional path；只有实际跑通并记录证据后，才能写入新的指标或结论。
+- Human Review 是 demo gate，不是生产级审核任务平台。
 - `runId` / `traceId` 是展示标识，不代表完整分布式 Trace / Span Runtime。
-- Showcase 使用本地 Demo 常量；截图证明页面可复现，不等同于真实 API 联调或生产运行证据。
+- Showcase 截图证明页面可复现，不等同于真实联调或部署证据。
 
-## 简历亮点
-
-- 设计并实现企业工单 Copilot 的 Dashboard、Workbench、Knowledge / RAG、Trace Evidence、Human Review 五页面展示闭环。
-- 使用 Spring Boot、MyBatis-Plus 和 MySQL 构建工单状态流转、知识沉淀、生成记录与证据聚合接口。
-- 通过 local-rule fallback 保证无外部模型时仍可演示，并记录 Provider、model、latency 和 fallbackReason。
-- 通过 Trace Evidence 与 Human Review 将建议来源、风险边界和人工决策放进同一条可解释链路。
-- 使用 H2 集成测试、GitHub Actions、前端构建和截图脚本提供可复现验证证据。
-- 主动维护 AI 能力边界，避免把关键词检索、demo RBAC 或证据视图包装成生产级 Agent 系统。
-
-## 面试讲解口径
-
-这个项目的重点不是“做了一个真正无人值守、自动处理工单的 Agent”，而是把企业 AI Copilot 应具备的可解释、可审核、可追踪边界做成了可复现的演示作品：规则和知识引用负责提供依据，Provider/fallback 记录负责说明生成路径，Trace Evidence 负责组织证据，Human Review 负责保留最终决策权。
-
-延伸材料：
+## 延伸材料
 
 - [架构与状态流转](docs/architecture.md)
 - [REST API 文档](docs/API.md)
 - [Trace Evidence 字段与边界](docs/trace-evidence.md)
+- [Evaluation Plan](docs/evaluation/RAG_EVALUATION_PLAN.md)
+- [Metrics Snapshot](docs/metrics/rag_metrics_snapshot.md)
 - [JWT + RBAC Demo](docs/auth-rbac-demo.md)
 - [测试执行报告](docs/TEST_REPORT.md)
 - [简历证据说明](docs/resume-evidence.md)

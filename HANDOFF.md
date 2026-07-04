@@ -6,6 +6,17 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — GitHub README Portfolio Integration
+
+- 本轮任务：只整合 GitHub README 作品集展示；未修改前端代码、后端代码、截图文件、metrics 产物或 `.local/`。
+- README 改动：首屏重新定位 `Enterprise Ticket RAG Copilot`，明确这是本地 demo / showcase 项目；默认链路为 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`，OpenAI-compatible Provider 仅作为可选配置路径。
+- 截图展示：README 按 Dashboard、Ticket Workbench、Evaluation / Metrics、Trace Timeline、Knowledge Base、Human Review 顺序引用本项目真实截图；只引用 `docs/images/*.png` 和对应 `docs/images/large/*.png`，未引用 `.local/`、第三方截图、Image2 图或外部参考图。
+- 新增/强化章节：项目定位、为什么不是普通 RAG demo、Core Features、Tech Stack、Architecture / Workflow Mermaid、Evaluation / Metrics、Baseline / Scope、Local Run、Resume Bullets、Interview Talking Points、Honest Boundaries 和延伸材料。
+- Metrics 口径：README 使用 `docs/metrics/rag_metrics_latest.json` 最新值，Avg Retrieval Latency 为 `0.0437 ms`；指标继续限定为 synthetic demo dataset + local keyword retrieval + citation gating，不声明真实向量检索、真实模型质量、线上效果或公司内部数据效果。
+- 文档记录：`TODO.md` 已记录本轮 README 作品集整合结果和下一步建议。
+- 验证：本轮按要求未运行 `npm run build`、`npm run screenshots`、`py .\scripts\evaluate_rag_demo.py` 或 `mvn test`；只执行 Git / diff / README 图片路径 / README 风险词检查。
+- 未做事项：未 push，未接真实 API Key，未提交 `.local/`，未使用第三方截图，未使用 Image2 图，未新增前端/后端功能。
+
 ### 2026-07-04 — Codex — Phase 3 Trace Timeline Showcase
 
 - 本轮任务：只产品化 `Trace Timeline` 页面；未重写 Dashboard、Evaluation / Metrics、Ticket Workbench、Knowledge Base、Human Review，未修改 README 或后端业务逻辑。

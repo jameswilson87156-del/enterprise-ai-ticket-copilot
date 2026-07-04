@@ -42,6 +42,7 @@
 - 2026-07-04 已完成 Evaluation / Metrics 左上角 Sidebar 品牌图标修复：App Shell 品牌区恢复 44px 深色圆角容器 + 原创 ET/ticket inline SVG 标识，并只刷新 `evaluation-metrics` 标准与 large 真实截图；未修改 Evaluation 指标数据、RAG metrics 口径、README、后端或 `docs/frontend_reference*`。
 - 2026-07-04 已完成前端 Phase 2：Ticket Workbench 升级为三栏企业工单 AI 处理工作台，首屏包含 Ticket Queue、Ticket Detail + AI Draft、Citation Evidence + Human Review + Trace；页面继续只使用 synthetic demo data、local-rule fallback、keyword retrieval 和 citation gating，不接真实 API Key，不修改后端逻辑，不更新 README。
 - 2026-07-04 已完成前端 Phase 3：Trace Timeline 新增专用 Showcase 页面，首屏展示 Run Overview、Run List、Step Timeline、Step Detail、Retrieval / Citation Evidence、Provider skipped / local-rule fallback、Human Review gate 与 Raw JSON / Debug Detail；页面继续只使用 synthetic demo trace data，不接真实 API Key，不修改后端业务逻辑，不更新 README。
+- 2026-07-04 已完成 GitHub README 作品集整合：README 首屏重新定位 Enterprise Ticket RAG Copilot，按 Dashboard、Ticket Workbench、Evaluation / Metrics、Trace Timeline、Knowledge Base、Human Review 顺序引用本项目真实截图，并补充项目定位、非普通 RAG demo 差异、Workflow、Evaluation / Metrics、Resume Bullets、Interview Talking Points 和 Honest Boundaries；本轮只改文档，不改前端/后端代码，不重新生成截图，不接真实 API Key，不引用 `.local/`、第三方截图或 Image2 图。
 
 ## 3. 当前不能夸大的能力
 
@@ -109,6 +110,8 @@
 ## 7. 下一轮建议任务
 
 下一轮如继续前端改造，建议从 Knowledge Base 或 Human Review 中只选一个页面做同等深度的首屏产品化，不要同时重写多个页面。
+
+如果优先整理作品集对外展示，建议先在 GitHub 页面确认 README 截图、Mermaid 图和表格渲染效果，再决定是否补独立 `docs/SHOWCASE_GUIDE.md`；不要在同一轮继续改前端页面或重新截图。
 
 如果回到后端/部署路线，建议处理 P2-3：增加 Docker Compose，提供 MySQL + 后端的本地演示环境。
 
