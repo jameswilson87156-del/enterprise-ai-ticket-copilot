@@ -6,6 +6,16 @@
 
 ## 当前交接更新
 
+### 2026-07-04 — Codex — Sidebar Brand Mark Visual Polish
+
+- 本轮任务：只修复公共 App Shell 左上角 Enterprise Ticket RAG Copilot 品牌图标，并刷新 README 当前引用的本项目真实截图；未改 README 文案、后端代码、RAG metrics JSON、评测脚本或业务页面内容。
+- 前端改动：`frontend/src/App.vue` 将 Sidebar brand mark 调整为 46px 稳定容器，使用原创 inline SVG ticket / ET / trace dot 图形；增强深蓝黑底、青蓝描边和克制蓝紫渐变，品牌文字 selector 继续限定在文本区域，避免污染图标或导航文字。
+- 截图刷新：通过本项目本地 Vite 页面刷新 `docs/images/dashboard.png`、`ticket-workbench.png`、`evaluation-metrics.png`、`trace-timeline.png`、`knowledge-base.png`、`human-review.png`、`trace-evidence.png` 及 `docs/images/large/` 对应大图；截图脚本同时刷新兼容别名 `ticket-detail` 标准与 large 图。
+- 截图端口：`npm run screenshots` 默认 5173 端口被占用后，使用空闲端口 `41772` 与 `SCREENSHOT_URL=http://127.0.0.1:41772 npm run screenshots` 生成真实本地页面截图；临时 Vite 进程已停止。
+- 目视检查：已人工检查 Dashboard、Ticket Workbench、Evaluation / Metrics、Trace Timeline、Knowledge Base、Human Review、Trace Evidence 及 large Dashboard，左上角图标清晰、未裁切、非空白块，品牌文字未错位，Sidebar 未见横向溢出。
+- 验证：`npm run typecheck` 通过；`npm run build` 通过；`SCREENSHOT_URL=http://127.0.0.1:41772 npm run screenshots` 通过；本轮未运行后端 `mvn test` 或 RAG evaluate 脚本，因为未修改后端或 metrics。
+- 边界：未使用第三方 Logo、OpenAI/GitHub/Linear/Langfuse/Vercel 等商标、第三方截图或 Image2 图；未提交 `.local/`，未接入真实 API Key，未 push。
+
 ### 2026-07-04 — Codex — README Post-publish Boundary Fix
 
 - 本轮任务：只做 README 发布后小修复；未修改前端代码、后端代码、截图、metrics JSON、评测脚本或临时本地文件，未 push。
