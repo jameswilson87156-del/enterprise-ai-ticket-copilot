@@ -131,3 +131,5 @@
   - 不可破坏：
   - 验收方式：
   - 建议 commit message：
+
+- 2026-07-30 已完成后端 Trace Foundation：`run-copilot` 持久化 `copilot_run`、`retrieval_hit`、`review_record`，Trace Evidence 支持 `IMMUTABLE_RUN` 回放并保留 `LEGACY_DERIVED` 兼容路径；本阶段未修改前端、未接入向量检索、未新增 Citation Validation、未发起真实 Provider 请求。

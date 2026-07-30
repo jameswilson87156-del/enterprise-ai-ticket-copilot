@@ -128,3 +128,13 @@ flowchart TD
 - 知识检索当前是关键词匹配和 RAG Reference 展示，不是 embedding / 向量数据库。
 - Evaluation 指标来自本地 synthetic demo 评测集，不代表真实线上用户、真实模型准确率或真实向量 RAG 效果。
 - 当前 JWT + RBAC 是 demo 级控制，不是生产级权限体系；当前没有 Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动处理闭环。
+
+## Immutable Copilot Run Trace Foundation (2026-07-30)
+
+`POST /api/tickets/{id}/run-copilot` now persists an immutable runtime evidence record for each Copilot run. The persisted chain is:
+
+- `copilot_run`: one row per run with unique `run_id` / `trace_id`, requested Provider/protocol/model, actual Provider/protocol, run status, fallback reason, provider error category, sanitized error summary, latency, output flag and human-review flag.
+- `retrieval_hit`: append-only retrieval snapshot rows linked to `copilot_run.run_id`; each row stores rank, article id/no, title/category snapshots, score, matched keyword snapshot, excerpt snapshot and whether the hit was used in the draft context.
+- `review_record`: append-only human review decisions linked to the latest run when one exists; legacy manual status changes before a run may have `run_id = NULL`.
+
+`GET /api/tickets/{id}/trace-evidence` remains backward compatible. Tickets without a persisted run return `evidenceSource=LEGACY_DERIVED`; tickets with a run return `evidenceSource=IMMUTABLE_RUN` and replay RAG references from `retrieval_hit` snapshots instead of recalculating them from the mutable knowledge base. This phase does not add vector retrieval, Citation Validation, frontend changes, external Provider calls, or automated ticket closure.

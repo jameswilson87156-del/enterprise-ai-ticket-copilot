@@ -92,6 +92,73 @@ CREATE TABLE IF NOT EXISTS ticket_status_history (
   CONSTRAINT fk_ticket_status_history_ticket FOREIGN KEY (ticket_id) REFERENCES support_ticket (id)
 );
 
+CREATE TABLE IF NOT EXISTS copilot_run (
+  run_id VARCHAR(96) PRIMARY KEY,
+  trace_id VARCHAR(96) NOT NULL UNIQUE,
+  ticket_id BIGINT NOT NULL,
+  analysis_id BIGINT NULL,
+  generation_record_id BIGINT NULL,
+  requested_provider VARCHAR(64) NOT NULL,
+  requested_protocol VARCHAR(48) NOT NULL,
+  requested_model VARCHAR(128) NOT NULL,
+  actual_provider VARCHAR(64) NOT NULL,
+  actual_protocol VARCHAR(48) NOT NULL,
+  run_status VARCHAR(32) NOT NULL,
+  fallback_used BOOLEAN NOT NULL DEFAULT FALSE,
+  fallback_reason_code VARCHAR(80),
+  error_category VARCHAR(64) NOT NULL DEFAULT 'NONE',
+  sanitized_error_summary VARCHAR(300),
+  started_at DATETIME NOT NULL,
+  completed_at DATETIME NULL,
+  total_latency_ms BIGINT NOT NULL DEFAULT 0,
+  retrieval_hit_count INT NOT NULL DEFAULT 0,
+  output_produced BOOLEAN NOT NULL DEFAULT FALSE,
+  human_review_required BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at DATETIME NOT NULL,
+  INDEX idx_copilot_run_ticket_time (ticket_id, started_at),
+  INDEX idx_copilot_run_status (run_status),
+  INDEX idx_copilot_run_error_category (error_category),
+  CONSTRAINT fk_copilot_run_ticket FOREIGN KEY (ticket_id) REFERENCES support_ticket (id),
+  CONSTRAINT fk_copilot_run_analysis FOREIGN KEY (analysis_id) REFERENCES ticket_ai_analysis (id),
+  CONSTRAINT fk_copilot_run_generation FOREIGN KEY (generation_record_id) REFERENCES generation_record (id)
+);
+
+CREATE TABLE IF NOT EXISTS retrieval_hit (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  run_id VARCHAR(96) NOT NULL,
+  rank_order INT NOT NULL,
+  knowledge_article_id BIGINT NULL,
+  knowledge_article_no VARCHAR(48) NOT NULL,
+  knowledge_title_snapshot VARCHAR(180) NOT NULL,
+  knowledge_category_snapshot VARCHAR(64) NOT NULL,
+  score INT NOT NULL,
+  matched_keywords_snapshot VARCHAR(500) NOT NULL,
+  excerpt_snapshot VARCHAR(300),
+  used_in_draft BOOLEAN NOT NULL DEFAULT TRUE,
+  retrieved_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uk_retrieval_hit_run_rank (run_id, rank_order),
+  INDEX idx_retrieval_hit_article_no (knowledge_article_no),
+  CONSTRAINT fk_retrieval_hit_run FOREIGN KEY (run_id) REFERENCES copilot_run (run_id),
+  CONSTRAINT fk_retrieval_hit_article FOREIGN KEY (knowledge_article_id) REFERENCES knowledge_article (id)
+);
+
+CREATE TABLE IF NOT EXISTS review_record (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  run_id VARCHAR(96) NULL,
+  ticket_id BIGINT NOT NULL,
+  decision VARCHAR(32) NOT NULL,
+  reviewer_name VARCHAR(96) NOT NULL,
+  review_comment VARCHAR(500),
+  previous_status VARCHAR(32),
+  new_status VARCHAR(32) NOT NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_review_record_run_time (run_id, created_at),
+  INDEX idx_review_record_ticket_time (ticket_id, created_at),
+  CONSTRAINT fk_review_record_run FOREIGN KEY (run_id) REFERENCES copilot_run (run_id),
+  CONSTRAINT fk_review_record_ticket FOREIGN KEY (ticket_id) REFERENCES support_ticket (id)
+);
+
 INSERT INTO knowledge_article (
   article_no, title, category, keywords, content, owner, status, last_verified_at, created_at, updated_at
 ) VALUES

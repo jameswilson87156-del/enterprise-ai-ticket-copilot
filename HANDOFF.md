@@ -484,3 +484,14 @@
 - 修改文件：本 HANDOFF.md（首次填写，原为空模板）
 - 验证证据：纯读审查，未执行任何构建或测试命令
 - 下一步：按 Task-01 → Task-02 → Task-03 → Task-04 顺序交给 Codex 处理
+
+### 2026-07-30 — Codex — PHASE_3_REAL_RUN_TRACE_FOUNDATION
+
+- Task: persist immutable Copilot run trace evidence for backend runtime audits.
+- Branch: `feat/immutable-copilot-run-trace` from `main` at merge commit `a861c9ef3453c7834a4cf582af13e4ed66e00bba`.
+- Schema artifacts: added `copilot_run`, `retrieval_hit`, `review_record` to `backend/src/main/resources/schema.sql`, mirrored H2 test schema in `backend/src/test/resources/schema-h2.sql`, and added SQL migration artifact `backend/src/main/resources/db/migration/V1__immutable_copilot_run_trace.sql`. The repository still uses SQL init/H2 schema for current automated tests; no new Flyway runtime dependency was introduced.
+- Backend behavior: `runCopilot` now creates one immutable `copilot_run` per execution, stores retrieval snapshots in `retrieval_hit`, records human decisions in `review_record`, separates requested Provider/protocol/model from actual Provider/protocol, and stores sanitized Provider error categories.
+- Trace behavior: `/api/tickets/{id}/trace-evidence` returns `evidenceSource=IMMUTABLE_RUN` when a persisted run exists and replays RAG evidence from immutable snapshots; tickets without runs keep `LEGACY_DERIVED` compatibility.
+- Tests added/updated: immutable run persistence, distinct run/trace ids across repeated runs, immutable retrieval snapshot replay after knowledge title mutation, review record run linkage, Provider actual protocol/provider fields and sanitized error categories.
+- Validation completed: `backend/ mvn test` passed with 41 tests, 0 failures, 0 errors, 0 skipped.
+- Not done by design: no frontend changes, no screenshots, no Citation Validation, no RAG algorithm or eval dataset changes, no real Provider request, no push/PR/merge.- Additional validation completed after documentation update: `frontend/ npm run build` passed; `python scripts/evaluate_rag_demo.py` passed with 16 synthetic demo cases. These validation commands did not execute a real Provider request.

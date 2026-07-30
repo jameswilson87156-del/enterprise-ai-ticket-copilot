@@ -1,5 +1,18 @@
 USE enterprise_ai_ticket_copilot;
 
+DELETE rr FROM review_record rr
+JOIN support_ticket st ON rr.ticket_id = st.id
+WHERE st.ticket_no LIKE 'DEMO-%';
+
+DELETE rh FROM retrieval_hit rh
+JOIN copilot_run cr ON rh.run_id = cr.run_id
+JOIN support_ticket st ON cr.ticket_id = st.id
+WHERE st.ticket_no LIKE 'DEMO-%';
+
+DELETE cr FROM copilot_run cr
+JOIN support_ticket st ON cr.ticket_id = st.id
+WHERE st.ticket_no LIKE 'DEMO-%';
+
 DELETE gr FROM generation_record gr
 JOIN support_ticket st ON gr.business_id = st.id
 WHERE st.ticket_no LIKE 'DEMO-%';

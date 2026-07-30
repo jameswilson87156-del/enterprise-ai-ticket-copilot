@@ -16,7 +16,10 @@ public record TraceEvidence(
     AiAnalysisEvidence aiAnalysis,
     List<GenerationRecordEvidence> generationRecords,
     List<RagReference> ragReferences,
-    HumanReviewEvidence humanReview
+    HumanReviewEvidence humanReview,
+    CopilotRunEvidence copilotRun,
+    List<ReviewRecordEvidence> reviewRecords,
+    String evidenceSource
 ) {
 
     public record AiAnalysisEvidence(
@@ -34,7 +37,12 @@ public record TraceEvidence(
         LocalDateTime createdAt,
         String errorMessage,
         String promptSummary,
-        String responseSummary
+        String responseSummary,
+        String requestedProvider,
+        String requestedProtocol,
+        String actualProvider,
+        String actualProtocol,
+        String errorCategory
     ) {
     }
 
@@ -99,6 +107,41 @@ public record TraceEvidence(
         String comment,
         LocalDateTime reviewedAt,
         String nextAction
+    ) {
+    }
+
+    public record CopilotRunEvidence(
+        String runId,
+        String traceId,
+        String requestedProvider,
+        String requestedProtocol,
+        String actualProvider,
+        String actualProtocol,
+        String runStatus,
+        boolean fallbackUsed,
+        String fallbackReasonCode,
+        String errorCategory,
+        String sanitizedErrorSummary,
+        LocalDateTime startedAt,
+        LocalDateTime completedAt,
+        Long totalLatencyMs,
+        Integer retrievalHitCount,
+        boolean outputProduced,
+        boolean humanReviewRequired,
+        Long analysisId,
+        Long generationRecordId
+    ) {
+    }
+
+    public record ReviewRecordEvidence(
+        Long reviewRecordId,
+        String runId,
+        String decision,
+        String reviewer,
+        String comment,
+        String previousStatus,
+        String newStatus,
+        LocalDateTime createdAt
     ) {
     }
 }

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.env.Environment;
@@ -69,6 +70,9 @@ public class AiProviderService {
                 settings.modelName(),
                 false,
                 null,
+                settings.providerName(),
+                PROTOCOL_CHAT_COMPLETIONS,
+                "NONE",
                 elapsed(started),
                 "SUCCESS",
                 null,
@@ -91,6 +95,16 @@ public class AiProviderService {
         }
     }
 
+    public ProviderRuntimeSettings runtimeSettings() {
+        ProviderSettings settings = settings();
+        return new ProviderRuntimeSettings(
+            settings.providerName(),
+            settings.modelName(),
+            settings.protocol(),
+            settings.fallbackToLocal()
+        );
+    }
+
     private AiProviderResult providerFailure(
         ProviderSettings settings,
         long started,
@@ -107,6 +121,9 @@ public class AiProviderService {
             settings.modelName(),
             false,
             fallbackReason,
+            actualProviderForFailure(settings, fallbackReason),
+            actualProtocolForFailure(settings, fallbackReason),
+            providerErrorCategory(fallbackReason, errorMessage),
             elapsed(started),
             "ERROR",
             summarize(errorMessage),
@@ -130,6 +147,9 @@ public class AiProviderService {
             providerModelName(settings),
             true,
             fallbackReason,
+            PROVIDER_LOCAL_RULE,
+            PROVIDER_LOCAL_RULE,
+            providerErrorCategory(fallbackReason, errorMessage),
             elapsed(started),
             "FALLBACK",
             summarize(errorMessage),
@@ -171,7 +191,13 @@ public class AiProviderService {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IOException("Provider returned HTTP " + response.statusCode());
         }
-        JsonNode content = objectMapper.readTree(response.body())
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(response.body());
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("provider response JSON is invalid.");
+        }
+        JsonNode content = root
             .path("choices")
             .path(0)
             .path("message")
@@ -213,12 +239,81 @@ public class AiProviderService {
         return PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName()) ? MODEL_NONE : settings.modelName();
     }
 
+    private String actualProviderForFailure(ProviderSettings settings, String fallbackReason) {
+        if (!PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName())) {
+            return "NONE";
+        }
+        if (List.of(
+            "API_KEY_MISSING",
+            "BASE_URL_MISSING",
+            "PROTOCOL_NOT_SUPPORTED_BY_CURRENT_ADAPTER",
+            "UNSUPPORTED_PROTOCOL_CONFIGURATION",
+            "UNSUPPORTED_PROVIDER_CONFIGURATION"
+        ).contains(fallbackReason)) {
+            return "NONE";
+        }
+        return settings.providerName();
+    }
+
+    private String actualProtocolForFailure(ProviderSettings settings, String fallbackReason) {
+        if ("NONE".equals(actualProviderForFailure(settings, fallbackReason))) {
+            return "NONE";
+        }
+        return PROTOCOL_BOTH.equalsIgnoreCase(settings.protocol()) ? PROTOCOL_CHAT_COMPLETIONS : settings.protocol();
+    }
+
+    private String providerErrorCategory(String fallbackReason, String errorMessage) {
+        if (fallbackReason == null || fallbackReason.isBlank()) {
+            return "NONE";
+        }
+        return switch (fallbackReason) {
+            case "PROVIDER_DISABLED", "API_KEY_MISSING", "BASE_URL_MISSING" -> "CONFIGURATION_ERROR";
+            case "UNSUPPORTED_PROVIDER_CONFIGURATION" -> "UNSUPPORTED_PROVIDER";
+            case "PROTOCOL_NOT_SUPPORTED_BY_CURRENT_ADAPTER", "UNSUPPORTED_PROTOCOL_CONFIGURATION" -> "UNSUPPORTED_PROTOCOL";
+            case "TIMEOUT" -> "TIMEOUT";
+            case "PARSE_ERROR" -> parseErrorCategory(errorMessage);
+            case "PROVIDER_ERROR" -> providerTransportCategory(errorMessage);
+            default -> "UNKNOWN_PROVIDER_ERROR";
+        };
+    }
+
+    private String parseErrorCategory(String errorMessage) {
+        String message = errorMessage == null ? "" : errorMessage;
+        if (message.contains("JSON")) {
+            return "INVALID_JSON";
+        }
+        if (message.contains("choices[0].message.content")) {
+            return "UNSUPPORTED_RESPONSE_SHAPE";
+        }
+        return "UNKNOWN_PROVIDER_ERROR";
+    }
+
+    private String providerTransportCategory(String errorMessage) {
+        String message = errorMessage == null ? "" : errorMessage;
+        if (message.startsWith("Provider returned HTTP 401")) {
+            return "AUTHENTICATION_ERROR";
+        }
+        if (message.startsWith("Provider returned HTTP 403")) {
+            return "PERMISSION_DENIED";
+        }
+        if (message.startsWith("Provider returned HTTP 429")) {
+            return "RATE_LIMITED";
+        }
+        if (message.startsWith("Provider returned HTTP 4")) {
+            return "UPSTREAM_4XX";
+        }
+        if (message.startsWith("Provider returned HTTP 5")) {
+            return "UPSTREAM_5XX";
+        }
+        return "NETWORK_ERROR";
+    }
+
     private String safeProviderError(Exception exception) {
         if (exception == null || exception.getMessage() == null || exception.getMessage().isBlank()) {
             return "Provider request failed.";
         }
         String message = exception.getMessage();
-        if (message.contains("choices[0].message.content")) {
+        if (message.contains("choices[0].message.content") || message.contains("response JSON is invalid")) {
             return message;
         }
         if (message.startsWith("Provider returned HTTP ")) {
@@ -276,6 +371,14 @@ public class AiProviderService {
         String modelName,
         String apiKey,
         String protocol,
+        boolean fallbackToLocal
+    ) {
+    }
+
+    public record ProviderRuntimeSettings(
+        String requestedProvider,
+        String requestedModel,
+        String requestedProtocol,
         boolean fallbackToLocal
     ) {
     }
