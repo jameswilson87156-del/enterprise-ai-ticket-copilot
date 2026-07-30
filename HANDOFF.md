@@ -495,3 +495,13 @@
 - Tests added/updated: immutable run persistence, distinct run/trace ids across repeated runs, immutable retrieval snapshot replay after knowledge title mutation, review record run linkage, Provider actual protocol/provider fields and sanitized error categories.
 - Validation completed: `backend/ mvn test` passed with 41 tests, 0 failures, 0 errors, 0 skipped.
 - Not done by design: no frontend changes, no screenshots, no Citation Validation, no RAG algorithm or eval dataset changes, no real Provider request, no push/PR/merge.- Additional validation completed after documentation update: `frontend/ npm run build` passed; `python scripts/evaluate_rag_demo.py` passed with 16 synthetic demo cases. These validation commands did not execute a real Provider request.
+
+### 2026-07-30 ? Codex ? PHASE_4_STRUCTURED_OUTPUT_CITATION_AND_ABSTENTION
+
+- Branch: `feat/structured-output-citation-abstention` from `main` at `5c115ee8e448c4706cabc71bc37e92881cb36fa6`.
+- Implemented structured output contract with finite `riskLevel`, `abstentionReasonCode`, output validation status, missing-information bounds, and final human-review gating.
+- Provider prompt now uses current-run immutable retrieval snapshots only (`knowledgeArticleId`, title/category snapshot, bounded excerpt, score) and asks for strict JSON; full prompt and raw Provider response are not persisted.
+- Added Citation validation against current `retrieval_hit` snapshots and persisted accepted citations in `copilot_result_citation`; validation is ID-set validation, not sentence-level entailment.
+- Added safe abstention for no evidence, invalid structured output, missing Citation, and invalid Citation; no-evidence runs skip remote Provider calls.
+- Added V2 migration, main schema, H2 schema, entities, mappers, parser, validator, local-rule structured output, review gate, API/Trace structured fields, docs, tests, and a small offline structured-decision evaluation artifact.
+- No frontend source changes, no screenshots, no vector database, no Responses adapter, no push/PR/merge, and no real Provider request.

@@ -333,3 +333,11 @@ For tickets that have executed `POST /api/tickets/{id}/run-copilot`, `GET /api/t
 - `ragReferences`: for immutable runs, values are replayed from `retrieval_hit` snapshots, so later knowledge-base edits do not change historical trace evidence.
 
 The API continues to avoid returning API keys, Authorization headers, raw Provider request bodies or raw Provider responses.
+
+## Phase 4 Structured Output Fields
+
+`POST /api/tickets/{id}/run-copilot` remains backward compatible and continues to return `TicketDetail`. The accepted Copilot result is persisted separately as immutable run evidence. `GET /api/tickets/{id}/ai-analysis` adds optional structured fields for new runs: `structuredOutput`, `abstained`, `abstentionReasonCode`, `riskLevel`, `modelHumanReviewRequired`, `finalHumanReviewRequired`, `citationValidationStatus`, `validatedCitations`, `missingInformation`, and `outputValidationStatus`. Legacy analyses return `UNKNOWN`, `NOT_APPLICABLE`, empty lists, or `null` where no structured result exists.
+
+`GET /api/tickets/{id}/trace-evidence` adds `structuredOutput` and `validatedCitations`. Retrieval references remain the immutable `retrieval_hit` snapshots, while validated model citations are stored separately in `copilot_result_citation`. Citation validation only proves that a cited ID belonged to the current run evidence set; it does not perform sentence-level entailment. No raw Provider response, full prompt, Authorization header, API key, Base URL, or upstream exception body is returned.
+
+When a run has no retrieval evidence, the system returns a safe abstention with `abstained=true`, `abstentionReasonCode=NO_RETRIEVAL_EVIDENCE`, no citations, and `finalHumanReviewRequired=true`; the remote Provider is not called. Invalid structured output, missing citations, or invalid citation IDs also produce a safe abstention and do not expose unverified model text as the final answer.

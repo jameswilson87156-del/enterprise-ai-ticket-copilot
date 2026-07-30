@@ -19,6 +19,8 @@ public record TraceEvidence(
     HumanReviewEvidence humanReview,
     CopilotRunEvidence copilotRun,
     List<ReviewRecordEvidence> reviewRecords,
+    StructuredOutputEvidence structuredOutput,
+    List<ValidatedCitationEvidence> validatedCitations,
     String evidenceSource
 ) {
 
@@ -42,7 +44,9 @@ public record TraceEvidence(
         String requestedProtocol,
         String actualProvider,
         String actualProtocol,
-        String errorCategory
+        String errorCategory,
+        StructuredOutputEvidence structuredOutput,
+        List<ValidatedCitationEvidence> validatedCitations
     ) {
     }
 
@@ -129,7 +133,13 @@ public record TraceEvidence(
         boolean outputProduced,
         boolean humanReviewRequired,
         Long analysisId,
-        Long generationRecordId
+        Long generationRecordId,
+        Long structuredResultId,
+        String riskLevel,
+        boolean abstained,
+        String abstentionReasonCode,
+        String citationValidationStatus,
+        String outputValidationStatus
     ) {
     }
 

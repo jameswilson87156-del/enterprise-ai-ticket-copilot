@@ -6,12 +6,16 @@ import java.util.Map;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.enterpriseai.ticketcopilot.entity.CopilotResult;
+import com.enterpriseai.ticketcopilot.entity.CopilotResultCitation;
 import com.enterpriseai.ticketcopilot.entity.CopilotRun;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
 import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
 import com.enterpriseai.ticketcopilot.entity.ReviewRecord;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultCitationMapper;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultMapper;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
 import com.enterpriseai.ticketcopilot.mapper.RetrievalHitMapper;
 import com.enterpriseai.ticketcopilot.mapper.ReviewRecordMapper;
@@ -61,6 +65,12 @@ class TicketWorkflowIntegrationTest {
 
     @Autowired
     private CopilotRunMapper copilotRunMapper;
+
+    @Autowired
+    private CopilotResultMapper copilotResultMapper;
+
+    @Autowired
+    private CopilotResultCitationMapper copilotResultCitationMapper;
 
     @Autowired
     private RetrievalHitMapper retrievalHitMapper;
@@ -219,6 +229,86 @@ class TicketWorkflowIntegrationTest {
             .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").value(originalTitleSnapshot))
             .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").value(not("mutated knowledge title should not appear in immutable trace")))
             .andExpect(jsonPath("$.ragReferences[0].linkedRunId").value(run.getRunId()));
+    }
+
+    @Test
+    void runCopilotPersistsStructuredResultValidatedCitationsAndTraceReplayDoesNotRequeryKnowledge() throws Exception {
+        JsonNode created = createTicket();
+        String ticketId = created.path("id").asText();
+        String agentToken = token("agent", "agent123");
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("REVIEW_REQUIRED"));
+
+        SupportTicket ticket = supportTicketMapper.selectOne(new LambdaQueryWrapper<SupportTicket>()
+            .eq(SupportTicket::getTicketNo, ticketId));
+        CopilotRun run = latestRun(ticket.getId());
+        CopilotResult result = copilotResultMapper.selectOne(new LambdaQueryWrapper<CopilotResult>()
+            .eq(CopilotResult::getRunId, run.getRunId()));
+        assertThat(result).isNotNull();
+        assertThat(result.getAbstained()).isFalse();
+        assertThat(result.getAbstentionReasonCode()).isEqualTo("NONE");
+        assertThat(result.getOutputValidationStatus()).isEqualTo("VALID");
+        assertThat(result.getCitationValidationStatus()).isEqualTo("VALID");
+        assertThat(result.getValidCitationCount()).isEqualTo(1);
+        assertThat(result.getFinalHumanReviewRequired()).isTrue();
+
+        List<CopilotResultCitation> citations = copilotResultCitationMapper.selectList(new LambdaQueryWrapper<CopilotResultCitation>()
+            .eq(CopilotResultCitation::getResultId, result.getId()));
+        assertThat(citations).hasSize(1);
+        assertThat(citations.get(0).getKnowledgeArticleId()).isEqualTo("KB-OPS-003");
+
+        knowledgeArticleMapper.update(null, new LambdaUpdateWrapper<KnowledgeArticle>()
+            .eq(KnowledgeArticle::getArticleNo, "KB-OPS-003")
+            .set(KnowledgeArticle::getTitle, "mutated title should not affect validated citation"));
+
+        mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.structuredOutput.abstained").value(false))
+            .andExpect(jsonPath("$.structuredOutput.citationValidationStatus").value("VALID"))
+            .andExpect(jsonPath("$.structuredOutput.outputValidationStatus").value("VALID"))
+            .andExpect(jsonPath("$.validatedCitations[0].knowledgeArticleId").value("KB-OPS-003"))
+            .andExpect(jsonPath("$.validatedCitations[0].knowledgeTitle").value(not("mutated title should not affect validated citation")))
+            .andExpect(jsonPath("$.copilotRun.structuredResultId").value(result.getId()));
+    }
+
+    @Test
+    void runCopilotAbstainsAndSkipsProviderWhenNoRetrievalEvidence() throws Exception {
+        String agentToken = token("agent", "agent123");
+        MvcResult result = mockMvc.perform(post("/api/tickets")
+                .header("Authorization", agentToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "title", "会议室位置咨询",
+                    "description", "请告知会议室在哪里",
+                    "systemName", "office-faq",
+                    "errorLog", "",
+                    "urgency", "P3",
+                    "requester", "测试员工",
+                    "requesterDepartment", "综合部"
+                ))))
+            .andExpect(status().isOk())
+            .andReturn();
+        String ticketId = objectMapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8)).path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("REVIEW_REQUIRED"));
+
+        SupportTicket ticket = supportTicketMapper.selectOne(new LambdaQueryWrapper<SupportTicket>()
+            .eq(SupportTicket::getTicketNo, ticketId));
+        CopilotRun run = latestRun(ticket.getId());
+        CopilotResult structured = copilotResultMapper.selectOne(new LambdaQueryWrapper<CopilotResult>()
+            .eq(CopilotResult::getRunId, run.getRunId()));
+
+        assertThat(run.getActualProvider()).isEqualTo("NONE");
+        assertThat(run.getRetrievalHitCount()).isZero();
+        assertThat(structured.getAbstained()).isTrue();
+        assertThat(structured.getAbstentionReasonCode()).isEqualTo("NO_RETRIEVAL_EVIDENCE");
+        assertThat(structured.getCitationValidationStatus()).isEqualTo("NO_RETRIEVAL_EVIDENCE");
+        assertThat(copilotResultCitationMapper.selectList(new LambdaQueryWrapper<CopilotResultCitation>()
+            .eq(CopilotResultCitation::getResultId, structured.getId()))).isEmpty();
     }
 
     @Test

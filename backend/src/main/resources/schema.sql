@@ -159,6 +159,52 @@ CREATE TABLE IF NOT EXISTS review_record (
   CONSTRAINT fk_review_record_ticket FOREIGN KEY (ticket_id) REFERENCES support_ticket (id)
 );
 
+CREATE TABLE IF NOT EXISTS copilot_result (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  run_id VARCHAR(96) NOT NULL,
+  analysis_id BIGINT NULL,
+  generation_record_id BIGINT NULL,
+  answer VARCHAR(1200) NOT NULL,
+  abstained BOOLEAN NOT NULL DEFAULT FALSE,
+  abstention_reason_code VARCHAR(64) NOT NULL DEFAULT 'NONE',
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  model_human_review_required BOOLEAN NOT NULL DEFAULT TRUE,
+  final_human_review_required BOOLEAN NOT NULL DEFAULT TRUE,
+  citation_validation_status VARCHAR(48) NOT NULL DEFAULT 'NOT_APPLICABLE',
+  citation_rejection_reason_code VARCHAR(64) NOT NULL DEFAULT 'NONE',
+  valid_citation_count INT NOT NULL DEFAULT 0,
+  rejected_citation_count INT NOT NULL DEFAULT 0,
+  output_validation_status VARCHAR(48) NOT NULL DEFAULT 'NOT_APPLICABLE',
+  missing_information_json VARCHAR(600),
+  source_type VARCHAR(48) NOT NULL,
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uk_copilot_result_run (run_id),
+  INDEX idx_copilot_result_analysis (analysis_id),
+  INDEX idx_copilot_result_validation (citation_validation_status, output_validation_status),
+  CONSTRAINT fk_copilot_result_run FOREIGN KEY (run_id) REFERENCES copilot_run (run_id),
+  CONSTRAINT fk_copilot_result_analysis FOREIGN KEY (analysis_id) REFERENCES ticket_ai_analysis (id),
+  CONSTRAINT fk_copilot_result_generation FOREIGN KEY (generation_record_id) REFERENCES generation_record (id)
+);
+
+CREATE TABLE IF NOT EXISTS copilot_result_citation (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  result_id BIGINT NOT NULL,
+  run_id VARCHAR(96) NOT NULL,
+  retrieval_hit_id BIGINT NOT NULL,
+  knowledge_article_id VARCHAR(48) NOT NULL,
+  knowledge_title_snapshot VARCHAR(180) NOT NULL,
+  citation_type VARCHAR(32) NOT NULL DEFAULT 'VALIDATED_CITATION',
+  supported_claim VARCHAR(300),
+  evidence_excerpt VARCHAR(300),
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uk_copilot_result_citation_run_article (run_id, knowledge_article_id),
+  INDEX idx_copilot_result_citation_result (result_id),
+  INDEX idx_copilot_result_citation_hit (retrieval_hit_id),
+  CONSTRAINT fk_copilot_result_citation_result FOREIGN KEY (result_id) REFERENCES copilot_result (id),
+  CONSTRAINT fk_copilot_result_citation_run FOREIGN KEY (run_id) REFERENCES copilot_run (run_id),
+  CONSTRAINT fk_copilot_result_citation_hit FOREIGN KEY (retrieval_hit_id) REFERENCES retrieval_hit (id)
+);
+
 INSERT INTO knowledge_article (
   article_no, title, category, keywords, content, owner, status, last_verified_at, created_at, updated_at
 ) VALUES

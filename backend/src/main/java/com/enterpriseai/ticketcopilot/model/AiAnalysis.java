@@ -11,6 +11,16 @@ public record AiAnalysis(
     List<KnowledgeHit> knowledgeHits,
     List<String> troubleshootingSteps,
     String replySuggestion,
-    List<String> riskNotes
+    List<String> riskNotes,
+    StructuredOutputEvidence structuredOutput,
+    boolean abstained,
+    String abstentionReasonCode,
+    String riskLevel,
+    boolean modelHumanReviewRequired,
+    boolean finalHumanReviewRequired,
+    String citationValidationStatus,
+    List<ValidatedCitationEvidence> validatedCitations,
+    List<String> missingInformation,
+    String outputValidationStatus
 ) {
 }
