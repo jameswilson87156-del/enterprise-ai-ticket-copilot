@@ -6,6 +6,16 @@
 
 ## 当前交接更新
 
+### 2026-07-30 — Codex — Evidence Replay / CI / Documentation Closeout
+
+- Frontend：Trace Timeline 增加 `Real Run Evidence` 最小只读入口，复用 `GET /api/tickets/{id}/trace-evidence`；支持 loading、backend unavailable、no immutable run、`IMMUTABLE_RUN`、`LEGACY_DERIVED` 与 request error。真实回放仅用于本地已认证演示；公开作品集页面不接受、保存或发送手动 Bearer Token，也不绕过现有 `/api/**` 鉴权。后端错误正文不会进入 UI，只展示安全的 HTTP 状态分类或通用错误。
+- 证据展示：`IMMUTABLE_RUN` 展示 run/evidence source、retrieval hits、validated citations、output validation、abstention、fallback、human review，并明确只读 GET replay 不调用 Provider。showcase 常量继续标记 `Demo sample — backend not called`。
+- Frontend tests / CI：新增 6 个离线测试并增加标准 `npm test`，覆盖只读回放、无手动 Token 控件与错误正文不透传；GitHub Actions 前端顺序为 `npm ci -> npm test -> npm run build`。
+- Backend deterministic integration：在 H2 + 本地 HTTP stub 路径补齐 malformed structured output 与 Provider HTTP failure，连同现有合法/非法引用、无检索证据 abstain、持久化/Review Gate/Trace replay 覆盖；自动化测试不调用真实 Provider。
+- 文档：旧 `real-provider-synthetic-smoke-20260730.md` 标为 Historical / Superseded；当前能力指向 `real-structured-output-smoke-20260730.*`。README、resume evidence、trace evidence、TEST_REPORT、TODO 同步区分 fixture self-check、Java runtime verification、demo sample 与真实只读 replay。
+- 实际验证：`backend/mvn test` 通过（86 tests）；`frontend/npm test` 通过（6 tests）；`frontend/npm run build` 通过；两个 Python fixture 脚本通过。`evaluate_structured_decision_demo.py` 明确输出 `fixturePolicySelfCheck=true`、`JAVA_IMPLEMENTATION_EXECUTED=false`，不是模型质量或 Provider benchmark。
+- 当前边界：keyword retrieval + current-run citation ID gating + immutable run + controlled synthetic Provider smoke；不是向量检索、句子级 entailment、生产 SLA、真实企业数据效果、模型准确率或分布式 Trace。
+
 ### 2026-07-30 — Codex — Real Provider Evidence Closeout
 
 - Shared Provider mapping 已完成：`TICKET_AI_*` 优先，`PORTFOLIO_AI_*` 作为 fallback，Ticket Copilot 当前运行 Adapter 为 Chat Completions。

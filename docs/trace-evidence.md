@@ -68,9 +68,11 @@
 
 前端 Demo 模式的 `trace-evidence` fallback 集中在 `frontend/src/data/demoTickets.ts`，由当前 demo 工单、analysis 和 timeline 派生，不对应真实数据库行。它只用于无需后端即可展示工作台，不应写成生产接口返回。
 
+Trace Timeline 现在另有 `Real Run Evidence` 区域，会调用同一个只读接口并明确区分 `IMMUTABLE_RUN`、`LEGACY_DERIVED`、无不可变 run、后端不可用和请求错误。当前 `/api/**` 由既有 JWT demo interceptor 保护；真实回放仅用于本地已认证演示，公开作品集页面不接受、保存或发送手动 Bearer Token，也不绕过鉴权。前端不会读取或渲染后端原始错误正文，只显示安全的 HTTP 状态分类或通用错误。只读 GET 回放不会执行 `run-copilot`，因此不会重新调用 Provider。
+
 ## 明确不能夸大的能力
 
-- 默认没有真实 LLM 调用；OpenAI-compatible Provider 代码路径已实现，本轮未使用真实 Key 验证。
+- 默认没有真实 LLM 调用；OpenAI-compatible Provider 代码路径已实现，并保留 controlled synthetic smoke 证据，但不代表生产稳定性、真实企业数据效果或模型准确率。
 - 当前没有 embedding 或向量数据库检索。
 - 当前没有 Tool Runtime。
 - 当前没有完整 Multi-Agent Runtime。
@@ -97,4 +99,4 @@ Trace Evidence now distinguishes legacy derived trace data from persisted run tr
 
 The immutable path stores requested Provider/protocol/model separately from actual Provider/protocol, so local fallback runs can be audited without overwriting what the operator requested. Provider failure evidence is stored only as sanitized categories and summaries; raw Provider responses, Authorization headers, API keys and request bodies are not persisted by this feature.
 
-Known limits: generation records remain ticket-scoped for backward compatibility, retrieval remains keyword based, and review records represent human workflow decisions rather than a full production approval system. No Responses API adapter, Citation Validation, vector database, RAG evaluation dataset change, frontend page change or real Provider request was added in this phase.
+Known limits: generation records remain ticket-scoped for backward compatibility, retrieval remains keyword based, and review records represent human workflow decisions rather than a full production approval system. Citation validation now verifies only that a cited ID belongs to the current immutable retrieval set; it is not sentence-level entailment. There is still no Responses API adapter, vector database, distributed tracing, production approval system, or production-data benchmark.

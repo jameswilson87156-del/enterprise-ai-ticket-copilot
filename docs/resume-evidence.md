@@ -14,7 +14,7 @@ Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手，用 S
 
 - Spring Boot 后端接口设计：覆盖工单创建、队列查询、详情查询、规则分析、状态流转、知识草稿和 Trace Evidence 只读聚合。
 - 工单状态流转：通过 `ticket_status_history` 记录待处理、处理中、已解决、已沉淀等人工确认后的状态变化。
-- Trace Evidence 只读聚合接口：`GET /api/tickets/{id}/trace-evidence` 聚合已有业务表，不新增自动处理动作。
+- Trace Evidence 只读回放：`GET /api/tickets/{id}/trace-evidence` 对新运行返回持久化 `IMMUTABLE_RUN`，对旧工单保留 `LEGACY_DERIVED`，前端 Real Run Evidence 区域明确区分真实回放与 demo sample。
 - OpenAI-compatible Provider 路径：通过临时环境变量配置 `/chat/completions`，未配置 Key 或失败时记录 fallback 并回退本地规则。
 - JWT + RBAC demo：`ADMIN / AGENT / REVIEWER / VIEWER` 角色保护 run-copilot 和 review 操作。
 - RAG Reference 证据链：展示知识标题、来源路径、命中关键词、相关度、片段和是否用于回复草稿。
@@ -29,14 +29,14 @@ Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手，用 S
 - 实现 OpenAI-compatible Provider 可选接入与 `local-rule fallback`，记录 provider/model/latency/fallbackReason，保证无 API Key 时仍可运行。
 - 实现 JWT + RBAC demo 与 Human Review 审核接口，覆盖 `ADMIN / AGENT / REVIEWER / VIEWER` 角色和 Approve / Request Changes / Reject 状态闭环。
 - 使用 Vue 3 + TypeScript 构建企业 SaaS 风格工单工作台，展示工单队列、详情、Trace 摘要、Generation Record、RAG Reference 和 Human Review 状态。
-- 补充 H2 集成测试、Controller / Service 单元测试、Swagger / OpenAPI 文档和 GitHub Actions CI，后端 `mvn test` 覆盖 21 个测试用例。
+- 补充 H2 + 本地 HTTP stub 集成测试、Controller / Service 单元测试、Swagger / OpenAPI 文档和 GitHub Actions CI；测试覆盖合法/非法引用、无检索证据 abstain、结构化输出错误、Provider 失败与只读 Trace 回放。
 - 使用 Playwright 截图脚本生成真实浏览器截图，并在 README 中作为作品集展示证据。
 
 ## 面试官可能追问
 
 ### 这是不是真实大模型？
 
-默认不是。当前默认 Provider 是 `local-rule`，Model 显示为 `N/A (no LLM)`。如果本地临时配置 `TICKET_AI_*` 和 API Key，后端会调用 OpenAI-compatible `/chat/completions`；未配置或失败时自动 fallback。分类来自本地规则，知识匹配来自关键词评分，这样做是为了让演示项目在本地稳定运行，并且能解释每个建议的来源。
+默认不是。当前默认 Provider 是 `local-rule`，Model 显示为 `N/A (no LLM)`。如果本地临时配置 `TICKET_AI_*` 和 API Key，后端会调用 OpenAI-compatible `/chat/completions`；未配置或失败时按配置 fallback。仓库保留一次 controlled synthetic real-provider smoke，但它只证明该单次合成数据路径，不代表生产稳定性、真实企业数据效果或模型准确率。
 
 ### 有没有向量数据库？
 
@@ -44,11 +44,11 @@ Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手，用 S
 
 ### Trace Evidence 怎么来的？
 
-Trace Evidence 来自只读聚合接口 `/api/tickets/{id}/trace-evidence`。真实数据来源包括 `ticket_ai_analysis`、`generation_record`、`ticket_status_history` 和 `knowledge_article`。其中 `analysisId`、`recordId`、`latencyMs`、`status`、`promptSummary`、`responseSummary`、状态历史和知识条目都来自已有表或服务逻辑。
+Trace Evidence 来自只读接口 `/api/tickets/{id}/trace-evidence`。执行过 `run-copilot` 的工单会回放 `copilot_run`、`retrieval_hit`、`copilot_result`、validated citation 和 `review_record` 的不可变证据；历史工单仍返回 `LEGACY_DERIVED`。前端不会把后者或本地 showcase 常量写成真实不可变运行。
 
 ### 哪些字段是派生的？
 
-`runId` / `traceId` 是基于工单号派生的展示标识，不是分布式 Trace / Span Runtime。`currentStep` 由工单状态映射，`totalLatency` 是 `generation_record.latency_ms` 求和，`Human Review` 是从状态历史中的人工 actor 推导，不是独立审核任务表。
+`LEGACY_DERIVED` 的 `runId` / `traceId` 是基于工单号派生的展示标识；`IMMUTABLE_RUN` 的 ID 来自 `copilot_run` 持久化记录。两者都不是分布式 Trace / Span Runtime。旧工单的 Human Review 可由状态历史派生，新运行的 review decision 可来自 `review_record`；当前仍不是生产级审核任务平台。
 
 ### Human Review 怎么保证安全？
 
@@ -64,12 +64,12 @@ Trace Evidence 来自只读聚合接口 `/api/tickets/{id}/trace-evidence`。真
 
 ### local-rule fallback 的意义是什么？
 
-它让项目在没有外部模型、API Key 或付费服务的情况下仍然可运行、可测试、可解释。本轮已经实现真实 Provider 代码路径和审计字段，但没有使用真实 Key 验证；如果后续完成真实调用，需要单独记录验证结果。
+它让项目在没有外部模型、API Key 或付费服务的情况下仍然可运行、可测试、可解释。controlled synthetic real-provider smoke 已单独记录，但默认演示和自动化测试仍走 local-rule / 本地 stub；不能把一次 synthetic smoke 写成线上 Provider benchmark。
 
 ## 项目边界说明
 
 - 当前是作品集和学习项目，不是已上线生产系统。
-- 默认没有真实 LLM 调用；OpenAI-compatible Provider 代码路径已实现，本轮未使用真实 Key 验证。没有模型训练、embedding 或向量数据库。
+- 默认没有真实 LLM 调用；OpenAI-compatible Provider 代码路径已实现，并有一次 synthetic smoke 证据，但不代表生产可用或广泛兼容。没有模型训练、embedding 或向量数据库。
 - 当前没有完整 Multi-Agent Runtime、Tool Runtime 或自动规划执行链。
 - 当前 JWT + RBAC 是 demo 级权限控制，不是生产级鉴权、审计登录、限流、脱敏、监控或 SLA。
 - 当前不会无人值守自动处理、自动回复或自动关闭工单。

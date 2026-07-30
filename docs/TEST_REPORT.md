@@ -157,3 +157,11 @@
 - Structured decision controlled policy fixture self-check: 10 offline fixture cases, expected-valid / expected-abstain / expected-review fields matched, `POLICY_FIXTURE_SELF_CHECK=true`, `JAVA_IMPLEMENTATION_EXECUTED=false`, `PRODUCTION_BENCHMARK=false`. Runtime implementation evidence comes from JUnit and integration tests, not from interpreting this Python fixture as production model accuracy.
 - H2 migration validation: `V2__structured_output_citation_abstention.sql` applied after the frozen Phase 3 H2 schema and both new tables were queryable.
 - Provider tests used local stubs/mocks only; no real Provider request was made.
+
+## 2026-07-30 Evidence / frontend replay / CI closeout
+
+- Backend: `backend/ mvn test` passed with `Tests run: 86, Failures: 0, Errors: 0, Skipped: 0` and `BUILD SUCCESS`.
+- Deterministic runtime coverage: H2 + local HTTP stub tests cover valid and invalid citations, no-retrieval abstention, malformed structured output, Provider HTTP failure, persistence, review gate, and read-only `IMMUTABLE_RUN` replay. Automated tests made no real Provider request.
+- Frontend: `frontend/ npm test` passed with 6 tests, including no manual Bearer Token control and no raw HTTP error-body exposure; `npm run build` passed. CI now executes `npm ci`, `npm test`, then `npm run build`.
+- Offline policy fixture: `py scripts/evaluate_structured_decision_demo.py` passed 10 fixtures and printed `fixturePolicySelfCheck=true`, `JAVA_IMPLEMENTATION_EXECUTED=false`, `PRODUCTION_BENCHMARK=false`, `MODEL_QUALITY_METRIC=false`, and `REAL_PROVIDER_BENCHMARK=false`.
+- RAG fixture evaluation: `py scripts/evaluate_rag_demo.py` passed 16 synthetic cases and refreshed `docs/metrics/rag_metrics_latest.json` plus `docs/metrics/rag_metrics_snapshot.md`. These are local fixture metrics, not real Provider/model quality or production performance.

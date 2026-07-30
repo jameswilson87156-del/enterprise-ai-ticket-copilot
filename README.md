@@ -118,6 +118,8 @@ Provider Call 是可选路径；未配置临时环境变量或调用失败时会
 
 本项目补充了一个本地可复现的 RAG / Citation / Trace Evaluation 最小闭环，用于验证 demo 的 keyword retrieval、citation gating 和 Human Review gate 是否可解释。
 
+`scripts/evaluate_structured_decision_demo.py` 只是 fixture policy self-check。它会明确输出 `fixturePolicySelfCheck=true` 和 `JAVA_IMPLEMENTATION_EXECUTED=false`；这些百分比不是 Java 后端运行结果、模型质量、线上指标或真实 Provider benchmark。Java 运行级验证由 H2 + 本地 HTTP stub 的 Spring Boot 集成测试承担。
+
 | 项目 | 当前值 |
 | --- | --- |
 | 评测集 | [data/eval/ticket_rag_eval_cases.jsonl](data/eval/ticket_rag_eval_cases.jsonl) |
@@ -142,7 +144,7 @@ py .\scripts\evaluate_rag_demo.py
 | Context Recall@K | 90.00% | 期望关键词在 Top-3 demo 知识上下文中的平均覆盖 |
 | Citation Coverage | 100.00% | 需要引用的样本均附带模拟 citation IDs |
 | Citation Precision | 81.11% | citation IDs 中属于期望知识 ID 的比例 |
-| Avg Retrieval Latency | 0.0437 ms | 本地内存关键词评分耗时，不代表线上性能 |
+| Avg Retrieval Latency | 0.0428 ms | 本地内存关键词评分耗时，不代表线上性能 |
 | Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
 | Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
 
@@ -207,11 +209,14 @@ npm run dev:demo
 
 ```bash
 cd frontend
+npm test
 npm run build
 npm run screenshots
 ```
 
 `npm run screenshots` 会重新生成 `docs/images/` 中的已跟踪图片；只查看项目时不必执行。
+
+Trace Timeline 顶部的 **Real Run Evidence** 是最小真实只读入口：输入工单号后读取 `GET /api/tickets/{id}/trace-evidence`，显示 `IMMUTABLE_RUN` 或 `LEGACY_DERIVED`。真实回放仅用于本地已认证演示；公开作品集页面不接受、保存或发送手动 Bearer Token，不执行登录，也不绕过后端既有鉴权。请求失败时只展示安全的 HTTP 状态分类或通用错误，不显示后端原始响应正文。其余 showcase trace 继续标记为 `Demo sample — backend not called`。
 
 ### 后端测试与启动
 
@@ -264,9 +269,10 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 
 | 验证项 | 最近记录 |
 | --- | --- |
+| `cd frontend && npm test` | 通过：6 tests，覆盖 IMMUTABLE_RUN、backend unavailable、无手动 Token 控件、错误正文不透传与 demo 标签边界 |
 | `cd frontend && npm run build` | 通过：Vue 类型检查与 Vite 生产构建完成 |
 | `cd frontend && npm run screenshots` | 通过：覆盖 Showcase 路由及 1366 / 390 宽度溢出检查 |
-| `cd backend && mvn test` | 通过：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0` |
+| `cd backend && mvn test` | 通过：`Tests run: 86, Failures: 0, Errors: 0, Skipped: 0` |
 | `py .\scripts\evaluate_rag_demo.py` | 通过：16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11% |
 
 测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。本轮 README 整合只修改文档，没有重新运行构建、测试或截图脚本。
@@ -299,20 +305,20 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 - **如何解释指标**：Top-K Hit Rate 看是否召回期望知识；Context Recall 看关键词覆盖；Citation Precision 看引用是否属于期望来源。
 - **为什么 Human Review Required Count 高**：工单场景常涉及权限、故障、数据修复和回滚，demo 故意把风险留给人工确认。
 - **为什么 local-rule fallback 是安全演示路径**：没有 Key 或 Provider 失败时仍可演示完整链路，同时不伪造外部模型结果。
-- **下一阶段如何升级**：固定同一评测集，对比 BM25 / Vector / Hybrid / Rerank，再接入临时 Provider 做 Answer Relevance、Faithfulness 和成本评估。
+- **为什么不继续扩检索平台**：当前收口只维护 keyword retrieval、citation gating、immutable run 和 synthetic Provider smoke，不在本项目继续新增 BM25、Vector、Hybrid、Rerank 或多 Agent 调度。
 
 ## Honest Boundaries
 
 - 当前项目使用 synthetic demo tickets 和本地 showcase 常量。
 - 默认生成路径是 local-rule fallback，不是外部模型稳定响应。
 - 当前检索为 keyword retrieval，不是 embedding / Vector DB。
-- 当前 citation gating 是本地 demo 逻辑，用于展示证据约束和失败样本。
+- 后端已实现 current-run citation ID validation；它只验证引用属于当前检索证据集，不证明句子级事实蕴含。
 - `no real API key committed`；仓库不提交数据库密码或个人本地配置。
 - `not production data`；`not real online traffic`；不使用客户数据。
-- OpenAI-compatible Provider 是 optional path；只有实际跑通并记录证据后，才能写入新的指标或结论。
+- OpenAI-compatible Provider 是 optional path；仓库只保留 synthetic smoke 证据，不代表真实企业数据效果、模型准确率、SLA 或生产稳定性。
 - 当前 README 中的评测指标不代表真实向量 RAG、`not real model quality result`、real online effect 或 production data result。
 - Human Review 是 demo gate，不是生产级审核任务平台。
-- `runId` / `traceId` 是展示标识，不代表完整分布式 Trace / Span Runtime。
+- `IMMUTABLE_RUN` 的 `runId` / `traceId` 来自持久化 run；`LEGACY_DERIVED` 的 ID 仍是展示派生值。两者都不代表完整分布式 Trace / Span Runtime。
 - Showcase 截图证明页面可复现，不等同于真实联调或部署证据。
 
 ## 延伸材料

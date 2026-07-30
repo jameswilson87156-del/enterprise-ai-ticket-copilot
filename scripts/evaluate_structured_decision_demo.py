@@ -71,9 +71,12 @@ def main() -> None:
     unsupported = [item for item in decisions if item[0].get("unsupported_answer")]
     review_expected = [item for item in decisions if item[0].get("expected_review")]
 
+    print("fixturePolicySelfCheck=true")
     print("POLICY_FIXTURE_SELF_CHECK=true")
     print("JAVA_IMPLEMENTATION_EXECUTED=false")
     print("PRODUCTION_BENCHMARK=false")
+    print("MODEL_QUALITY_METRIC=false")
+    print("REAL_PROVIDER_BENCHMARK=false")
     print(f"cases={len(cases)}")
     print(f"Expected Field Mismatches={','.join(mismatches) if mismatches else 'NONE'}")
     print(f"Valid Citation Rate={pct(sum(1 for _, decision in valid_expected if decision['valid']), len(valid_expected)):.2f}%")

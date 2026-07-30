@@ -1,5 +1,8 @@
 ﻿# Real Provider Synthetic Smoke Evidence
 
+> [!WARNING]
+> **Historical / Superseded evidence.** This smoke was captured before Phase 4. At that time, Provider citation validation and immutable run snapshots were not implemented. Preserve this file as timeline evidence, but use `real-structured-output-smoke-20260730.md` and `real-structured-output-smoke-20260730.json` for the current structured-output, citation-validation, and `IMMUTABLE_RUN` capability record.
+
 ## Scope
 
 - This evidence covers synthetic demonstration data only.

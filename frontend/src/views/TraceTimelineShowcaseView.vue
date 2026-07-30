@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import RealRunEvidencePanel from '../components/RealRunEvidencePanel.vue'
 import { evaluationSnapshot } from '../data/evaluationMetrics'
 
 type TracePriority = 'P1' | 'P2' | 'P3'
@@ -923,6 +924,7 @@ function selectStep(step: TraceStep) {
 
 <template>
   <section class="trace-timeline" data-screenshot="trace-timeline" aria-label="Trace Timeline">
+    <RealRunEvidencePanel />
     <header class="trace-timeline__hero">
       <div class="trace-timeline__intro">
         <p class="trace-timeline__eyebrow">AI Copilot Run Trace · RAG Evidence Timeline</p>

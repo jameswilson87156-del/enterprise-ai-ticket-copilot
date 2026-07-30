@@ -53,6 +53,7 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
 
     private static final ObjectMapper STATIC_OBJECT_MAPPER = new ObjectMapper();
     private static final AtomicReference<String> PROVIDER_CONTENT = new AtomicReference<>("{}");
+    private static final AtomicInteger PROVIDER_STATUS = new AtomicInteger(200);
     private static final AtomicInteger REQUEST_COUNT = new AtomicInteger();
     private static final HttpServer SERVER = startServer();
 
@@ -78,6 +79,7 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
     @BeforeEach
     void resetProvider() {
         REQUEST_COUNT.set(0);
+        PROVIDER_STATUS.set(200);
         PROVIDER_CONTENT.set(validProviderOutput(
             "Use the cited run snapshot.",
             "KB-OPS-003",
@@ -207,6 +209,59 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
         assertThat(analysis.getTroubleshootingSteps()).doesNotContain("重启", "回滚", "扩容", "修改配置", "restart", "rollback", "scale");
     }
 
+    @Test
+    void malformedStructuredOutputPersistsSafeAbstentionAndImmutableReplay() throws Exception {
+        PROVIDER_CONTENT.set("{\"answer\":\"missing required structured fields\"}");
+        String ticketId = createTicket("payment-service returns 500", "Payment service fails after release and returns HTTP 500.").path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", token("agent", "agent123")))
+            .andExpect(status().isOk());
+
+        SupportTicket ticket = ticket(ticketId);
+        CopilotResult result = latestResult(ticket.getId());
+        JsonNode trace = objectMapper.readTree(mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId)
+                .header("Authorization", token("reviewer", "reviewer123")))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8));
+
+        assertThat(REQUEST_COUNT).hasValue(1);
+        assertThat(result.getOutputValidationStatus()).isNotEqualTo("VALID");
+        assertThat(result.getAbstained()).isTrue();
+        assertThat(result.getFinalHumanReviewRequired()).isTrue();
+        assertThat(trace.path("evidenceSource").asText()).isEqualTo("IMMUTABLE_RUN");
+        assertThat(trace.path("structuredOutput").path("abstained").asBoolean()).isTrue();
+        assertThat(REQUEST_COUNT).hasValue(1);
+    }
+
+    @Test
+    void providerHttpFailurePersistsFailedRunAndReplayDoesNotRetryProvider() throws Exception {
+        PROVIDER_STATUS.set(503);
+        String ticketId = createTicket("payment-service returns 500", "Payment service fails after release and returns HTTP 500.").path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", token("agent", "agent123")))
+            .andExpect(status().isOk());
+
+        SupportTicket ticket = ticket(ticketId);
+        CopilotRun run = latestRun(ticket.getId());
+        assertThat(REQUEST_COUNT).hasValue(1);
+        assertThat(run.getRunStatus()).isEqualTo("FAILED");
+        assertThat(run.getOutputProduced()).isFalse();
+
+        JsonNode trace = objectMapper.readTree(mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId)
+                .header("Authorization", token("reviewer", "reviewer123")))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8));
+
+        assertThat(trace.path("evidenceSource").asText()).isEqualTo("IMMUTABLE_RUN");
+        assertThat(trace.path("copilotRun").path("runStatus").asText()).isEqualTo("FAILED");
+        assertThat(trace.path("copilotRun").path("outputProduced").asBoolean()).isFalse();
+        assertThat(REQUEST_COUNT).hasValue(1);
+    }
+
     private static HttpServer startServer() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -220,10 +275,13 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
 
     private static void handleProvider(HttpExchange exchange) throws IOException {
         REQUEST_COUNT.incrementAndGet();
+        int statusCode = PROVIDER_STATUS.get();
         String content = STATIC_OBJECT_MAPPER.writeValueAsString(PROVIDER_CONTENT.get());
-        byte[] bytes = ("{\"choices\":[{\"message\":{\"content\":" + content + "}}]}").getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = statusCode == 200
+            ? ("{\"choices\":[{\"message\":{\"content\":" + content + "}}]}").getBytes(StandardCharsets.UTF_8)
+            : "{\"error\":\"synthetic stub failure\"}".getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, bytes.length);
+        exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream response = exchange.getResponseBody()) {
             response.write(bytes);
         }

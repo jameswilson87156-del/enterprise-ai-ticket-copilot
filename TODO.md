@@ -19,7 +19,7 @@
 - Spring Boot 3.3.5 后端分层架构。
 - Controller / Service / Mapper / Entity / DTO 分层。
 - MyBatis-Plus 数据访问。
-- schema.sql 与 demo-data.sql 提供 5 张业务表和演示数据。
+- schema.sql、Flyway migration 与 demo-data.sql 提供业务表和演示数据；当前包含 immutable run、retrieval hit、structured result/citation 与 review record。
 - 工单状态机流转，包含待分类、待处理、处理中、已解决、已沉淀等状态。
 - ticket_status_history 和 generation_record 审计链。
 - Bean Validation 参数校验。
@@ -27,15 +27,15 @@
 - 知识库匹配评分。
 - 推荐内容由模板生成，并要求人工确认。
 - Vue 3 + TypeScript 前端组件。
-- 前端 Demo 模式与真实后端切换。
+- 前端 Demo 页面保留；Trace Timeline 另有经过既有 JWT 鉴权的 Real Run Evidence 只读入口，明确区分 `IMMUTABLE_RUN`、`LEGACY_DERIVED` 与 demo sample。
 - Playwright 截图脚本和截图存档。
 - SpringDoc OpenAPI / Swagger UI 接口文档。
-- GitHub Actions CI workflow 已补充，覆盖后端测试和前端构建；远端 run `27929741126` 已确认通过。
+- GitHub Actions CI workflow 已补充，当前顺序覆盖后端测试以及前端 `npm ci -> npm test -> npm run build`；本轮只验证本地 workflow 内容，未声称新的远端 run 已通过。
 - docs/API.md 已补充人工整理版 REST API 文档，覆盖接口列表、请求响应、统一错误响应和业务边界。
 - README、docs 与前端 UI 可见文案已校准 AI 相关表述，统一为规则引擎辅助分类、知识库评分匹配和模板化建议草稿。
 - 前端作品集展示 UI 与 README 截图区已重做，主图突出企业工单辅助处理工作台，辅助图使用两列作品集布局展示。
 - 2026-06-27 已按 Enterprise SaaS UI Design Skill 新建 `TicketWorkbenchShowcaseView.vue`：Tickets 默认显示独立 ShowcaseView，只使用本地 demo 常量，CSS 使用 `showcase-` scoped 前缀，不复用旧 TicketQueue / TicketDetailPanel / AiRecommendationPanel；`ticket-detail.png` 已刷新并人工验收通过。
-- 当前存在 6 个后端测试文件，合计 24 个 @Test 用例；docs/TEST_REPORT.md 已记录本地后端测试和前端构建证据。
+- 后端当前 `mvn test` 覆盖单元与 H2 / 本地 HTTP stub 集成测试；2026-07-30 本轮实际结果为 86 tests、0 failures/errors/skipped。前端现有 6 个只读回放与安全错误处理测试。
 - 本地 RAG / Citation / Trace Evaluation 最小闭环已补充，包含 `data/eval/ticket_rag_eval_cases.jsonl`、`scripts/evaluate_rag_demo.py`、`docs/evaluation/RAG_EVALUATION_PLAN.md`、`docs/metrics/rag_metrics_latest.json` 和 `docs/metrics/rag_metrics_snapshot.md`。
 - 2026-07-04 已完成前端 Phase 1：统一深色 Showcase App Shell，升级 Dashboard 首页，新建 Evaluation / Metrics 页面，同步本地评测数据到 `frontend/src/data/evaluationMetrics.ts`，并刷新本项目真实运行截图；未使用第三方截图，未接真实 API Key。
 - 2026-07-04 已完成 Evaluation / Metrics 视觉精修：页面产品名调整为“评测指标中心”，8 个核心 KPI 与 4 个补充指标分层展示，Baseline / 实验计划与右侧评测上下文产品化，并刷新本项目标准与 large 真实截图；所有指标继续限定为 synthetic demo dataset + local keyword retrieval + citation gating + local-rule fallback。
@@ -48,15 +48,15 @@
 
 ## 3. 当前不能夸大的能力
 
-- 当前没有 LLM 调用。
+- 默认运行仍是 local-rule；仓库仅有 controlled synthetic real-provider smoke，不能写成生产稳定性、真实企业数据效果、SLA 或模型准确率。
 - 当前没有真实 AI 模型训练。
 - 分类是关键词规则引擎，不是机器学习模型。
 - 知识匹配是评分公式，不是 embedding 向量检索。
-- 推荐内容是模板生成，不是生成式 AI。
+- structured output 与 citation validation 只约束当前 run 的引用 ID，不证明句子级事实蕴含。
 - knowledgeCoverage 已改为基于已有数据的真实知识关联率；不能再写成人为覆盖率、模型效果或向量检索能力。
 - RAG Evaluation 结果只能写成本地 demo keyword retrieval + citation gating 的可复现指标，不能写成真实模型准确率、真实向量检索效果、Prompt 提升或生产效果。
-- 当前 application.yml 缺少 spring.datasource，仓库内可复现启动存在风险；虽然已有 application-example.yml 和 README 启动说明，但仍需统一本地配置样例与验收闭环。
-- 不能写成生产级鉴权系统，因为当前没有鉴权层。
+- JWT + RBAC 仅是 demo 鉴权，不是生产级账号、权限、审计登录或合规体系。
+- Human Review 是人工状态与记录闭环，不是生产级审核任务平台。
 
 ## 4. P0 待办
 
