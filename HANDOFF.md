@@ -505,3 +505,11 @@
 - Added safe abstention for no evidence, invalid structured output, missing Citation, and invalid Citation; no-evidence runs skip remote Provider calls.
 - Added V2 migration, main schema, H2 schema, entities, mappers, parser, validator, local-rule structured output, review gate, API/Trace structured fields, docs, tests, and a small offline structured-decision evaluation artifact.
 - No frontend source changes, no screenshots, no vector database, no Responses adapter, no push/PR/merge, and no real Provider request.
+
+### 2026-07-30 - Codex - PHASE_4C_SYNTHETIC_REAL_STRUCTURED_OUTPUT_SMOKE_EVIDENCE_AND_FREEZE
+
+- Completed a sanitized synthetic real Provider structured-output smoke through backend runCopilot using the smoke profile and H2 in-memory database.
+- Evidence files: docs/evidence/real-structured-output-smoke-20260730.md and docs/evidence/real-structured-output-smoke-20260730.json.
+- Real Provider business request count: 1; Responses API requests: 0; retries: 0; no raw prompt, Provider response, model answer, Base URL, model name, API Key, Authorization header, project data, logs, or screenshots recorded.
+- Ticket Copilot backend core is frozen: no more vector DB, multi-agent workflow, Responses Adapter, queue runtime, distributed Trace, or backend capability expansion for the portfolio branch.
+- Next phase: PHASE_5_PORTFOLIO_WEBSITE_ENTERPRISE_TICKET_DETAIL; frontend real API wiring is deferred and nonblocking.

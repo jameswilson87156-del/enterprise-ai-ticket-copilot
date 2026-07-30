@@ -1,0 +1,92 @@
+{
+    "task":  "PHASE_4C_SYNTHETIC_REAL_STRUCTURED_OUTPUT_SMOKE_EVIDENCE_AND_FREEZE",
+    "date":  "2026-07-30",
+    "sanitized":  true,
+    "processConfiguration":  {
+                                 "portfolioProviderPresent":  true,
+                                 "portfolioBaseUrlPresent":  true,
+                                 "portfolioModelPresent":  true,
+                                 "portfolioApiKeyPresent":  true,
+                                 "portfolioProtocolPresent":  true,
+                                 "portfolioFallbackPresent":  true,
+                                 "ticketAiOverrideActive":  false,
+                                 "projectProtocolCompatible":  true
+                             },
+    "runtime":  {
+                    "profile":  "smoke",
+                    "database":  "H2 in-memory",
+                    "requestedPort":  8080,
+                    "actualPort":  18080,
+                    "port8080Occupied":  true,
+                    "backendOnly":  true
+                },
+    "syntheticKnowledge":  {
+                               "createdThroughApi":  true,
+                               "published":  true,
+                               "expectedSyntheticLabel":  "KB-SYN-STRUCTURED-001",
+                               "runtimeArticleNo":  "KB-DRAFT-260730170431-985",
+                               "exactRequestedArticleNoSupportedByApi":  false
+                           },
+    "retrievalPreflight":  {
+                               "providerCallsBeforePreflight":  0,
+                               "candidateCount":  1,
+                               "syntheticRuntimeArticleInTopK":  true,
+                               "expectedSyntheticLabelAsArticleNoInTopK":  false,
+                               "scoreThresholdOk":  true,
+                               "categoryKeywordMatchOk":  true,
+                               "internalNumericIdExposed":  false
+                           },
+    "realProviderRun":  {
+                            "attempted":  true,
+                            "businessCallCount":  1,
+                            "providerOutputProduced":  true,
+                            "fallbackUsed":  false,
+                            "runStatus":  "SUCCESS",
+                            "latencyRecorded":  true,
+                            "errorCategory":  "NONE",
+                            "startedAtPresent":  true,
+                            "completedAtPresent":  true
+                        },
+    "structuredOutput":  {
+                             "parserAcceptedValidJson":  true,
+                             "abstained":  false,
+                             "abstentionReasonCode":  "NONE",
+                             "outputValidationStatus":  "VALID",
+                             "riskLevelPresent":  true,
+                             "modelHumanReviewPersisted":  true,
+                             "finalHumanReviewPersisted":  true
+                         },
+    "citationValidation":  {
+                               "validationStatus":  "VALID",
+                               "validCitationCount":  1,
+                               "rejectedCitationCount":  0,
+                               "runtimeSyntheticArticleReferenced":  true,
+                               "expectedSyntheticLabelReferenced":  false,
+                               "evidenceExcerptPresent":  true,
+                               "supportedClaimPresent":  false,
+                               "internalNumericIdExposed":  false
+                           },
+    "persistence":  {
+                        "generationRecordPersisted":  true,
+                        "copilotRunPersisted":  true,
+                        "copilotResultPersisted":  true,
+                        "citationRowsPersisted":  true,
+                        "analysisPersisted":  true,
+                        "ticketStatus":  "REVIEW_REQUIRED"
+                    },
+    "immutableReplay":  {
+                            "evidenceSource":  "IMMUTABLE_RUN",
+                            "replayedWithoutProviderRecall":  true,
+                            "providerCallCountAfterReplay":  1,
+                            "retrievalRerunObserved":  false,
+                            "revalidationRewriteObserved":  false
+                        },
+    "realApiRequests":  {
+                            "total":  1,
+                            "chatCompletions":  1,
+                            "responses":  0,
+                            "retries":  0
+                        },
+    "success":  true,
+    "taskStatus":  "COMPLETED_SYNTHETIC_REAL_STRUCTURED_OUTPUT_SMOKE_EVIDENCE_RECORDED"
+}
