@@ -1,29 +1,30 @@
-# OpenAI-compatible Provider 验证指南
+# OpenAI-compatible Provider 楠岃瘉鎸囧崡
 
-本文用于本地验证真实 Provider 代码路径。仓库不提交真实 API Key，不要求 `.env`，示例全部使用占位符。
+鏈枃鐢ㄤ簬鏈湴楠岃瘉鐪熷疄 Provider 浠ｇ爜璺緞銆備粨搴撲笉鎻愪氦鐪熷疄 API Key锛屼笉瑕佹眰 `.env`锛岀ず渚嬪叏閮ㄤ娇鐢ㄥ崰浣嶇銆?
 
-## 临时环境变量
+## 涓存椂鐜鍙橀噺
 
-PowerShell：
+PowerShell锛?
 
 ```powershell
 $env:TICKET_AI_PROVIDER="openai-compatible"
-$env:TICKET_AI_BASE_URL="https://api.example.com/v1"
-$env:TICKET_AI_MODEL="gpt-4o-mini"
-$env:TICKET_AI_API_KEY="<YOUR_API_KEY>"
+$env:TICKET_AI_BASE_URL="<OPENAI_COMPATIBLE_BASE_URL>"
+$env:TICKET_AI_MODEL="<MODEL_NAME>"
+$env:TICKET_AI_API_KEY="<API_KEY>"
+$env:TICKET_AI_PROTOCOL="chat-completions"
 $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 ```
 
-不要把以上值写入 `.env`、`application-local.yml` 或任何提交文件。
+涓嶈鎶婁互涓婂€煎啓鍏?`.env`銆乣application-local.yml` 鎴栦换浣曟彁浜ゆ枃浠躲€?
 
-## 启动后端
+## 鍚姩鍚庣
 
 ```powershell
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-## 登录并运行 Copilot
+## 鐧诲綍骞惰繍琛?Copilot
 
 ```powershell
 $login = Invoke-RestMethod `
@@ -40,7 +41,7 @@ Invoke-RestMethod `
   -Headers $headers
 ```
 
-## 检查 Trace Evidence
+## 妫€鏌?Trace Evidence
 
 ```powershell
 Invoke-RestMethod `
@@ -49,7 +50,7 @@ Invoke-RestMethod `
   -Headers $headers
 ```
 
-重点检查：
+閲嶇偣妫€鏌ワ細
 
 - `aiAnalysis.providerName`
 - `aiAnalysis.modelName`
@@ -59,19 +60,20 @@ Invoke-RestMethod `
 - `aiAnalysis.status`
 - `generationRecords[].businessType = AI_PROVIDER`
 
-如果没有真实 Key，本轮只能说明“Provider 代码路径已实现，待本地 Key 验证”，不能写“真实 Provider 调用已验证”。
+濡傛灉娌℃湁鐪熷疄 Key锛屾湰杞彧鑳借鏄庘€淧rovider 浠ｇ爜璺緞宸插疄鐜帮紝寰呮湰鍦?Key 楠岃瘉鈥濓紝涓嶈兘鍐欌€滅湡瀹?Provider 璋冪敤宸查獙璇佲€濄€?
 
-## 清理环境变量
+## 娓呯悊鐜鍙橀噺
 
 ```powershell
 Remove-Item Env:TICKET_AI_PROVIDER -ErrorAction SilentlyContinue
 Remove-Item Env:TICKET_AI_BASE_URL -ErrorAction SilentlyContinue
 Remove-Item Env:TICKET_AI_MODEL -ErrorAction SilentlyContinue
 Remove-Item Env:TICKET_AI_API_KEY -ErrorAction SilentlyContinue
+Remove-Item Env:TICKET_AI_PROTOCOL -ErrorAction SilentlyContinue
 Remove-Item Env:TICKET_AI_FALLBACK_TO_LOCAL -ErrorAction SilentlyContinue
 ```
 
-## 安全扫描
+## 瀹夊叏鎵弿
 
 ```powershell
 rg -n "sk-|api_key|private key|TICKET_AI_API_KEY|secret" .
@@ -79,4 +81,11 @@ git status --short
 git diff --check
 ```
 
-`TICKET_AI_API_KEY` 只应出现在配置说明、文档占位符或代码读取环境变量的位置，不应出现真实 Key。
+`TICKET_AI_API_KEY` 鍙簲鍑虹幇鍦ㄩ厤缃鏄庛€佹枃妗ｅ崰浣嶇鎴栦唬鐮佽鍙栫幆澧冨彉閲忕殑浣嶇疆锛屼笉搴斿嚭鐜扮湡瀹?Key銆?
+## Shared provider configuration
+
+Ticket Copilot supports project-specific `TICKET_AI_*` configuration and shared `PORTFOLIO_AI_*` configuration. Project-specific variables take priority; shared variables are fallback only. If neither set is available, the safe default remains `local-rule`, so automated tests and CI do not require a real Provider.
+
+The current adapter uses Chat Completions. When `PORTFOLIO_AI_PROTOCOL=both`, this project still selects Chat Completions. Responses API compatibility may be verified externally with synthetic demo prompts, but Ticket Copilot does not include a Responses Adapter yet.
+
+Do not commit real Provider URLs, model names, keys, logs, screenshots, or business payloads. Real Provider verification must use synthetic demo data only and must not be described as stable production integration.

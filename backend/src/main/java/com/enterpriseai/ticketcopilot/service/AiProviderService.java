@@ -21,6 +21,9 @@ public class AiProviderService {
 
     private static final String PROVIDER_LOCAL_RULE = "local-rule";
     private static final String PROVIDER_OPENAI_COMPATIBLE = "openai-compatible";
+    private static final String PROTOCOL_CHAT_COMPLETIONS = "chat-completions";
+    private static final String PROTOCOL_BOTH = "both";
+    private static final String PROTOCOL_RESPONSES = "responses";
     private static final String MODEL_NONE = "N/A (no LLM)";
     private static final int SUMMARY_LIMIT = 280;
 
@@ -44,11 +47,20 @@ public class AiProviderService {
         if (PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName())) {
             return fallback(settings, started, promptSummary, localResponse, "PROVIDER_DISABLED", null);
         }
+        if (!PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName())) {
+            return providerFailure(settings, started, promptSummary, localResponse, "UNSUPPORTED_PROVIDER_CONFIGURATION", null);
+        }
+        if (PROTOCOL_RESPONSES.equalsIgnoreCase(settings.protocol())) {
+            return providerFailure(settings, started, promptSummary, localResponse, "PROTOCOL_NOT_SUPPORTED_BY_CURRENT_ADAPTER", null);
+        }
+        if (!PROTOCOL_CHAT_COMPLETIONS.equalsIgnoreCase(settings.protocol()) && !PROTOCOL_BOTH.equalsIgnoreCase(settings.protocol())) {
+            return providerFailure(settings, started, promptSummary, localResponse, "UNSUPPORTED_PROTOCOL_CONFIGURATION", null);
+        }
         if (settings.apiKey().isBlank()) {
-            return fallback(settings, started, promptSummary, localResponse, "API_KEY_MISSING", null);
+            return providerFailure(settings, started, promptSummary, localResponse, "API_KEY_MISSING", null);
         }
         if (settings.baseUrl().isBlank()) {
-            return fallback(settings, started, promptSummary, localResponse, "BASE_URL_MISSING", null);
+            return providerFailure(settings, started, promptSummary, localResponse, "BASE_URL_MISSING", null);
         }
         try {
             String content = requestProvider(settings, ticket, classification, matches, localDraft);
@@ -68,14 +80,14 @@ public class AiProviderService {
         } catch (HttpTimeoutException exception) {
             return providerFailure(settings, started, promptSummary, localResponse, "TIMEOUT", "Provider request timed out.");
         } catch (IllegalArgumentException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PARSE_ERROR", exception.getMessage());
+            return providerFailure(settings, started, promptSummary, localResponse, "PARSE_ERROR", safeProviderError(exception));
         } catch (IOException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", exception.getMessage());
+            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", safeProviderError(exception));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             return providerFailure(settings, started, promptSummary, localResponse, "TIMEOUT", "Provider request was interrupted.");
         } catch (RuntimeException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", exception.getMessage());
+            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", safeProviderError(exception));
         }
     }
 
@@ -101,7 +113,7 @@ public class AiProviderService {
             summarize(promptSummary),
             "",
             "",
-            "OPENAI_COMPATIBLE"
+            PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName()) ? "OPENAI_COMPATIBLE" : "LOCAL_RULE_FALLBACK"
         );
     }
 
@@ -172,17 +184,22 @@ public class AiProviderService {
 
     private URI chatCompletionsUri(String baseUrl) {
         String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        if (!normalized.endsWith("/v1")) {
+            normalized = normalized + "/v1";
+        }
         return URI.create(normalized + "/chat/completions");
     }
 
     private ProviderSettings settings() {
         String providerName = property("ticket.ai.provider", PROVIDER_LOCAL_RULE);
-        String modelName = property("ticket.ai.model", "gpt-4o-mini");
+        String modelName = property("ticket.ai.model", "gpt-5.5");
+        String protocol = property("ticket.ai.protocol", PROTOCOL_CHAT_COMPLETIONS);
         return new ProviderSettings(
             providerName.isBlank() ? PROVIDER_LOCAL_RULE : providerName,
             property("ticket.ai.base-url", ""),
-            modelName.isBlank() ? "gpt-4o-mini" : modelName,
+            modelName.isBlank() ? "gpt-5.5" : modelName,
             property("ticket.ai.api-key", ""),
+            protocol.isBlank() ? PROTOCOL_CHAT_COMPLETIONS : protocol,
             Boolean.parseBoolean(property("ticket.ai.fallback-to-local", "true"))
         );
     }
@@ -194,6 +211,20 @@ public class AiProviderService {
 
     private String providerModelName(ProviderSettings settings) {
         return PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName()) ? MODEL_NONE : settings.modelName();
+    }
+
+    private String safeProviderError(Exception exception) {
+        if (exception == null || exception.getMessage() == null || exception.getMessage().isBlank()) {
+            return "Provider request failed.";
+        }
+        String message = exception.getMessage();
+        if (message.contains("choices[0].message.content")) {
+            return message;
+        }
+        if (message.startsWith("Provider returned HTTP ")) {
+            return message;
+        }
+        return "Provider request failed.";
     }
 
     private String promptSummary(SupportTicket ticket, String classification, List<KnowledgeMatch> matches, RecommendationDraft localDraft) {
@@ -244,6 +275,7 @@ public class AiProviderService {
         String baseUrl,
         String modelName,
         String apiKey,
+        String protocol,
         boolean fallbackToLocal
     ) {
     }

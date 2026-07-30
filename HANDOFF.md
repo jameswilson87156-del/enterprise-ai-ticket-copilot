@@ -1,10 +1,20 @@
-﻿# Claude / Codex 交接记录
+# Claude / Codex 交接记录
 
 使用规则：每轮把新记录追加在"历史记录"顶部，不覆盖旧记录。没有证据时不要写"测试通过"。
 
 ---
 
 ## 当前交接更新
+
+### 2026-07-30 — Codex — Real Provider Evidence Closeout
+
+- Shared Provider mapping 已完成：`TICKET_AI_*` 优先，`PORTFOLIO_AI_*` 作为 fallback，Ticket Copilot 当前运行 Adapter 为 Chat Completions。
+- Synthetic real-provider E2E smoke 已完成：使用 `smoke` profile 和隔离 H2 in-memory 数据库，仅发送 synthetic 数据；Remote Provider Used=YES，Local Fallback Used=NO，generation_record 已持久化。
+- Guaranteed-match RAG smoke 已完成：synthetic knowledge `KB-SYN-REDIS-CACHE-001` 与 synthetic ticket `TCK-260730130531-931` 命中，Retrieved Article Count=1，Used In Draft=YES。
+- Evidence 文件：`docs/evidence/real-provider-synthetic-smoke-20260730.md`、`docs/evidence/real-provider-synthetic-smoke-20260730.json`。
+- 当前分支：`feat/shared-provider-config-mapping`；本记录创建前 HEAD：`d51155989ff7a50ba71f65c428e9fb2adbd818cf`。
+- 当前不能夸大：Provider citation validation 尚未实现；Trace evidence 尚不是不可变 run snapshot；Frontend showcase pages 尚未接入该真实后端链路；本验证只代表 controlled synthetic smoke，不代表生产稳定性。
+- 下一阶段建议：`PHASE_3_REAL_RUN_TRACE_FOUNDATION`。
 
 ### 2026-07-04 — Codex — Sidebar Brand Mark Visual Polish
 

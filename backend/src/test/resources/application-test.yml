@@ -23,3 +23,11 @@ server:
 logging:
   level:
     com.enterpriseai.ticketcopilot: INFO
+ticket:
+  ai:
+    provider: local-rule
+    protocol: chat-completions
+    base-url: ""
+    model: test-model
+    api-key: ""
+    fallback-to-local: true

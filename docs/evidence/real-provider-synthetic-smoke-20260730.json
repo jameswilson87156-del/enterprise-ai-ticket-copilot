@@ -1,0 +1,57 @@
+{
+    "evidence_type":  "synthetic_real_provider_smoke",
+    "date":  "2026-07-30",
+    "scope":  "synthetic_only",
+    "production_claim":  false,
+    "protocol_compatibility":  {
+                                   "chat_completions":  true,
+                                   "responses":  true,
+                                   "ticket_runtime_adapter":  "chat-completions",
+                                   "verification_request_count":  2,
+                                   "synthetic_prompt_only":  true,
+                                   "project_data_sent":  false
+                               },
+    "runtime":  {
+                    "profile":  "smoke",
+                    "database":  "isolated_h2_in_memory",
+                    "server_port":  18080
+                },
+    "provider_result":  {
+                            "business_call_count":  1,
+                            "status":  "SUCCESS",
+                            "remote_provider_used":  true,
+                            "local_fallback_used":  false,
+                            "output_nonempty":  true,
+                            "generation_record_persisted":  true,
+                            "latency_recorded":  true
+                        },
+    "retrieval_result":  {
+                             "knowledge_id":  "KB-SYN-REDIS-CACHE-001",
+                             "knowledge_title":  "Synthetic Redis 缓存读取超时排查手册",
+                             "ticket_id":  "TCK-260730130531-931",
+                             "candidate_count":  1,
+                             "retrieved_article_count":  1,
+                             "in_top_k":  true,
+                             "category_match":  true,
+                             "matched_keyword_count":  4,
+                             "used_in_draft":  true
+                         },
+    "security":  {
+                     "api_key_in_logs":  false,
+                     "authorization_in_logs":  false,
+                     "base_url_committed":  false,
+                     "env_file_created":  false,
+                     "real_data_sent":  false,
+                     "real_enterprise_data_sent":  false,
+                     "real_personal_data_sent":  false,
+                     "sensitive_temporary_file_remaining":  false
+                 },
+    "limitations":  {
+                        "citation_validation_implemented":  false,
+                        "retrieval_references_prove_all_claims":  false,
+                        "immutable_trace_snapshot_implemented":  false,
+                        "frontend_real_api_connected":  false,
+                        "production_benchmark":  false,
+                        "gpt_5_6_verified":  false
+                    }
+}
