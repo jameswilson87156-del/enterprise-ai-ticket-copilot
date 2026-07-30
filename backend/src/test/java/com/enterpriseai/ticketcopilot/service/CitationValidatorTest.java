@@ -43,6 +43,26 @@ class CitationValidatorTest {
     }
 
     @Test
+    void rejectsInternalNumericDatabaseIdEvenWhenItMatchesRetrievalHitPrimaryKey() {
+        RetrievalHit hit = hit("RUN-1", "KB-OPS-003", 1L);
+        hit.setKnowledgeArticleId(1L);
+
+        CitationValidationResult result = validator.validate(output("1"), List.of(hit));
+
+        assertThat(result.status()).isEqualTo(CitationValidationStatus.INVALID_CITATION);
+        assertThat(result.rejectionReasonCode()).isEqualTo(CitationRejectionReasonCode.CITATION_NOT_IN_RUN);
+    }
+
+    @Test
+    void requiresExactBusinessCitationIdWithoutCaseOrWhitespaceNormalization() {
+        CitationValidationResult lowerCase = validator.validate(output("kb-ops-003"), List.of(hit("RUN-1", "KB-OPS-003", 1L)));
+        CitationValidationResult decorated = validator.validate(output("KB-OPS-003 "), List.of(hit("RUN-1", "KB-OPS-003", 1L)));
+
+        assertThat(lowerCase.status()).isEqualTo(CitationValidationStatus.INVALID_CITATION);
+        assertThat(decorated.status()).isEqualTo(CitationValidationStatus.INVALID_CITATION);
+    }
+
+    @Test
     void rejectsInventedCitationId() {
         CitationValidationResult result = validator.validate(output("KB-NOT-REAL"), List.of(hit("RUN-1", "KB-OPS-003", 1L)));
 

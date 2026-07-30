@@ -19,6 +19,7 @@ public class ReviewGate {
         boolean modelRequiresReview = output == null || output.humanReviewRequired();
         boolean highRisk = output == null || output.riskLevel() == RiskLevel.HIGH;
         boolean abstained = output == null || output.abstained();
+        boolean missingInformation = output != null && output.missingInformation() != null && !output.missingInformation().isEmpty();
         boolean citationFailed = citationValidationResult != null
             && citationValidationResult.status() != CitationValidationStatus.VALID
             && citationValidationResult.status() != CitationValidationStatus.NOT_APPLICABLE;
@@ -29,6 +30,7 @@ public class ReviewGate {
             || highRisk
             || fallbackUsed
             || abstained
+            || missingInformation
             || citationFailed
             || structuredOutputFailed
             || businessRuleRequiresReview;

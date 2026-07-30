@@ -563,7 +563,12 @@ public class TicketWorkflowService {
 
         CitationValidationResult citationValidationResult = citationValidator.validate(candidate, hits);
         StructuredCopilotOutput finalOutput = candidate;
-        if (!citationValidationResult.accepted()) {
+        if (candidate.abstained()) {
+            AbstentionReasonCode reasonCode = citationValidationResult.accepted()
+                ? safeProviderAbstentionReason(candidate.abstentionReasonCode())
+                : AbstentionReasonCode.OUTPUT_POLICY_REJECTED;
+            finalOutput = abstentionPolicy.abstain(reasonCode);
+        } else if (!citationValidationResult.accepted()) {
             AbstentionReasonCode reasonCode = citationValidationResult.status() == CitationValidationStatus.MISSING_CITATION
                 ? AbstentionReasonCode.MISSING_CITATION
                 : AbstentionReasonCode.INVALID_CITATION;
@@ -581,18 +586,28 @@ public class TicketWorkflowService {
 
     private RecommendationDraft draftFromStructured(RecommendationDraft localDraft, StructuredCopilotOutput output) {
         List<String> riskNotes = new java.util.ArrayList<>(localDraft.riskNotes());
-        riskNotes.add("结构化输出风险等级：" + output.riskLevel());
+        riskNotes.add("Structured output risk level: " + output.riskLevel());
         if (output.abstained()) {
-            riskNotes.add("系统安全拒答原因：" + output.abstentionReasonCode());
+            riskNotes.add("System abstention reason: " + output.abstentionReasonCode());
         }
         if (!output.missingInformation().isEmpty()) {
-            riskNotes.add("缺失信息：" + output.missingInformation());
+            riskNotes.add("Missing information: " + output.missingInformation());
         }
+        List<String> troubleshootingSteps = output.abstained()
+            ? List.of("Add citable knowledge-base evidence before rerunning Copilot.", "Route to human review; do not execute automated remediation.")
+            : localDraft.troubleshootingSteps();
         return new RecommendationDraft(
-            localDraft.troubleshootingSteps(),
+            troubleshootingSteps,
             output.answer(),
             riskNotes
         );
+    }
+
+    private AbstentionReasonCode safeProviderAbstentionReason(AbstentionReasonCode reasonCode) {
+        if (reasonCode == null || reasonCode == AbstentionReasonCode.NONE) {
+            return AbstentionReasonCode.OUTPUT_POLICY_REJECTED;
+        }
+        return reasonCode;
     }
 
     private String sourceTypeForDecision(AiProviderResult providerResult, StructuredDecision decision) {
@@ -624,7 +639,7 @@ public class TicketWorkflowService {
         result.setValidCitationCount(decision.citationValidationResult().validCitations().size());
         result.setRejectedCitationCount(decision.citationValidationResult().rejectedCitationCount());
         result.setOutputValidationStatus(decision.outputValidationStatus().name());
-        result.setMissingInformationJson(summarize(toJson(decision.output().missingInformation()), StructuredOutputLimits.MISSING_INFORMATION_JSON_MAX_LENGTH));
+        result.setMissingInformationJson(toBoundedMissingInformationJson(decision.output().missingInformation()));
         result.setSourceType(defaultText(sourceType, "LOCAL_RULE_FALLBACK"));
         result.setCreatedAt(LocalDateTime.now());
         copilotResultMapper.insert(result);
@@ -645,8 +660,8 @@ public class TicketWorkflowService {
             citation.setKnowledgeArticleId(hit.getKnowledgeArticleNo());
             citation.setKnowledgeTitleSnapshot(hit.getKnowledgeTitleSnapshot());
             citation.setCitationType("VALIDATED_CITATION");
-            citation.setSupportedClaim(summarize(validatedCitation.citation().supportedClaim(), StructuredOutputLimits.CITATION_TEXT_MAX_LENGTH));
-            citation.setEvidenceExcerpt(summarize(defaultText(validatedCitation.citation().evidenceExcerpt(), hit.getExcerptSnapshot()), StructuredOutputLimits.CITATION_TEXT_MAX_LENGTH));
+            citation.setSupportedClaim(null);
+            citation.setEvidenceExcerpt(summarize(hit.getExcerptSnapshot(), StructuredOutputLimits.CITATION_TEXT_MAX_LENGTH));
             citation.setCreatedAt(now);
             copilotResultCitationMapper.insert(citation);
         }
@@ -1469,6 +1484,14 @@ public class TicketWorkflowService {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize JSON", e);
         }
+    }
+
+    private String toBoundedMissingInformationJson(List<String> values) {
+        String json = toJson(values == null ? List.of() : values);
+        if (json.length() > StructuredOutputLimits.MISSING_INFORMATION_JSON_MAX_LENGTH) {
+            throw new IllegalStateException("Missing information JSON exceeds persisted field limit");
+        }
+        return json;
     }
 
     private List<String> fromJson(String json) {

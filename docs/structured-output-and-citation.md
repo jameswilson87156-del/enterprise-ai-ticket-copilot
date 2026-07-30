@@ -40,11 +40,11 @@ Citation validation checks that model citations reference only the current run's
 - non-abstention answers without Citation.
 - abstention answers with Citation.
 
-Validated citations are persisted in `copilot_result_citation` and link back to `retrieval_hit`. This proves the Citation ID is in the allowed evidence set; it is not sentence-level entailment or full factual verification.
+Validated citations are persisted in `copilot_result_citation` and link back to `retrieval_hit`. Citation ID membership is checked only against the current run's exposed `knowledgeArticleNo` values; internal numeric database IDs are not accepted. The persisted evidence excerpt always comes from the immutable retrieval snapshot, and model-provided `evidenceExcerpt` / `supportedClaim` text is not treated as validated factual evidence. This proves the Citation ID is in the allowed evidence set; it is not sentence-level entailment or full factual verification.
 
 ## Abstention and review gate
 
-The system creates safe abstentions when there is no retrieval evidence, the structured output is invalid, the Provider omits citations, or citation validation fails. With no retrieval hit, the remote Provider is not called.
+The system creates deterministic safe abstentions when there is no retrieval evidence, the structured output is invalid, the Provider omits citations, citation validation fails, or the Provider declares `abstained=true`. Provider-authored abstention answer text is not persisted as the final business answer. With no retrieval hit, the remote Provider is not called.
 
 Final human review is system-gated by:
 

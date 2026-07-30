@@ -61,6 +61,36 @@ class StructuredOutputParserTest {
     }
 
     @Test
+    void rejectsAbstainedOutputWithNoneReason() {
+        String json = validJson()
+            .replace("\"abstained\":false", "\"abstained\":true")
+            .replace("\"humanReviewRequired\":true", "\"humanReviewRequired\":true");
+
+        assertThat(parser.parse(json).status()).isEqualTo(OutputValidationStatus.INVALID_FIELD_TYPE);
+    }
+
+    @Test
+    void rejectsNonAbstainedOutputWithAbstentionReason() {
+        assertThat(parser.parse(validJson().replace("\"abstentionReasonCode\":\"NONE\"", "\"abstentionReasonCode\":\"OUTPUT_POLICY_REJECTED\"")).status())
+            .isEqualTo(OutputValidationStatus.INVALID_FIELD_TYPE);
+    }
+
+    @Test
+    void rejectsAbstainedOutputWhenModelTriesToDisableReview() {
+        String json = "{"
+            + "\"answer\":\"malicious provider refusal text\","
+            + "\"citations\":[],"
+            + "\"riskLevel\":\"LOW\","
+            + "\"humanReviewRequired\":false,"
+            + "\"missingInformation\":[],"
+            + "\"abstained\":true,"
+            + "\"abstentionReasonCode\":\"MISSING_REQUIRED_INFORMATION\""
+            + "}";
+
+        assertThat(parser.parse(json).status()).isEqualTo(OutputValidationStatus.INVALID_FIELD_TYPE);
+    }
+
+    @Test
     void rejectsAnswerOverLimit() {
         String longAnswer = "A".repeat(StructuredOutputLimits.ANSWER_MAX_LENGTH + 1);
         assertThat(parser.parse(validJson().replace("??????????", longAnswer)).status()).isEqualTo(OutputValidationStatus.LIMIT_EXCEEDED);
@@ -78,6 +108,15 @@ class StructuredOutputParserTest {
     void rejectsMissingInformationOverLimit() {
         String missing = "[" + ("\"" + "M".repeat(StructuredOutputLimits.MISSING_INFORMATION_ITEM_MAX_LENGTH + 1) + "\"") + "]";
         String json = validJson().replace("\"missingInformation\":[]", "\"missingInformation\":" + missing);
+        assertThat(parser.parse(json).status()).isEqualTo(OutputValidationStatus.LIMIT_EXCEEDED);
+    }
+
+    @Test
+    void rejectsMissingInformationWhenSerializedJsonWouldExceedColumnLimit() {
+        String item = "M".repeat(StructuredOutputLimits.MISSING_INFORMATION_ITEM_MAX_LENGTH);
+        String missing = "[\"" + item + "\",\"" + item + "\",\"" + item + "\",\"" + item + "\",\"" + item + "\"]";
+        String json = validJson().replace("\"missingInformation\":[]", "\"missingInformation\":" + missing);
+
         assertThat(parser.parse(json).status()).isEqualTo(OutputValidationStatus.LIMIT_EXCEEDED);
     }
 

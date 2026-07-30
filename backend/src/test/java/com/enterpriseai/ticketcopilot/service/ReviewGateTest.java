@@ -62,6 +62,27 @@ class ReviewGateTest {
     }
 
     @Test
+    void missingInformationForcesHumanReviewWhenModelSaysFalse() {
+        StructuredCopilotOutput output = new StructuredCopilotOutput(
+            "answer",
+            List.of(new StructuredCitation("KB-OPS-003", null, null, null)),
+            RiskLevel.LOW,
+            false,
+            List.of("missing deployment window"),
+            false,
+            AbstentionReasonCode.NONE
+        );
+
+        assertThat(gate.finalHumanReviewRequired(
+            output,
+            false,
+            CitationValidationResult.valid(List.of(), 0),
+            OutputValidationStatus.VALID,
+            false
+        )).isTrue();
+    }
+
+    @Test
     void abstentionRequiresHumanReview() {
         assertThat(gate.finalHumanReviewRequired(
             output(RiskLevel.MEDIUM, true, true),

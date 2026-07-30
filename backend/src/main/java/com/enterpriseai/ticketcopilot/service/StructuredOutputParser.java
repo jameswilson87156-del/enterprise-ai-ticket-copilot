@@ -98,7 +98,7 @@ public class StructuredOutputParser {
             if (evidenceExcerpt == null && citationNode.hasNonNull("evidenceExcerpt")) {
                 return StructuredOutputParseResult.invalid(OutputValidationStatus.INVALID_FIELD_TYPE);
             }
-            citations.add(new StructuredCitation(knowledgeArticleId.trim(), supportedClaim, reason, evidenceExcerpt));
+            citations.add(new StructuredCitation(knowledgeArticleId, supportedClaim, reason, evidenceExcerpt));
         }
 
         RiskLevel riskLevel = enumValue(root, "riskLevel", RiskLevel.class);
@@ -136,6 +136,10 @@ public class StructuredOutputParser {
             }
         }
 
+        if (!missingInformationJsonWithinLimit(missingInformation)) {
+            return StructuredOutputParseResult.invalid(OutputValidationStatus.LIMIT_EXCEEDED);
+        }
+
         JsonNode abstainedNode = root.get("abstained");
         if (abstainedNode == null || !abstainedNode.isBoolean()) {
             return abstainedNode == null ? StructuredOutputParseResult.invalid(OutputValidationStatus.MISSING_FIELD)
@@ -146,6 +150,16 @@ public class StructuredOutputParser {
         if (reasonCode == null) {
             return missingOrInvalidEnum(root, "abstentionReasonCode");
         }
+        boolean abstained = abstainedNode.asBoolean();
+        if (abstained && reasonCode == AbstentionReasonCode.NONE) {
+            return StructuredOutputParseResult.invalid(OutputValidationStatus.INVALID_FIELD_TYPE);
+        }
+        if (abstained && !modelReview.asBoolean()) {
+            return StructuredOutputParseResult.invalid(OutputValidationStatus.INVALID_FIELD_TYPE);
+        }
+        if (!abstained && reasonCode != AbstentionReasonCode.NONE) {
+            return StructuredOutputParseResult.invalid(OutputValidationStatus.INVALID_FIELD_TYPE);
+        }
 
         return StructuredOutputParseResult.valid(new StructuredCopilotOutput(
             answer.trim(),
@@ -153,9 +167,17 @@ public class StructuredOutputParser {
             riskLevel,
             modelReview.asBoolean(),
             List.copyOf(missingInformation),
-            abstainedNode.asBoolean(),
+            abstained,
             reasonCode
         ));
+    }
+
+    private boolean missingInformationJsonWithinLimit(List<String> missingInformation) {
+        try {
+            return objectMapper.writeValueAsString(missingInformation).length() <= StructuredOutputLimits.MISSING_INFORMATION_JSON_MAX_LENGTH;
+        } catch (JsonProcessingException exception) {
+            return false;
+        }
     }
 
     private String stripSingleCodeFence(String value) {

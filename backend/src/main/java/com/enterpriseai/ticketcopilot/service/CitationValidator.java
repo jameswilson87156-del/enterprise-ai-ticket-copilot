@@ -47,15 +47,12 @@ public class CitationValidator {
             if (hit.getKnowledgeArticleNo() != null && !hit.getKnowledgeArticleNo().isBlank()) {
                 allowedByKnowledgeId.put(hit.getKnowledgeArticleNo(), hit);
             }
-            if (hit.getKnowledgeArticleId() != null) {
-                allowedByKnowledgeId.put(String.valueOf(hit.getKnowledgeArticleId()), hit);
-            }
         }
 
         Map<String, CitationValidationResult.ValidatedCitation> validByKnowledgeId = new LinkedHashMap<>();
         int rejected = 0;
         for (StructuredCitation citation : citations) {
-            String knowledgeId = citation.knowledgeArticleId() == null ? "" : citation.knowledgeArticleId().trim();
+            String knowledgeId = citation.knowledgeArticleId() == null ? "" : citation.knowledgeArticleId();
             RetrievalHit hit = allowedByKnowledgeId.get(knowledgeId);
             if (hit == null) {
                 rejected++;

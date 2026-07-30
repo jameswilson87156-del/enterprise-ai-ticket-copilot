@@ -154,6 +154,6 @@
 - Backend: `mvn test` in `backend/` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0` and `BUILD SUCCESS`.
 - Frontend: `npm.cmd run build` in `frontend/` passed (`vue-tsc` + Vite production build).
 - RAG baseline: existing 16-case evaluation preserved `top_k_hit_rate=100.00%`, `context_recall_at_k=90.00%`, `citation_coverage=100.00%`, `citation_precision=81.11%`, `failed_case_count=6`, `human_review_required_count=15`.
-- Structured decision smoke: 10 offline cases, Valid Citation Rate `100.00%`, Invalid Citation Rejection Rate `100.00%`, No-Evidence Abstention Rate `100.00%`, Unsupported Answer Acceptance Rate `0.00%`, Human Review Gate Recall `100.00%`.
+- Structured decision controlled policy fixture self-check: 10 offline fixture cases, expected-valid / expected-abstain / expected-review fields matched, `POLICY_FIXTURE_SELF_CHECK=true`, `JAVA_IMPLEMENTATION_EXECUTED=false`, `PRODUCTION_BENCHMARK=false`. Runtime implementation evidence comes from JUnit and integration tests, not from interpreting this Python fixture as production model accuracy.
 - H2 migration validation: `V2__structured_output_citation_abstention.sql` applied after the frozen Phase 3 H2 schema and both new tables were queryable.
 - Provider tests used local stubs/mocks only; no real Provider request was made.
