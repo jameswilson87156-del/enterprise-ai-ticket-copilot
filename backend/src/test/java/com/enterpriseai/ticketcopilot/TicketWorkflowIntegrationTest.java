@@ -1,8 +1,21 @@
 package com.enterpriseai.ticketcopilot;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.enterpriseai.ticketcopilot.entity.CopilotRun;
+import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
+import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
+import com.enterpriseai.ticketcopilot.entity.ReviewRecord;
+import com.enterpriseai.ticketcopilot.entity.SupportTicket;
+import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
+import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
+import com.enterpriseai.ticketcopilot.mapper.RetrievalHitMapper;
+import com.enterpriseai.ticketcopilot.mapper.ReviewRecordMapper;
+import com.enterpriseai.ticketcopilot.mapper.SupportTicketMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -17,6 +30,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,6 +55,21 @@ class TicketWorkflowIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private SupportTicketMapper supportTicketMapper;
+
+    @Autowired
+    private CopilotRunMapper copilotRunMapper;
+
+    @Autowired
+    private RetrievalHitMapper retrievalHitMapper;
+
+    @Autowired
+    private ReviewRecordMapper reviewRecordMapper;
+
+    @Autowired
+    private KnowledgeArticleMapper knowledgeArticleMapper;
 
     @Test
     void createTicketPersistsThroughHttpAndCanBeQueried() throws Exception {
@@ -145,6 +174,105 @@ class TicketWorkflowIntegrationTest {
             .andExpect(jsonPath("$.generationRecords[5].businessType").value("AI_PROVIDER"))
             .andExpect(jsonPath("$.generationRecords[5].providerName").value("openai-compatible"))
             .andExpect(jsonPath("$.generationRecords[5].fallbackReason").value("API_KEY_MISSING"));
+    }
+
+    @Test
+    void runCopilotPersistsImmutableRunAndRetrievalSnapshotForTraceReplay() throws Exception {
+        JsonNode created = createTicket();
+        String ticketId = created.path("id").asText();
+        String agentToken = token("agent", "agent123");
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk());
+
+        SupportTicket ticket = supportTicketMapper.selectOne(new LambdaQueryWrapper<SupportTicket>()
+            .eq(SupportTicket::getTicketNo, ticketId));
+        CopilotRun run = latestRun(ticket.getId());
+        assertThat(run.getRunId()).startsWith("RUN-" + ticketId + "-");
+        assertThat(run.getTraceId()).startsWith("TRACE-" + ticketId + "-");
+        assertThat(run.getRequestedProvider()).isEqualTo("openai-compatible");
+        assertThat(run.getActualProvider()).isEqualTo("local-rule");
+        assertThat(run.getRunStatus()).isEqualTo("SUCCESS_WITH_FALLBACK");
+        assertThat(run.getErrorCategory()).isEqualTo("CONFIGURATION_ERROR");
+        assertThat(run.getAnalysisId()).isNotNull();
+        assertThat(run.getGenerationRecordId()).isNotNull();
+
+        List<RetrievalHit> hits = retrievalHitMapper.selectList(new LambdaQueryWrapper<RetrievalHit>()
+            .eq(RetrievalHit::getRunId, run.getRunId())
+            .orderByAsc(RetrievalHit::getRankOrder));
+        assertThat(hits).hasSize(1);
+        String originalTitleSnapshot = hits.get(0).getKnowledgeTitleSnapshot();
+
+        knowledgeArticleMapper.update(null, new LambdaUpdateWrapper<KnowledgeArticle>()
+            .eq(KnowledgeArticle::getArticleNo, hits.get(0).getKnowledgeArticleNo())
+            .set(KnowledgeArticle::getTitle, "mutated knowledge title should not appear in immutable trace"));
+
+        mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.evidenceSource").value("IMMUTABLE_RUN"))
+            .andExpect(jsonPath("$.traceMode").value("immutable-copilot-run-trace"))
+            .andExpect(jsonPath("$.runId").value(run.getRunId()))
+            .andExpect(jsonPath("$.traceId").value(run.getTraceId()))
+            .andExpect(jsonPath("$.copilotRun.runStatus").value("SUCCESS_WITH_FALLBACK"))
+            .andExpect(jsonPath("$.copilotRun.actualProvider").value("local-rule"))
+            .andExpect(jsonPath("$.copilotRun.errorCategory").value("CONFIGURATION_ERROR"))
+            .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").value(originalTitleSnapshot))
+            .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").value(not("mutated knowledge title should not appear in immutable trace")))
+            .andExpect(jsonPath("$.ragReferences[0].linkedRunId").value(run.getRunId()));
+    }
+
+    @Test
+    void repeatedCopilotRunsCreateDistinctImmutableRunAndTraceIds() throws Exception {
+        String ticketId = createTicket().path("id").asText();
+        String agentToken = token("agent", "agent123");
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk());
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk());
+
+        SupportTicket ticket = supportTicketMapper.selectOne(new LambdaQueryWrapper<SupportTicket>()
+            .eq(SupportTicket::getTicketNo, ticketId));
+        List<CopilotRun> runs = copilotRunMapper.selectList(new LambdaQueryWrapper<CopilotRun>()
+            .eq(CopilotRun::getTicketId, ticket.getId())
+            .orderByAsc(CopilotRun::getStartedAt));
+
+        assertThat(runs).hasSize(2);
+        assertThat(runs.get(0).getRunId()).isNotEqualTo(runs.get(1).getRunId());
+        assertThat(runs.get(0).getTraceId()).isNotEqualTo(runs.get(1).getTraceId());
+    }
+
+    @Test
+    void reviewRecordLinksHumanDecisionToImmutableRun() throws Exception {
+        String reviewerToken = token("reviewer", "reviewer123");
+        String agentToken = token("agent", "agent123");
+        String ticketId = createTicket().path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", agentToken))
+            .andExpect(status().isOk());
+        SupportTicket ticket = supportTicketMapper.selectOne(new LambdaQueryWrapper<SupportTicket>()
+            .eq(SupportTicket::getTicketNo, ticketId));
+        CopilotRun run = latestRun(ticket.getId());
+
+        mockMvc.perform(post("/api/tickets/{id}/review/approve", ticketId)
+                .header("Authorization", reviewerToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("comment", "human approval linked to immutable run"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("RESOLVED"));
+
+        List<ReviewRecord> records = reviewRecordMapper.selectList(new LambdaQueryWrapper<ReviewRecord>()
+            .eq(ReviewRecord::getRunId, run.getRunId()));
+        assertThat(records).hasSize(1);
+        assertThat(records.get(0).getDecision()).isEqualTo("APPROVED_RESOLUTION");
+        assertThat(records.get(0).getPreviousStatus()).isEqualTo("REVIEW_REQUIRED");
+        assertThat(records.get(0).getNewStatus()).isEqualTo("RESOLVED");
+
+        mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId).header("Authorization", reviewerToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reviewRecords[0].runId").value(run.getRunId()))
+            .andExpect(jsonPath("$.reviewRecords[0].decision").value("APPROVED_RESOLUTION"))
+            .andExpect(jsonPath("$.humanReview.decision").value("APPROVED_RESOLUTION"));
     }
 
     @Test
@@ -254,6 +382,14 @@ class TicketWorkflowIntegrationTest {
             .andExpect(jsonPath("$.knowledgeDraft.articleNo").value(articleNo))
             .andExpect(jsonPath("$.knowledgeDraft.status").value("PUBLISHED"))
             .andExpect(jsonPath("$.timeline.length()", greaterThanOrEqualTo(4)));
+    }
+
+    private CopilotRun latestRun(Long ticketId) {
+        return copilotRunMapper.selectOne(new LambdaQueryWrapper<CopilotRun>()
+            .eq(CopilotRun::getTicketId, ticketId)
+            .orderByDesc(CopilotRun::getStartedAt)
+            .orderByDesc(CopilotRun::getRunId)
+            .last("limit 1"));
     }
 
     private JsonNode createTicket() throws Exception {

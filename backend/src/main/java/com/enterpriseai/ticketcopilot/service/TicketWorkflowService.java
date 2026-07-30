@@ -19,13 +19,19 @@ import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
+import com.enterpriseai.ticketcopilot.entity.CopilotRun;
 import com.enterpriseai.ticketcopilot.entity.GenerationRecord;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
+import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
+import com.enterpriseai.ticketcopilot.entity.ReviewRecord;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.enterpriseai.ticketcopilot.entity.TicketAiAnalysisEntity;
 import com.enterpriseai.ticketcopilot.entity.TicketStatusHistory;
+import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
 import com.enterpriseai.ticketcopilot.mapper.GenerationRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
+import com.enterpriseai.ticketcopilot.mapper.RetrievalHitMapper;
+import com.enterpriseai.ticketcopilot.mapper.ReviewRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.SupportTicketMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketAiAnalysisMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketStatusHistoryMapper;
@@ -68,6 +74,9 @@ public class TicketWorkflowService {
     private final TicketAiAnalysisMapper analysisMapper;
     private final TicketStatusHistoryMapper statusHistoryMapper;
     private final GenerationRecordMapper generationRecordMapper;
+    private final CopilotRunMapper copilotRunMapper;
+    private final RetrievalHitMapper retrievalHitMapper;
+    private final ReviewRecordMapper reviewRecordMapper;
     private final RuleClassificationService classificationService;
     private final KnowledgeMatchingService knowledgeMatchingService;
     private final RecommendationTemplateService recommendationTemplateService;
@@ -80,6 +89,9 @@ public class TicketWorkflowService {
         TicketAiAnalysisMapper analysisMapper,
         TicketStatusHistoryMapper statusHistoryMapper,
         GenerationRecordMapper generationRecordMapper,
+        CopilotRunMapper copilotRunMapper,
+        RetrievalHitMapper retrievalHitMapper,
+        ReviewRecordMapper reviewRecordMapper,
         RuleClassificationService classificationService,
         KnowledgeMatchingService knowledgeMatchingService,
         RecommendationTemplateService recommendationTemplateService,
@@ -91,6 +103,9 @@ public class TicketWorkflowService {
         this.analysisMapper = analysisMapper;
         this.statusHistoryMapper = statusHistoryMapper;
         this.generationRecordMapper = generationRecordMapper;
+        this.copilotRunMapper = copilotRunMapper;
+        this.retrievalHitMapper = retrievalHitMapper;
+        this.reviewRecordMapper = reviewRecordMapper;
         this.classificationService = classificationService;
         this.knowledgeMatchingService = knowledgeMatchingService;
         this.recommendationTemplateService = recommendationTemplateService;
@@ -119,6 +134,7 @@ public class TicketWorkflowService {
     public TraceEvidence getTraceEvidence(String ticketNo) {
         SupportTicket ticket = findTicket(ticketNo);
         TicketAiAnalysisEntity analysis = latestAnalysis(ticket.getId());
+        CopilotRun persistedRun = latestCopilotRun(ticket.getId());
         List<GenerationRecord> generationRecords = generationRecordMapper.selectList(new LambdaQueryWrapper<GenerationRecord>()
             .eq(GenerationRecord::getBusinessId, ticket.getId())
             .orderByAsc(GenerationRecord::getCreatedAt)
@@ -127,8 +143,9 @@ public class TicketWorkflowService {
             .eq(TicketStatusHistory::getTicketId, ticket.getId())
             .orderByAsc(TicketStatusHistory::getOccurredAt)
             .orderByAsc(TicketStatusHistory::getId));
-        String runId = "RUN-" + ticket.getTicketNo();
-        String traceId = "TRACE-" + ticket.getTicketNo();
+        List<ReviewRecord> reviewRecords = persistedRun == null ? List.of() : reviewRecordsForRun(persistedRun.getRunId());
+        String runId = persistedRun == null ? "RUN-" + ticket.getTicketNo() : persistedRun.getRunId();
+        String traceId = persistedRun == null ? "TRACE-" + ticket.getTicketNo() : persistedRun.getTraceId();
         List<TraceEvidence.GenerationRecordEvidence> recordEvidence = generationRecords.stream()
             .map(this::toGenerationEvidence)
             .toList();
@@ -158,20 +175,26 @@ public class TicketWorkflowService {
             .filter(Objects::nonNull)
             .mapToLong(Long::longValue)
             .sum();
+        if (persistedRun != null && persistedRun.getTotalLatencyMs() != null) {
+            totalLatency = persistedRun.getTotalLatencyMs();
+        }
         return new TraceEvidence(
             ticket.getTicketNo(),
             runId,
             traceId,
-            "derived-from-ticket-records; no distributed trace/span runtime",
+            persistedRun == null ? "derived-from-ticket-records; no distributed trace/span runtime" : "immutable-copilot-run-trace",
             currentStep(ticket.getStatus()),
             stepTimeline,
             statusEvidence,
             totalLatency,
-            reviewRequired(ticket),
-            toAiAnalysisEvidence(analysis, generationRecords, totalLatency),
+            persistedRun == null ? reviewRequired(ticket) : Boolean.TRUE.equals(persistedRun.getHumanReviewRequired()),
+            toAiAnalysisEvidence(analysis, generationRecords, totalLatency, persistedRun),
             recordEvidence,
-            toRagReferences(ticket, analysis, runId),
-            toHumanReviewEvidence(ticket, statusHistories)
+            toRagReferences(ticket, analysis, persistedRun, runId),
+            toHumanReviewEvidence(ticket, statusHistories, reviewRecords),
+            toCopilotRunEvidence(persistedRun),
+            reviewRecords.stream().map(this::toReviewRecordEvidence).toList(),
+            persistedRun == null ? "LEGACY_DERIVED" : "IMMUTABLE_RUN"
         );
     }
 
@@ -263,6 +286,8 @@ public class TicketWorkflowService {
     @Transactional
     public TicketDetail runCopilot(String ticketNo, String actor) {
         SupportTicket ticket = findTicket(ticketNo);
+        long runStarted = System.currentTimeMillis();
+        CopilotRun run = startCopilotRun(ticket, aiProviderService.runtimeSettings());
         long started = System.currentTimeMillis();
         RuleClassificationResult classification = classificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
         saveGeneration(ticket.getId(), "CLASSIFICATION", "RULE_ENGINE", summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
@@ -270,17 +295,18 @@ public class TicketWorkflowService {
         started = System.currentTimeMillis();
         List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
         saveGeneration(ticket.getId(), "KNOWLEDGE_MATCH", "KEYWORD_MATCHER", classification.category(), "matched=" + matches.size(), started, "SUCCESS");
+        saveRetrievalHits(run.getRunId(), ticket, matches);
 
         RecommendationDraft localDraft = recommendationTemplateService.generate(ticket, classification.category(), matches);
         AiProviderResult providerResult = aiProviderService.complete(ticket, classification.category(), matches, localDraft);
-        saveGeneration(ticket.getId(), "AI_PROVIDER", providerResult);
+        GenerationRecord providerGeneration = saveGeneration(ticket.getId(), "AI_PROVIDER", providerResult);
 
         RecommendationDraft finalDraft = new RecommendationDraft(
             localDraft.troubleshootingSteps(),
             defaultText(providerResult.content(), localDraft.replySuggestion()),
             localDraft.riskNotes()
         );
-        saveAnalysis(ticket, classification, matches, finalDraft, providerResult.sourceType());
+        TicketAiAnalysisEntity analysis = saveAnalysis(ticket, classification, matches, finalDraft, providerResult.sourceType());
 
         String from = ticket.getStatus();
         String target = requiresReview(ticket, finalDraft) ? STATUS_REVIEW_REQUIRED : STATUS_AI_DRAFTED;
@@ -301,6 +327,7 @@ public class TicketWorkflowService {
                 + (providerResult.fallbackReason() == null ? "" : "，reason=" + providerResult.fallbackReason())
                 + "。等待人工审核。"
         );
+        completeCopilotRun(run, analysis, providerGeneration, providerResult, matches.size(), true, System.currentTimeMillis() - runStarted);
         return toDetail(ticket);
     }
 
@@ -310,7 +337,7 @@ public class TicketWorkflowService {
             ticketNo,
             STATUS_RESOLVED,
             defaultText(actor, "Reviewer"),
-            "APPROVE",
+            "APPROVED_RESOLUTION",
             defaultText(comment, "审核通过，人工确认建议草稿可作为处理结论。")
         );
     }
@@ -332,7 +359,7 @@ public class TicketWorkflowService {
             ticketNo,
             STATUS_REJECTED,
             defaultText(actor, "Reviewer"),
-            "REJECT",
+            "REJECTED",
             defaultText(comment, "审核拒绝，保留原因并停止当前建议草稿。")
         );
     }
@@ -350,6 +377,15 @@ public class TicketWorkflowService {
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
         appendHistory(ticket.getId(), from, target, defaultText(request.actor(), "Support Desk"), defaultText(request.note(), "人工确认状态流转。"));
+        appendReviewRecord(
+            ticket.getId(),
+            latestRunId(ticket.getId()),
+            reviewDecision(target),
+            defaultText(request.actor(), "Support Desk"),
+            defaultText(request.note(), "Human status transition."),
+            from,
+            target
+        );
         return toDetail(ticket);
     }
 
@@ -423,10 +459,11 @@ public class TicketWorkflowService {
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
         appendHistory(ticket.getId(), from, targetStatus, actor, decision + ": " + comment);
+        appendReviewRecord(ticket.getId(), latestRunId(ticket.getId()), decision, actor, comment, from, targetStatus);
         return toDetail(ticket);
     }
 
-    private void saveAnalysis(
+    private TicketAiAnalysisEntity saveAnalysis(
         SupportTicket ticket,
         RuleClassificationResult classification,
         List<KnowledgeMatch> matches,
@@ -447,6 +484,7 @@ public class TicketWorkflowService {
         analysis.setCreatedAt(LocalDateTime.now());
         analysis.setUpdatedAt(LocalDateTime.now());
         analysisMapper.insert(analysis);
+        return analysis;
     }
 
     private boolean requiresReview(SupportTicket ticket, RecommendationDraft draft) {
@@ -525,7 +563,12 @@ public class TicketWorkflowService {
         );
     }
 
-    private TraceEvidence.AiAnalysisEvidence toAiAnalysisEvidence(TicketAiAnalysisEntity analysis, List<GenerationRecord> records, long totalLatency) {
+    private TraceEvidence.AiAnalysisEvidence toAiAnalysisEvidence(
+        TicketAiAnalysisEntity analysis,
+        List<GenerationRecord> records,
+        long totalLatency,
+        CopilotRun run
+    ) {
         GenerationRecord record = analysisRecord(records);
         String status = analysisStatus(records);
         return new TraceEvidence.AiAnalysisEvidence(
@@ -543,7 +586,12 @@ public class TicketWorkflowService {
             analysis.getCreatedAt(),
             record == null ? analysisErrorMessage(status, records) : record.getErrorMessage(),
             record == null ? analysis.getClassificationReason() : record.getInputSummary(),
-            defaultText(analysis.getReplySuggestion(), record == null ? "" : record.getOutputSummary())
+            defaultText(analysis.getReplySuggestion(), record == null ? "" : record.getOutputSummary()),
+            run == null ? recordProviderName(record) : run.getRequestedProvider(),
+            run == null ? null : run.getRequestedProtocol(),
+            run == null ? recordProviderName(record) : run.getActualProvider(),
+            run == null ? null : run.getActualProtocol(),
+            run == null ? legacyErrorCategory(record) : run.getErrorCategory()
         );
     }
 
@@ -619,7 +667,26 @@ public class TicketWorkflowService {
         return record == null || Boolean.TRUE.equals(record.getFallbackUsed());
     }
 
-    private List<TraceEvidence.RagReference> toRagReferences(SupportTicket ticket, TicketAiAnalysisEntity analysis, String runId) {
+    private List<TraceEvidence.RagReference> toRagReferences(SupportTicket ticket, TicketAiAnalysisEntity analysis, CopilotRun run, String runId) {
+        if (run != null) {
+            return retrievalHitMapper.selectList(new LambdaQueryWrapper<RetrievalHit>()
+                    .eq(RetrievalHit::getRunId, run.getRunId())
+                    .orderByAsc(RetrievalHit::getRankOrder)
+                    .orderByAsc(RetrievalHit::getId))
+                .stream()
+                .map(hit -> new TraceEvidence.RagReference(
+                    hit.getKnowledgeArticleNo(),
+                    hit.getKnowledgeTitleSnapshot(),
+                    "knowledge_article/" + hit.getKnowledgeArticleNo(),
+                    firstPersistedKeyword(hit.getMatchedKeywordsSnapshot()),
+                    hit.getScore(),
+                    hit.getExcerptSnapshot(),
+                    Boolean.TRUE.equals(hit.getUsedInDraft()),
+                    ticket.getTicketNo(),
+                    runId
+                ))
+                .toList();
+        }
         List<String> articleNos = fromJson(analysis.getMatchedKnowledgeNos());
         Map<String, Integer> relevanceByArticleNo = knowledgeMatchingService.match(ticket, analysis.getClassification()).stream()
             .collect(Collectors.toMap(match -> match.article().getArticleNo(), KnowledgeMatch::relevance, Integer::max));
@@ -641,7 +708,24 @@ public class TicketWorkflowService {
             .toList();
     }
 
-    private TraceEvidence.HumanReviewEvidence toHumanReviewEvidence(SupportTicket ticket, List<TicketStatusHistory> statusHistories) {
+    private TraceEvidence.HumanReviewEvidence toHumanReviewEvidence(
+        SupportTicket ticket,
+        List<TicketStatusHistory> statusHistories,
+        List<ReviewRecord> reviewRecords
+    ) {
+        ReviewRecord latestReviewRecord = reviewRecords.stream()
+            .reduce((first, second) -> second)
+            .orElse(null);
+        if (latestReviewRecord != null) {
+            return new TraceEvidence.HumanReviewEvidence(
+                reviewStatus(ticket.getStatus()),
+                latestReviewRecord.getReviewerName(),
+                latestReviewRecord.getDecision(),
+                latestReviewRecord.getReviewComment(),
+                latestReviewRecord.getCreatedAt(),
+                nextAction(ticket.getStatus())
+            );
+        }
         TicketStatusHistory latestHumanAction = statusHistories.stream()
             .filter(history -> isHumanActor(history.getActor()))
             .reduce((first, second) -> second)
@@ -737,6 +821,44 @@ public class TicketWorkflowService {
             .orElse("keyword not persisted");
     }
 
+    private List<String> matchedKeywords(KnowledgeArticle article, SupportTicket ticket) {
+        String ticketText = normalizeForMatch(ticket.getTitle() + " " + ticket.getDescription() + " " + ticket.getErrorLog() + " " + ticket.getSystemName());
+        return Arrays.stream(defaultText(article.getKeywords(), "").split("[,;\\s]+"))
+            .map(String::trim)
+            .filter(keyword -> !keyword.isBlank())
+            .filter(keyword -> ticketText.contains(keyword.toLowerCase(Locale.ROOT)))
+            .distinct()
+            .toList();
+    }
+
+    private String firstPersistedKeyword(String matchedKeywordsSnapshot) {
+        return fromJson(matchedKeywordsSnapshot).stream()
+            .findFirst()
+            .orElse("keyword not persisted");
+    }
+
+    private String legacyErrorCategory(GenerationRecord record) {
+        if (record == null || record.getErrorMessage() == null || record.getErrorMessage().isBlank()) {
+            return "NONE";
+        }
+        if (record.getErrorMessage().startsWith("Provider returned HTTP 401")) {
+            return "AUTHENTICATION_ERROR";
+        }
+        if (record.getErrorMessage().startsWith("Provider returned HTTP 403")) {
+            return "PERMISSION_DENIED";
+        }
+        if (record.getErrorMessage().startsWith("Provider returned HTTP 429")) {
+            return "RATE_LIMITED";
+        }
+        if (record.getErrorMessage().startsWith("Provider returned HTTP 5")) {
+            return "UPSTREAM_5XX";
+        }
+        if (record.getErrorMessage().startsWith("Provider returned HTTP 4")) {
+            return "UPSTREAM_4XX";
+        }
+        return "UNKNOWN_PROVIDER_ERROR";
+    }
+
     private String normalizeForMatch(String value) {
         return defaultText(value, "").toLowerCase(Locale.ROOT);
     }
@@ -750,6 +872,66 @@ public class TicketWorkflowService {
             throw new ResponseStatusException(NOT_FOUND, "AI analysis not found.");
         }
         return analysis;
+    }
+
+    private CopilotRun latestCopilotRun(Long ticketId) {
+        return copilotRunMapper.selectOne(new LambdaQueryWrapper<CopilotRun>()
+            .eq(CopilotRun::getTicketId, ticketId)
+            .orderByDesc(CopilotRun::getStartedAt)
+            .orderByDesc(CopilotRun::getRunId)
+            .last("limit 1"));
+    }
+
+    private String latestRunId(Long ticketId) {
+        CopilotRun run = latestCopilotRun(ticketId);
+        return run == null ? null : run.getRunId();
+    }
+
+    private List<ReviewRecord> reviewRecordsForRun(String runId) {
+        return reviewRecordMapper.selectList(new LambdaQueryWrapper<ReviewRecord>()
+            .eq(ReviewRecord::getRunId, runId)
+            .orderByAsc(ReviewRecord::getCreatedAt)
+            .orderByAsc(ReviewRecord::getId));
+    }
+
+    private TraceEvidence.CopilotRunEvidence toCopilotRunEvidence(CopilotRun run) {
+        if (run == null) {
+            return null;
+        }
+        return new TraceEvidence.CopilotRunEvidence(
+            run.getRunId(),
+            run.getTraceId(),
+            run.getRequestedProvider(),
+            run.getRequestedProtocol(),
+            run.getActualProvider(),
+            run.getActualProtocol(),
+            run.getRunStatus(),
+            Boolean.TRUE.equals(run.getFallbackUsed()),
+            run.getFallbackReasonCode(),
+            run.getErrorCategory(),
+            run.getSanitizedErrorSummary(),
+            run.getStartedAt(),
+            run.getCompletedAt(),
+            run.getTotalLatencyMs(),
+            run.getRetrievalHitCount(),
+            Boolean.TRUE.equals(run.getOutputProduced()),
+            Boolean.TRUE.equals(run.getHumanReviewRequired()),
+            run.getAnalysisId(),
+            run.getGenerationRecordId()
+        );
+    }
+
+    private TraceEvidence.ReviewRecordEvidence toReviewRecordEvidence(ReviewRecord record) {
+        return new TraceEvidence.ReviewRecordEvidence(
+            record.getId(),
+            record.getRunId(),
+            record.getDecision(),
+            record.getReviewerName(),
+            record.getReviewComment(),
+            record.getPreviousStatus(),
+            record.getNewStatus(),
+            record.getCreatedAt()
+        );
     }
 
     private KnowledgeDraft draftFor(Long ticketId) {
@@ -776,6 +958,114 @@ public class TicketWorkflowService {
         return ticket;
     }
 
+    private CopilotRun startCopilotRun(SupportTicket ticket, AiProviderService.ProviderRuntimeSettings settings) {
+        LocalDateTime now = LocalDateTime.now();
+        String suffix = LocalDateTime.now().format(TICKET_NO_FORMATTER)
+            + "-"
+            + Long.toUnsignedString(System.nanoTime(), 36)
+            + "-"
+            + ThreadLocalRandom.current().nextInt(100, 999);
+        CopilotRun run = new CopilotRun();
+        run.setRunId("RUN-" + ticket.getTicketNo() + "-" + suffix);
+        run.setTraceId("TRACE-" + ticket.getTicketNo() + "-" + suffix);
+        run.setTicketId(ticket.getId());
+        run.setRequestedProvider(defaultText(settings.requestedProvider(), "local-rule"));
+        run.setRequestedProtocol(defaultText(settings.requestedProtocol(), "chat-completions"));
+        run.setRequestedModel(defaultText(settings.requestedModel(), "N/A (no LLM)"));
+        run.setActualProvider("PENDING");
+        run.setActualProtocol("PENDING");
+        run.setRunStatus("RUNNING");
+        run.setFallbackUsed(false);
+        run.setErrorCategory("NONE");
+        run.setStartedAt(now);
+        run.setTotalLatencyMs(0L);
+        run.setRetrievalHitCount(0);
+        run.setOutputProduced(false);
+        run.setHumanReviewRequired(true);
+        run.setCreatedAt(now);
+        copilotRunMapper.insert(run);
+        return run;
+    }
+
+    private void completeCopilotRun(
+        CopilotRun run,
+        TicketAiAnalysisEntity analysis,
+        GenerationRecord providerGeneration,
+        AiProviderResult providerResult,
+        int retrievalHitCount,
+        boolean outputProduced,
+        long totalLatencyMs
+    ) {
+        run.setAnalysisId(analysis == null ? null : analysis.getId());
+        run.setGenerationRecordId(providerGeneration == null ? null : providerGeneration.getId());
+        run.setActualProvider(defaultText(providerResult.actualProvider(), "NONE"));
+        run.setActualProtocol(defaultText(providerResult.actualProtocol(), "NONE"));
+        run.setRunStatus(runStatus(providerResult));
+        run.setFallbackUsed(providerResult.fallbackUsed());
+        run.setFallbackReasonCode(providerResult.fallbackReason());
+        run.setErrorCategory(defaultText(providerResult.errorCategory(), "NONE"));
+        run.setSanitizedErrorSummary(summarize(providerResult.errorMessage()));
+        run.setCompletedAt(LocalDateTime.now());
+        run.setTotalLatencyMs(Math.max(0, totalLatencyMs));
+        run.setRetrievalHitCount(retrievalHitCount);
+        run.setOutputProduced(outputProduced);
+        run.setHumanReviewRequired(true);
+        copilotRunMapper.updateById(run);
+    }
+
+    private String runStatus(AiProviderResult providerResult) {
+        if ("SUCCESS".equalsIgnoreCase(defaultText(providerResult.status(), ""))) {
+            return "SUCCESS";
+        }
+        if ("FALLBACK".equalsIgnoreCase(defaultText(providerResult.status(), ""))) {
+            return "SUCCESS_WITH_FALLBACK";
+        }
+        return "FAILED";
+    }
+
+    private void saveRetrievalHits(String runId, SupportTicket ticket, List<KnowledgeMatch> matches) {
+        int rank = 1;
+        LocalDateTime now = LocalDateTime.now();
+        for (KnowledgeMatch match : matches) {
+            KnowledgeArticle article = match.article();
+            RetrievalHit hit = new RetrievalHit();
+            hit.setRunId(runId);
+            hit.setRankOrder(rank++);
+            hit.setKnowledgeArticleId(article.getId());
+            hit.setKnowledgeArticleNo(article.getArticleNo());
+            hit.setKnowledgeTitleSnapshot(article.getTitle());
+            hit.setKnowledgeCategorySnapshot(article.getCategory());
+            hit.setScore(match.relevance());
+            hit.setMatchedKeywordsSnapshot(toJson(matchedKeywords(article, ticket)));
+            hit.setExcerptSnapshot(summarize(article.getContent()));
+            hit.setUsedInDraft(true);
+            hit.setRetrievedAt(now);
+            hit.setCreatedAt(now);
+            retrievalHitMapper.insert(hit);
+        }
+    }
+
+    private void appendReviewRecord(
+        Long ticketId,
+        String runId,
+        String decision,
+        String actor,
+        String comment,
+        String previousStatus,
+        String newStatus
+    ) {
+        ReviewRecord record = new ReviewRecord();
+        record.setRunId(runId);
+        record.setTicketId(ticketId);
+        record.setDecision(defaultText(decision, "STATUS_UPDATED"));
+        record.setReviewerName(defaultText(actor, "Support Desk"));
+        record.setReviewComment(summarize(comment));
+        record.setPreviousStatus(previousStatus);
+        record.setNewStatus(newStatus);
+        record.setCreatedAt(LocalDateTime.now());
+        reviewRecordMapper.insert(record);
+    }
+
     private void appendHistory(Long ticketId, String from, String to, String actor, String note) {
         TicketStatusHistory history = new TicketStatusHistory();
         history.setTicketId(ticketId);
@@ -787,8 +1077,8 @@ public class TicketWorkflowService {
         statusHistoryMapper.insert(history);
     }
 
-    private void saveGeneration(Long businessId, String businessType, String sourceType, String input, String output, long startedAt, String status) {
-        saveGeneration(
+    private GenerationRecord saveGeneration(Long businessId, String businessType, String sourceType, String input, String output, long startedAt, String status) {
+        return saveGeneration(
             businessId,
             businessType,
             sourceType,
@@ -804,8 +1094,8 @@ public class TicketWorkflowService {
         );
     }
 
-    private void saveGeneration(Long businessId, String businessType, AiProviderResult providerResult) {
-        saveGeneration(
+    private GenerationRecord saveGeneration(Long businessId, String businessType, AiProviderResult providerResult) {
+        return saveGeneration(
             businessId,
             businessType,
             providerResult.sourceType(),
@@ -821,7 +1111,7 @@ public class TicketWorkflowService {
         );
     }
 
-    private void saveGeneration(
+    private GenerationRecord saveGeneration(
         Long businessId,
         String businessType,
         String sourceType,
@@ -850,6 +1140,7 @@ public class TicketWorkflowService {
         record.setStatus(status);
         record.setCreatedAt(LocalDateTime.now());
         generationRecordMapper.insert(record);
+        return record;
     }
 
     private String createDraftContent(SupportTicket ticket) {

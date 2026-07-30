@@ -87,3 +87,14 @@
 - 增加独立 Human Review 表，用于记录 reviewer、decision、comment 和 reviewed_at。
 - 在保持人工确认边界的前提下评估真实 Provider 调用或向量检索。
 - 单独处理 Docker Compose，提供 MySQL + 后端本地演示环境。
+
+## 2026-07-30 update: persisted immutable run evidence
+
+Trace Evidence now distinguishes legacy derived trace data from persisted run trace data:
+
+- `evidenceSource=LEGACY_DERIVED`: old tickets without `copilot_run` continue to derive `runId`, `traceId`, RAG score and human review status from existing ticket records.
+- `evidenceSource=IMMUTABLE_RUN`: tickets that have executed `run-copilot` replay the latest persisted `copilot_run`, `retrieval_hit` snapshots and linked `review_record` rows.
+
+The immutable path stores requested Provider/protocol/model separately from actual Provider/protocol, so local fallback runs can be audited without overwriting what the operator requested. Provider failure evidence is stored only as sanitized categories and summaries; raw Provider responses, Authorization headers, API keys and request bodies are not persisted by this feature.
+
+Known limits: generation records remain ticket-scoped for backward compatibility, retrieval remains keyword based, and review records represent human workflow decisions rather than a full production approval system. No Responses API adapter, Citation Validation, vector database, RAG evaluation dataset change, frontend page change or real Provider request was added in this phase.

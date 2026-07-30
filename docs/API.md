@@ -322,3 +322,14 @@
 这个项目中的 Copilot 定位是企业工单辅助处理工作台，核心是规则引擎辅助分类、知识库评分匹配、Provider/fallback 调用记录、模板化建议草稿和人工确认闭环。默认使用 local-rule fallback，是为了降低演示环境依赖、保证规则可解释性和本地运行稳定性；真实 Provider 需要本地临时环境变量和 API Key 才会调用。
 
 如果面试官追问“为什么接口路径里还有 `ai-analysis`”，可以说明：这是早期命名保留的兼容路径；当前文档、README 和前端 UI 已明确校准为规则引擎辅助分析，不把它包装成真实大模型能力。
+
+### 5.7 Immutable run trace fields
+
+For tickets that have executed `POST /api/tickets/{id}/run-copilot`, `GET /api/tickets/{id}/trace-evidence` includes additional backward-compatible fields:
+
+- `evidenceSource`: `IMMUTABLE_RUN` when persisted run evidence exists, otherwise `LEGACY_DERIVED`.
+- `copilotRun`: persisted run metadata including `runId`, `traceId`, requested/actual Provider protocol fields, `runStatus`, fallback reason, provider `errorCategory`, sanitized error summary, latency and linked analysis/generation record ids.
+- `reviewRecords`: append-only review decisions linked to the run.
+- `ragReferences`: for immutable runs, values are replayed from `retrieval_hit` snapshots, so later knowledge-base edits do not change historical trace evidence.
+
+The API continues to avoid returning API keys, Authorization headers, raw Provider request bodies or raw Provider responses.

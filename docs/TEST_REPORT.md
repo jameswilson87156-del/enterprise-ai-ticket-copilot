@@ -141,3 +141,10 @@
 ## 结论
 
 本次本地验证中，后端 `mvn test`、前端 `npm run build` 与前端截图脚本均真实运行并通过。最新后端验证已包含 H2 内存库集成测试、Trace Evidence 接口测试、Provider fallback、RBAC demo 和 Human Review 状态闭环测试，测试结果可以支撑 README 中关于当前自动化测试和前端构建通过的说明，但不代表完整生产级质量保证。
+
+## 2026-07-30 PHASE_3_REAL_RUN_TRACE_FOUNDATION validation
+
+- Backend: `backend/ mvn test` passed. Result: `Tests run: 41, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+- Frontend: `frontend/ npm run build` passed (`vue-tsc` + Vite production build). No frontend source changes were made in this phase.
+- RAG eval: `python scripts/evaluate_rag_demo.py` passed with 16 synthetic cases; metrics remained local demo keyword retrieval/citation-gating metrics.
+- Provider safety: no real Provider smoke was executed in this phase; real Provider requests = 0.

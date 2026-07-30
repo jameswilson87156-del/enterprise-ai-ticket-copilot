@@ -52,6 +52,9 @@ class AiProviderServiceTest {
         assertThat(result.status()).isEqualTo("SUCCESS");
         assertThat(result.sourceType()).isEqualTo("OPENAI_COMPATIBLE");
         assertThat(result.fallbackUsed()).isFalse();
+        assertThat(result.actualProvider()).isEqualTo("openai-compatible");
+        assertThat(result.actualProtocol()).isEqualTo("chat-completions");
+        assertThat(result.errorCategory()).isEqualTo("NONE");
         assertThat(result.content()).contains("OK");
         assertThat(requestCount).hasValue(1);
         assertThat(output).doesNotContain("Authorization").doesNotContain("placeholder-token");
@@ -76,6 +79,8 @@ class AiProviderServiceTest {
 
         assertThat(result.status()).isEqualTo("FALLBACK");
         assertThat(result.fallbackReason()).isEqualTo("PROVIDER_DISABLED");
+        assertThat(result.actualProvider()).isEqualTo("local-rule");
+        assertThat(result.errorCategory()).isEqualTo("CONFIGURATION_ERROR");
         assertThat(result.sourceType()).isEqualTo("LOCAL_RULE_FALLBACK");
         assertThat(requestCount).hasValue(0);
     }
@@ -137,8 +142,47 @@ class AiProviderServiceTest {
 
         assertThat(result.status()).isEqualTo("ERROR");
         assertThat(result.errorMessage()).isEqualTo("Provider returned HTTP 500");
+        assertThat(result.actualProvider()).isEqualTo("openai-compatible");
+        assertThat(result.errorCategory()).isEqualTo("UPSTREAM_5XX");
         assertThat(result.errorMessage()).doesNotContain("placeholder-token");
         assertThat(output).doesNotContain("Authorization").doesNotContain("placeholder-token");
+    }
+
+    @Test
+    void providerHttpErrorsAreClassifiedWithoutResponseBodyLeakage() {
+        server.removeContext("/v1/chat/completions");
+        server.createContext("/v1/chat/completions", exchange -> {
+            requestCount.incrementAndGet();
+            send(exchange, 401, "{\"error\":\"secret upstream detail\"}");
+        });
+
+        AiProviderResult result = service("openai-compatible", "chat-completions", false).complete(
+            ticket(), "SYSTEM_FAILURE", matches(), draft()
+        );
+
+        assertThat(result.status()).isEqualTo("ERROR");
+        assertThat(result.errorCategory()).isEqualTo("AUTHENTICATION_ERROR");
+        assertThat(result.errorMessage()).isEqualTo("Provider returned HTTP 401");
+        assertThat(result.errorMessage()).doesNotContain("secret upstream detail");
+        assertThat(requestCount).hasValue(1);
+    }
+
+    @Test
+    void invalidJsonProviderResponseIsClassifiedAndSanitized() {
+        server.removeContext("/v1/chat/completions");
+        server.createContext("/v1/chat/completions", exchange -> {
+            requestCount.incrementAndGet();
+            send(exchange, 200, "not-json");
+        });
+
+        AiProviderResult result = service("openai-compatible", "chat-completions", false).complete(
+            ticket(), "SYSTEM_FAILURE", matches(), draft()
+        );
+
+        assertThat(result.status()).isEqualTo("ERROR");
+        assertThat(result.errorCategory()).isEqualTo("INVALID_JSON");
+        assertThat(result.errorMessage()).isEqualTo("provider response JSON is invalid.");
+        assertThat(requestCount).hasValue(1);
     }
 
     private AiProviderService service(String provider, String protocol, boolean fallbackToLocal) {

@@ -6,6 +6,7 @@ import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
+import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
 import com.enterpriseai.ticketcopilot.entity.GenerationRecord;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
@@ -13,6 +14,8 @@ import com.enterpriseai.ticketcopilot.entity.TicketAiAnalysisEntity;
 import com.enterpriseai.ticketcopilot.entity.TicketStatusHistory;
 import com.enterpriseai.ticketcopilot.mapper.GenerationRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
+import com.enterpriseai.ticketcopilot.mapper.RetrievalHitMapper;
+import com.enterpriseai.ticketcopilot.mapper.ReviewRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.SupportTicketMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketAiAnalysisMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketStatusHistoryMapper;
@@ -46,6 +49,9 @@ class TicketWorkflowServiceTest {
     @Mock private TicketAiAnalysisMapper analysisMapper;
     @Mock private TicketStatusHistoryMapper statusHistoryMapper;
     @Mock private GenerationRecordMapper generationRecordMapper;
+    @Mock private CopilotRunMapper copilotRunMapper;
+    @Mock private RetrievalHitMapper retrievalHitMapper;
+    @Mock private ReviewRecordMapper reviewRecordMapper;
     @Mock private RuleClassificationService classificationService;
     @Mock private KnowledgeMatchingService knowledgeMatchingService;
     @Mock private RecommendationTemplateService recommendationTemplateService;
@@ -61,6 +67,9 @@ class TicketWorkflowServiceTest {
             analysisMapper,
             statusHistoryMapper,
             generationRecordMapper,
+            copilotRunMapper,
+            retrievalHitMapper,
+            reviewRecordMapper,
             classificationService,
             knowledgeMatchingService,
             recommendationTemplateService,
