@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
+import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -46,7 +46,7 @@ class AiProviderServiceTest {
     @Test
     void chatCompletionsProtocolUsesCurrentAdapterAgainstLocalStubOnly(CapturedOutput output) {
         AiProviderResult result = service("openai-compatible", "chat-completions", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("SUCCESS");
@@ -63,7 +63,7 @@ class AiProviderServiceTest {
     @Test
     void bothProtocolUsesChatCompletionsAdapterAgainstLocalStubOnly() {
         AiProviderResult result = service("openai-compatible", "both", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("SUCCESS");
@@ -74,7 +74,7 @@ class AiProviderServiceTest {
     @Test
     void localRuleNeverCallsProviderEvenWhenConnectionSettingsExist() {
         AiProviderResult result = service("local-rule", "chat-completions", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("FALLBACK");
@@ -88,7 +88,7 @@ class AiProviderServiceTest {
     @Test
     void responsesProtocolFailsClosedWithoutNetworkAndFallsBackLocally() {
         AiProviderResult result = service("openai-compatible", "responses", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("FALLBACK");
@@ -99,7 +99,7 @@ class AiProviderServiceTest {
     @Test
     void unknownProtocolFailsClosedWithoutNetworkAndFallsBackLocally() {
         AiProviderResult result = service("openai-compatible", "unknown-protocol", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("FALLBACK");
@@ -110,7 +110,7 @@ class AiProviderServiceTest {
     @Test
     void unknownProviderFailsClosedWithoutNetworkAndFallsBackLocally() {
         AiProviderResult result = service("unexpected-provider", "chat-completions", true).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("FALLBACK");
@@ -121,7 +121,7 @@ class AiProviderServiceTest {
     @Test
     void fallbackDisabledReturnsSanitizedErrorWithoutLocalFallbackOrNetworkForUnsupportedProtocol() {
         AiProviderResult result = service("openai-compatible", "responses", false).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("ERROR");
@@ -137,7 +137,7 @@ class AiProviderServiceTest {
         server.createContext("/v1/chat/completions", exchange -> send(exchange, 500, "{\"error\":\"failed\"}"));
 
         AiProviderResult result = service("openai-compatible", "chat-completions", false).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("ERROR");
@@ -157,7 +157,7 @@ class AiProviderServiceTest {
         });
 
         AiProviderResult result = service("openai-compatible", "chat-completions", false).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("ERROR");
@@ -176,7 +176,7 @@ class AiProviderServiceTest {
         });
 
         AiProviderResult result = service("openai-compatible", "chat-completions", false).complete(
-            ticket(), "SYSTEM_FAILURE", matches(), draft()
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
         );
 
         assertThat(result.status()).isEqualTo("ERROR");
@@ -220,11 +220,14 @@ class AiProviderServiceTest {
         return ticket;
     }
 
-    private List<KnowledgeMatch> matches() {
-        KnowledgeArticle article = new KnowledgeArticle();
-        article.setArticleNo("KB-UNIT-1");
-        article.setTitle("synthetic knowledge");
-        return List.of(new KnowledgeMatch(article, 99));
+    private List<RetrievalHit> retrievalHits() {
+        RetrievalHit hit = new RetrievalHit();
+        hit.setKnowledgeArticleNo("KB-UNIT-1");
+        hit.setKnowledgeTitleSnapshot("synthetic knowledge");
+        hit.setKnowledgeCategorySnapshot("SYSTEM_FAILURE");
+        hit.setExcerptSnapshot("synthetic excerpt");
+        hit.setScore(99);
+        return List.of(hit);
     }
 
     private RecommendationDraft draft() {

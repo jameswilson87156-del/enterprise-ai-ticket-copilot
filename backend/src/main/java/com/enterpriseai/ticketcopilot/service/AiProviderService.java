@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,31 +41,32 @@ public class AiProviderService {
             .build();
     }
 
-    public AiProviderResult complete(SupportTicket ticket, String classification, List<KnowledgeMatch> matches, RecommendationDraft localDraft) {
+    public AiProviderResult complete(SupportTicket ticket, String classification, List<RetrievalHit> retrievalHits, RecommendationDraft localDraft) {
         long started = System.currentTimeMillis();
         ProviderSettings settings = settings();
-        String promptSummary = promptSummary(ticket, classification, matches, localDraft);
-        String localResponse = localDraft.replySuggestion();
+        List<RetrievalHit> safeHits = retrievalHits == null ? List.of() : retrievalHits;
+        String promptSummary = promptSummary(ticket, classification, safeHits);
+        String localResponseSummary = "structured-output-source=local-rule";
         if (PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName())) {
-            return fallback(settings, started, promptSummary, localResponse, "PROVIDER_DISABLED", null);
+            return fallback(settings, started, promptSummary, localResponseSummary, "PROVIDER_DISABLED", null);
         }
         if (!PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName())) {
-            return providerFailure(settings, started, promptSummary, localResponse, "UNSUPPORTED_PROVIDER_CONFIGURATION", null);
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "UNSUPPORTED_PROVIDER_CONFIGURATION", null);
         }
         if (PROTOCOL_RESPONSES.equalsIgnoreCase(settings.protocol())) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PROTOCOL_NOT_SUPPORTED_BY_CURRENT_ADAPTER", null);
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "PROTOCOL_NOT_SUPPORTED_BY_CURRENT_ADAPTER", null);
         }
         if (!PROTOCOL_CHAT_COMPLETIONS.equalsIgnoreCase(settings.protocol()) && !PROTOCOL_BOTH.equalsIgnoreCase(settings.protocol())) {
-            return providerFailure(settings, started, promptSummary, localResponse, "UNSUPPORTED_PROTOCOL_CONFIGURATION", null);
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "UNSUPPORTED_PROTOCOL_CONFIGURATION", null);
         }
         if (settings.apiKey().isBlank()) {
-            return providerFailure(settings, started, promptSummary, localResponse, "API_KEY_MISSING", null);
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "API_KEY_MISSING", null);
         }
         if (settings.baseUrl().isBlank()) {
-            return providerFailure(settings, started, promptSummary, localResponse, "BASE_URL_MISSING", null);
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "BASE_URL_MISSING", null);
         }
         try {
-            String content = requestProvider(settings, ticket, classification, matches, localDraft);
+            String content = requestProvider(settings, ticket, classification, safeHits);
             return new AiProviderResult(
                 settings.providerName(),
                 settings.modelName(),
@@ -77,21 +79,21 @@ public class AiProviderService {
                 "SUCCESS",
                 null,
                 summarize(promptSummary),
-                summarize(content),
+                "structured-output-received",
                 content,
                 "OPENAI_COMPATIBLE"
             );
         } catch (HttpTimeoutException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "TIMEOUT", "Provider request timed out.");
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "TIMEOUT", "Provider request timed out.");
         } catch (IllegalArgumentException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PARSE_ERROR", safeProviderError(exception));
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "PARSE_ERROR", safeProviderError(exception));
         } catch (IOException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", safeProviderError(exception));
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "PROVIDER_ERROR", safeProviderError(exception));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            return providerFailure(settings, started, promptSummary, localResponse, "TIMEOUT", "Provider request was interrupted.");
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "TIMEOUT", "Provider request was interrupted.");
         } catch (RuntimeException exception) {
-            return providerFailure(settings, started, promptSummary, localResponse, "PROVIDER_ERROR", safeProviderError(exception));
+            return providerFailure(settings, started, promptSummary, localResponseSummary, "PROVIDER_ERROR", safeProviderError(exception));
         }
     }
 
@@ -128,8 +130,8 @@ public class AiProviderService {
             "ERROR",
             summarize(errorMessage),
             summarize(promptSummary),
-            "",
-            "",
+            "structured-output-unavailable",
+            null,
             PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName()) ? "OPENAI_COMPATIBLE" : "LOCAL_RULE_FALLBACK"
         );
     }
@@ -155,7 +157,7 @@ public class AiProviderService {
             summarize(errorMessage),
             summarize(promptSummary),
             summarize(localResponse),
-            localResponse,
+            null,
             "LOCAL_RULE_FALLBACK"
         );
     }
@@ -164,8 +166,7 @@ public class AiProviderService {
         ProviderSettings settings,
         SupportTicket ticket,
         String classification,
-        List<KnowledgeMatch> matches,
-        RecommendationDraft localDraft
+        List<RetrievalHit> retrievalHits
     ) throws IOException, InterruptedException {
         Map<String, Object> body = Map.of(
             "model", settings.modelName(),
@@ -173,11 +174,11 @@ public class AiProviderService {
             "messages", List.of(
                 Map.of(
                     "role", "system",
-                    "content", "You are an internal IT support copilot. Return a concise Chinese review draft. Do not claim an action was executed."
+                    "content", "You are an internal IT support copilot. Return exactly one strict JSON object. Do not wrap it in Markdown. Do not claim an action was executed."
                 ),
                 Map.of(
                     "role", "user",
-                    "content", promptBody(ticket, classification, matches, localDraft)
+                    "content", promptBody(ticket, classification, retrievalHits)
                 )
             )
         );
@@ -322,25 +323,47 @@ public class AiProviderService {
         return "Provider request failed.";
     }
 
-    private String promptSummary(SupportTicket ticket, String classification, List<KnowledgeMatch> matches, RecommendationDraft localDraft) {
+    private String promptSummary(SupportTicket ticket, String classification, List<RetrievalHit> retrievalHits) {
         return "ticket=" + ticket.getTicketNo()
             + "; classification=" + classification
             + "; priority=" + ticket.getUrgency()
-            + "; knowledgeHits=" + matches.stream().map(match -> match.article().getArticleNo()).toList()
-            + "; localDraft=" + localDraft.replySuggestion();
+            + "; retrievalSnapshots=" + retrievalHits.stream().map(RetrievalHit::getKnowledgeArticleNo).toList()
+            + "; outputContract=structured-json";
     }
 
-    private String promptBody(SupportTicket ticket, String classification, List<KnowledgeMatch> matches, RecommendationDraft localDraft) {
+    private String promptBody(SupportTicket ticket, String classification, List<RetrievalHit> retrievalHits) {
+        String evidenceJson;
+        try {
+            evidenceJson = objectMapper.writeValueAsString(retrievalHits.stream()
+                .map(hit -> Map.of(
+                    "knowledgeArticleId", defaultText(hit.getKnowledgeArticleNo(), ""),
+                    "title", defaultText(hit.getKnowledgeTitleSnapshot(), ""),
+                    "category", defaultText(hit.getKnowledgeCategorySnapshot(), ""),
+                    "excerpt", defaultText(hit.getExcerptSnapshot(), ""),
+                    "score", hit.getScore() == null ? 0 : hit.getScore()
+                ))
+                .toList());
+        } catch (JsonProcessingException exception) {
+            evidenceJson = "[]";
+        }
         return """
-            Ticket: %s
-            Title: %s
-            Description: %s
-            System: %s
-            Priority: %s
-            Classification: %s
-            Knowledge references: %s
-            Local draft: %s
-            Required boundary: human review is required before status changes or customer reply.
+            Return a single JSON object with these fields only:
+            answer: string, citations: array, riskLevel: LOW|MEDIUM|HIGH, humanReviewRequired: boolean,
+            missingInformation: array of strings, abstained: boolean, abstentionReasonCode: NONE|NO_RETRIEVAL_EVIDENCE|MISSING_REQUIRED_INFORMATION|INVALID_STRUCTURED_OUTPUT|MISSING_CITATION|INVALID_CITATION|PROVIDER_FAILURE|UNSUPPORTED_PROVIDER|UNSUPPORTED_PROTOCOL|OUTPUT_POLICY_REJECTED.
+            Each citation must be an object with knowledgeArticleId copied exactly from the allowed evidence list.
+            Only cite knowledgeArticleId values from this run's allowed evidence. Do not invent citation IDs. Do not cite URLs or external sources.
+            If the evidence is insufficient, set abstained=true, citations=[], humanReviewRequired=true.
+            Do not use common sense or guesses as knowledge-base evidence. Do not return Markdown code fences.
+            Ticket fields:
+            ticketNo=%s
+            title=%s
+            description=%s
+            systemName=%s
+            urgency=%s
+            classification=%s
+            Allowed evidence snapshots:
+            %s
+            Human review is required before any status change or customer reply.
             """.formatted(
             ticket.getTicketNo(),
             ticket.getTitle(),
@@ -348,8 +371,7 @@ public class AiProviderService {
             ticket.getSystemName(),
             ticket.getUrgency(),
             classification,
-            matches.stream().map(match -> match.article().getTitle()).toList(),
-            localDraft.replySuggestion()
+            evidenceJson
         );
     }
 
@@ -363,6 +385,10 @@ public class AiProviderService {
         }
         String normalized = value.trim();
         return normalized.length() > SUMMARY_LIMIT ? normalized.substring(0, SUMMARY_LIMIT) : normalized;
+    }
+
+    private String defaultText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private record ProviderSettings(

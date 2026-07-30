@@ -1,4 +1,4 @@
-﻿# Enterprise AI Ticket Copilot TODO 路线图
+# Enterprise AI Ticket Copilot TODO 路线图
 
 > 本文件用于后续 Claude / Codex 本地协作交接。每轮只处理一个明确、可验收的小任务；不要把未验证能力写成已完成，也不要把规则引擎包装成真实大模型。
 
@@ -133,3 +133,11 @@
   - 建议 commit message：
 
 - 2026-07-30 已完成后端 Trace Foundation：`run-copilot` 持久化 `copilot_run`、`retrieval_hit`、`review_record`，Trace Evidence 支持 `IMMUTABLE_RUN` 回放并保留 `LEGACY_DERIVED` 兼容路径；本阶段未修改前端、未接入向量检索、未新增 Citation Validation、未发起真实 Provider 请求。
+
+### 2026-07-30 ? Codex ? PHASE_4_STRUCTURED_OUTPUT_CITATION_AND_ABSTENTION
+
+- Added bounded structured Copilot output semantics with answer, citations, risk level, missing information, abstention code, and model/final human review fields.
+- Added current-run Citation ID validation against immutable `retrieval_hit` snapshots and persisted validated citations separately from retrieval references.
+- Added safe abstention for no retrieval evidence, invalid structured output, missing Citation, and invalid Citation; no-retrieval runs skip remote Provider calls.
+- Added `copilot_result` and `copilot_result_citation` schema artifacts plus `V2__structured_output_citation_abstention.sql`; did not modify V1 migration.
+- Added offline parser, citation, review-gate, persistence, and trace tests; real Provider requests remain disabled in automated tests.

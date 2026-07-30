@@ -138,3 +138,13 @@ flowchart TD
 - `review_record`: append-only human review decisions linked to the latest run when one exists; legacy manual status changes before a run may have `run_id = NULL`.
 
 `GET /api/tickets/{id}/trace-evidence` remains backward compatible. Tickets without a persisted run return `evidenceSource=LEGACY_DERIVED`; tickets with a run return `evidenceSource=IMMUTABLE_RUN` and replay RAG references from `retrieval_hit` snapshots instead of recalculating them from the mutable knowledge base. This phase does not add vector retrieval, Citation Validation, frontend changes, external Provider calls, or automated ticket closure.
+
+## Structured Output, Citation Validation and Abstention (2026-07-30)
+
+New Copilot runs now normalize Provider or local-rule output into a structured contract before saving an operator-facing result. The runtime builds Provider prompts from the current run's immutable `retrieval_hit` snapshots only: article number as `knowledgeArticleId`, title snapshot, category snapshot, bounded excerpt snapshot, and score. It does not send full knowledge articles, `errorLog`, external URLs, API keys, Authorization headers, or secrets, and it does not persist the full prompt.
+
+The accepted result is persisted in `copilot_result`; validated Citation relationships are persisted in `copilot_result_citation` and point back to `retrieval_hit`. `RETRIEVAL_REFERENCE`, `MODEL_CITATION`, and `VALIDATED_CITATION` are distinct concepts: validation means the model's Citation ID was in the allowed current-run snapshot set, not that sentence-level factual entailment is complete.
+
+No-evidence runs abstain without remote Provider calls. Provider malformed output, missing Citation, or invalid Citation IDs are converted into safe abstentions and require human review. Final review is determined by model/local-rule recommendation plus system gates: high risk, fallback, abstention, citation failure, structured-output failure, and existing business rules. This phase does not add a Responses API adapter, vector database, Elasticsearch, distributed tracing, automatic approval, or automatic ticket closure.
+
+See `docs/structured-output-and-citation.md` for the detailed contract and safety boundaries.

@@ -1,4 +1,4 @@
-﻿# 测试执行报告
+# 测试执行报告
 
 > 本报告是 Enterprise AI Ticket Copilot 的简历展示版测试证据，用于证明 README 中“测试通过”的描述来自真实命令输出。报告只记录本地自动化测试与构建结果，不表示项目已经生产部署。
 
@@ -148,3 +148,12 @@
 - Frontend: `frontend/ npm run build` passed (`vue-tsc` + Vite production build). No frontend source changes were made in this phase.
 - RAG eval: `python scripts/evaluate_rag_demo.py` passed with 16 synthetic cases; metrics remained local demo keyword retrieval/citation-gating metrics.
 - Provider safety: no real Provider smoke was executed in this phase; real Provider requests = 0.
+
+## 2026-07-30 ? PHASE_4_STRUCTURED_OUTPUT_CITATION_AND_ABSTENTION
+
+- Backend: `mvn test` in `backend/` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0` and `BUILD SUCCESS`.
+- Frontend: `npm.cmd run build` in `frontend/` passed (`vue-tsc` + Vite production build).
+- RAG baseline: existing 16-case evaluation preserved `top_k_hit_rate=100.00%`, `context_recall_at_k=90.00%`, `citation_coverage=100.00%`, `citation_precision=81.11%`, `failed_case_count=6`, `human_review_required_count=15`.
+- Structured decision smoke: 10 offline cases, Valid Citation Rate `100.00%`, Invalid Citation Rejection Rate `100.00%`, No-Evidence Abstention Rate `100.00%`, Unsupported Answer Acceptance Rate `0.00%`, Human Review Gate Recall `100.00%`.
+- H2 migration validation: `V2__structured_output_citation_abstention.sql` applied after the frozen Phase 3 H2 schema and both new tables were queryable.
+- Provider tests used local stubs/mocks only; no real Provider request was made.

@@ -19,6 +19,8 @@ import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
+import com.enterpriseai.ticketcopilot.entity.CopilotResult;
+import com.enterpriseai.ticketcopilot.entity.CopilotResultCitation;
 import com.enterpriseai.ticketcopilot.entity.CopilotRun;
 import com.enterpriseai.ticketcopilot.entity.GenerationRecord;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
@@ -27,6 +29,8 @@ import com.enterpriseai.ticketcopilot.entity.ReviewRecord;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.enterpriseai.ticketcopilot.entity.TicketAiAnalysisEntity;
 import com.enterpriseai.ticketcopilot.entity.TicketStatusHistory;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultCitationMapper;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultMapper;
 import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
 import com.enterpriseai.ticketcopilot.mapper.GenerationRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
@@ -35,6 +39,7 @@ import com.enterpriseai.ticketcopilot.mapper.ReviewRecordMapper;
 import com.enterpriseai.ticketcopilot.mapper.SupportTicketMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketAiAnalysisMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketStatusHistoryMapper;
+import com.enterpriseai.ticketcopilot.model.AbstentionReasonCode;
 import com.enterpriseai.ticketcopilot.model.AiAnalysis;
 import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.KnowledgeHit;
@@ -43,6 +48,14 @@ import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
 import com.enterpriseai.ticketcopilot.model.TimelineEvent;
 import com.enterpriseai.ticketcopilot.model.TraceEvidence;
+import com.enterpriseai.ticketcopilot.model.CitationRejectionReasonCode;
+import com.enterpriseai.ticketcopilot.model.CitationValidationStatus;
+import com.enterpriseai.ticketcopilot.model.OutputValidationStatus;
+import com.enterpriseai.ticketcopilot.model.RiskLevel;
+import com.enterpriseai.ticketcopilot.model.StructuredCitation;
+import com.enterpriseai.ticketcopilot.model.StructuredCopilotOutput;
+import com.enterpriseai.ticketcopilot.model.StructuredOutputEvidence;
+import com.enterpriseai.ticketcopilot.model.ValidatedCitationEvidence;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,12 +88,19 @@ public class TicketWorkflowService {
     private final TicketStatusHistoryMapper statusHistoryMapper;
     private final GenerationRecordMapper generationRecordMapper;
     private final CopilotRunMapper copilotRunMapper;
+    private final CopilotResultMapper copilotResultMapper;
+    private final CopilotResultCitationMapper copilotResultCitationMapper;
     private final RetrievalHitMapper retrievalHitMapper;
     private final ReviewRecordMapper reviewRecordMapper;
     private final RuleClassificationService classificationService;
     private final KnowledgeMatchingService knowledgeMatchingService;
     private final RecommendationTemplateService recommendationTemplateService;
     private final AiProviderService aiProviderService;
+    private final StructuredOutputParser structuredOutputParser;
+    private final CitationValidator citationValidator;
+    private final AbstentionPolicy abstentionPolicy;
+    private final LocalRuleStructuredOutputFactory localRuleStructuredOutputFactory;
+    private final ReviewGate reviewGate;
     private final ObjectMapper objectMapper;
 
     public TicketWorkflowService(
@@ -90,12 +110,19 @@ public class TicketWorkflowService {
         TicketStatusHistoryMapper statusHistoryMapper,
         GenerationRecordMapper generationRecordMapper,
         CopilotRunMapper copilotRunMapper,
+        CopilotResultMapper copilotResultMapper,
+        CopilotResultCitationMapper copilotResultCitationMapper,
         RetrievalHitMapper retrievalHitMapper,
         ReviewRecordMapper reviewRecordMapper,
         RuleClassificationService classificationService,
         KnowledgeMatchingService knowledgeMatchingService,
         RecommendationTemplateService recommendationTemplateService,
         AiProviderService aiProviderService,
+        StructuredOutputParser structuredOutputParser,
+        CitationValidator citationValidator,
+        AbstentionPolicy abstentionPolicy,
+        LocalRuleStructuredOutputFactory localRuleStructuredOutputFactory,
+        ReviewGate reviewGate,
         ObjectMapper objectMapper
     ) {
         this.supportTicketMapper = supportTicketMapper;
@@ -104,12 +131,19 @@ public class TicketWorkflowService {
         this.statusHistoryMapper = statusHistoryMapper;
         this.generationRecordMapper = generationRecordMapper;
         this.copilotRunMapper = copilotRunMapper;
+        this.copilotResultMapper = copilotResultMapper;
+        this.copilotResultCitationMapper = copilotResultCitationMapper;
         this.retrievalHitMapper = retrievalHitMapper;
         this.reviewRecordMapper = reviewRecordMapper;
         this.classificationService = classificationService;
         this.knowledgeMatchingService = knowledgeMatchingService;
         this.recommendationTemplateService = recommendationTemplateService;
         this.aiProviderService = aiProviderService;
+        this.structuredOutputParser = structuredOutputParser;
+        this.citationValidator = citationValidator;
+        this.abstentionPolicy = abstentionPolicy;
+        this.localRuleStructuredOutputFactory = localRuleStructuredOutputFactory;
+        this.reviewGate = reviewGate;
         this.objectMapper = objectMapper;
     }
 
@@ -144,6 +178,8 @@ public class TicketWorkflowService {
             .orderByAsc(TicketStatusHistory::getOccurredAt)
             .orderByAsc(TicketStatusHistory::getId));
         List<ReviewRecord> reviewRecords = persistedRun == null ? List.of() : reviewRecordsForRun(persistedRun.getRunId());
+        CopilotResult structuredResult = persistedRun == null ? null : resultForRun(persistedRun.getRunId());
+        List<CopilotResultCitation> validatedCitations = structuredResult == null ? List.of() : citationsForResult(structuredResult.getId());
         String runId = persistedRun == null ? "RUN-" + ticket.getTicketNo() : persistedRun.getRunId();
         String traceId = persistedRun == null ? "TRACE-" + ticket.getTicketNo() : persistedRun.getTraceId();
         List<TraceEvidence.GenerationRecordEvidence> recordEvidence = generationRecords.stream()
@@ -187,13 +223,17 @@ public class TicketWorkflowService {
             stepTimeline,
             statusEvidence,
             totalLatency,
-            persistedRun == null ? reviewRequired(ticket) : Boolean.TRUE.equals(persistedRun.getHumanReviewRequired()),
-            toAiAnalysisEvidence(analysis, generationRecords, totalLatency, persistedRun),
+            structuredResult == null
+                ? (persistedRun == null ? reviewRequired(ticket) : Boolean.TRUE.equals(persistedRun.getHumanReviewRequired()))
+                : Boolean.TRUE.equals(structuredResult.getFinalHumanReviewRequired()),
+            toAiAnalysisEvidence(analysis, generationRecords, totalLatency, persistedRun, structuredResult, validatedCitations),
             recordEvidence,
             toRagReferences(ticket, analysis, persistedRun, runId),
             toHumanReviewEvidence(ticket, statusHistories, reviewRecords),
-            toCopilotRunEvidence(persistedRun),
+            toCopilotRunEvidence(persistedRun, structuredResult),
             reviewRecords.stream().map(this::toReviewRecordEvidence).toList(),
+            toStructuredOutputEvidence(structuredResult, validatedCitations),
+            toValidatedCitationEvidence(validatedCitations),
             persistedRun == null ? "LEGACY_DERIVED" : "IMMUTABLE_RUN"
         );
     }
@@ -295,21 +335,34 @@ public class TicketWorkflowService {
         started = System.currentTimeMillis();
         List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
         saveGeneration(ticket.getId(), "KNOWLEDGE_MATCH", "KEYWORD_MATCHER", classification.category(), "matched=" + matches.size(), started, "SUCCESS");
-        saveRetrievalHits(run.getRunId(), ticket, matches);
+        List<RetrievalHit> retrievalSnapshots = saveRetrievalHits(run.getRunId(), ticket, matches);
 
         RecommendationDraft localDraft = recommendationTemplateService.generate(ticket, classification.category(), matches);
-        AiProviderResult providerResult = aiProviderService.complete(ticket, classification.category(), matches, localDraft);
+        AiProviderResult providerResult = retrievalSnapshots.isEmpty()
+            ? skippedProviderResult(run, System.currentTimeMillis() - runStarted, "NO_RETRIEVAL_EVIDENCE")
+            : aiProviderService.complete(ticket, classification.category(), retrievalSnapshots, localDraft);
         GenerationRecord providerGeneration = saveGeneration(ticket.getId(), "AI_PROVIDER", providerResult);
 
-        RecommendationDraft finalDraft = new RecommendationDraft(
-            localDraft.troubleshootingSteps(),
-            defaultText(providerResult.content(), localDraft.replySuggestion()),
-            localDraft.riskNotes()
-        );
-        TicketAiAnalysisEntity analysis = saveAnalysis(ticket, classification, matches, finalDraft, providerResult.sourceType());
+        if ("ERROR".equalsIgnoreCase(defaultText(providerResult.status(), "")) && !providerResult.fallbackUsed()) {
+            completeCopilotRun(run, null, providerGeneration, providerResult, retrievalSnapshots.size(), false, true, System.currentTimeMillis() - runStarted);
+            appendHistory(
+                ticket.getId(),
+                ticket.getStatus(),
+                ticket.getStatus(),
+                defaultText(actor, "Support Agent"),
+                "Copilot Provider 未成功完成，未接受任何未经验证的模型输出，等待人工复核。"
+            );
+            return toDetail(ticket);
+        }
+
+        StructuredDecision decision = structuredDecision(ticket, classification.category(), retrievalSnapshots, localDraft, providerResult);
+        RecommendationDraft finalDraft = draftFromStructured(localDraft, decision.output());
+        TicketAiAnalysisEntity analysis = saveAnalysis(ticket, classification, matches, finalDraft, sourceTypeForDecision(providerResult, decision));
+        CopilotResult result = saveCopilotResult(run, analysis, providerGeneration, decision, providerResult.sourceType());
+        saveValidatedCitations(result, decision.citationValidationResult());
 
         String from = ticket.getStatus();
-        String target = requiresReview(ticket, finalDraft) ? STATUS_REVIEW_REQUIRED : STATUS_AI_DRAFTED;
+        String target = decision.finalHumanReviewRequired() ? STATUS_REVIEW_REQUIRED : STATUS_AI_DRAFTED;
         ticket.setCategory(classification.category());
         ticket.setAiConfidence(classification.confidence());
         ticket.setStatus(target);
@@ -320,14 +373,18 @@ public class TicketWorkflowService {
             from,
             target,
             defaultText(actor, "Support Agent"),
-            "Copilot 已生成建议草稿，Provider="
+            "Copilot 已生成结构化建议，Provider="
                 + providerResult.providerName()
                 + "，fallback="
                 + providerResult.fallbackUsed()
                 + (providerResult.fallbackReason() == null ? "" : "，reason=" + providerResult.fallbackReason())
+                + "，citationValidation="
+                + decision.citationValidationResult().status()
+                + "，outputValidation="
+                + decision.outputValidationStatus()
                 + "。等待人工审核。"
         );
-        completeCopilotRun(run, analysis, providerGeneration, providerResult, matches.size(), true, System.currentTimeMillis() - runStarted);
+        completeCopilotRun(run, analysis, providerGeneration, providerResult, retrievalSnapshots.size(), true, decision.finalHumanReviewRequired(), System.currentTimeMillis() - runStarted);
         return toDetail(ticket);
     }
 
@@ -463,6 +520,157 @@ public class TicketWorkflowService {
         return toDetail(ticket);
     }
 
+    private StructuredDecision structuredDecision(
+        SupportTicket ticket,
+        String classification,
+        List<RetrievalHit> retrievalSnapshots,
+        RecommendationDraft localDraft,
+        AiProviderResult providerResult
+    ) {
+        List<RetrievalHit> hits = retrievalSnapshots == null ? List.of() : retrievalSnapshots;
+        if (hits.isEmpty()) {
+            StructuredCopilotOutput output = abstentionPolicy.abstain(AbstentionReasonCode.NO_RETRIEVAL_EVIDENCE);
+            CitationValidationResult citationValidationResult = CitationValidationResult.invalid(
+                CitationValidationStatus.NO_RETRIEVAL_EVIDENCE,
+                0,
+                CitationRejectionReasonCode.NO_RETRIEVAL_EVIDENCE
+            );
+            return new StructuredDecision(output, OutputValidationStatus.NOT_APPLICABLE, citationValidationResult, true);
+        }
+
+        StructuredCopilotOutput candidate;
+        OutputValidationStatus outputValidationStatus;
+        if (providerResult.fallbackUsed() || "local-rule".equalsIgnoreCase(defaultText(providerResult.actualProvider(), ""))) {
+            candidate = localRuleStructuredOutputFactory.create(ticket, classification, hits, localDraft);
+            outputValidationStatus = OutputValidationStatus.VALID;
+        } else {
+            StructuredOutputParseResult parseResult = structuredOutputParser.parse(providerResult.content());
+            outputValidationStatus = parseResult.status();
+            if (!parseResult.valid()) {
+                StructuredCopilotOutput output = abstentionPolicy.abstain(AbstentionReasonCode.INVALID_STRUCTURED_OUTPUT);
+                CitationValidationResult citationValidationResult = CitationValidationResult.notApplicable();
+                boolean finalReview = reviewGate.finalHumanReviewRequired(
+                    output,
+                    providerResult.fallbackUsed(),
+                    citationValidationResult,
+                    outputValidationStatus,
+                    requiresReview(ticket, localDraft)
+                );
+                return new StructuredDecision(output, outputValidationStatus, citationValidationResult, finalReview);
+            }
+            candidate = parseResult.output();
+        }
+
+        CitationValidationResult citationValidationResult = citationValidator.validate(candidate, hits);
+        StructuredCopilotOutput finalOutput = candidate;
+        if (!citationValidationResult.accepted()) {
+            AbstentionReasonCode reasonCode = citationValidationResult.status() == CitationValidationStatus.MISSING_CITATION
+                ? AbstentionReasonCode.MISSING_CITATION
+                : AbstentionReasonCode.INVALID_CITATION;
+            finalOutput = abstentionPolicy.abstain(reasonCode);
+        }
+        boolean finalReview = reviewGate.finalHumanReviewRequired(
+            finalOutput,
+            providerResult.fallbackUsed(),
+            citationValidationResult,
+            outputValidationStatus,
+            requiresReview(ticket, localDraft)
+        );
+        return new StructuredDecision(finalOutput, outputValidationStatus, citationValidationResult, finalReview);
+    }
+
+    private RecommendationDraft draftFromStructured(RecommendationDraft localDraft, StructuredCopilotOutput output) {
+        List<String> riskNotes = new java.util.ArrayList<>(localDraft.riskNotes());
+        riskNotes.add("结构化输出风险等级：" + output.riskLevel());
+        if (output.abstained()) {
+            riskNotes.add("系统安全拒答原因：" + output.abstentionReasonCode());
+        }
+        if (!output.missingInformation().isEmpty()) {
+            riskNotes.add("缺失信息：" + output.missingInformation());
+        }
+        return new RecommendationDraft(
+            localDraft.troubleshootingSteps(),
+            output.answer(),
+            riskNotes
+        );
+    }
+
+    private String sourceTypeForDecision(AiProviderResult providerResult, StructuredDecision decision) {
+        if (decision.output().abstained()) {
+            return "STRUCTURED_ABSTENTION";
+        }
+        return defaultText(providerResult.sourceType(), "LOCAL_RULE_FALLBACK");
+    }
+
+    private CopilotResult saveCopilotResult(
+        CopilotRun run,
+        TicketAiAnalysisEntity analysis,
+        GenerationRecord providerGeneration,
+        StructuredDecision decision,
+        String sourceType
+    ) {
+        CopilotResult result = new CopilotResult();
+        result.setRunId(run.getRunId());
+        result.setAnalysisId(analysis == null ? null : analysis.getId());
+        result.setGenerationRecordId(providerGeneration == null ? null : providerGeneration.getId());
+        result.setAnswer(summarize(decision.output().answer(), StructuredOutputLimits.ANSWER_MAX_LENGTH));
+        result.setAbstained(decision.output().abstained());
+        result.setAbstentionReasonCode(decision.output().abstentionReasonCode().name());
+        result.setRiskLevel(decision.output().riskLevel().name());
+        result.setModelHumanReviewRequired(decision.output().humanReviewRequired());
+        result.setFinalHumanReviewRequired(decision.finalHumanReviewRequired());
+        result.setCitationValidationStatus(decision.citationValidationResult().status().name());
+        result.setCitationRejectionReasonCode(decision.citationValidationResult().rejectionReasonCode().name());
+        result.setValidCitationCount(decision.citationValidationResult().validCitations().size());
+        result.setRejectedCitationCount(decision.citationValidationResult().rejectedCitationCount());
+        result.setOutputValidationStatus(decision.outputValidationStatus().name());
+        result.setMissingInformationJson(summarize(toJson(decision.output().missingInformation()), StructuredOutputLimits.MISSING_INFORMATION_JSON_MAX_LENGTH));
+        result.setSourceType(defaultText(sourceType, "LOCAL_RULE_FALLBACK"));
+        result.setCreatedAt(LocalDateTime.now());
+        copilotResultMapper.insert(result);
+        return result;
+    }
+
+    private void saveValidatedCitations(CopilotResult result, CitationValidationResult citationValidationResult) {
+        if (result == null || citationValidationResult == null || citationValidationResult.validCitations().isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (CitationValidationResult.ValidatedCitation validatedCitation : citationValidationResult.validCitations()) {
+            RetrievalHit hit = validatedCitation.retrievalHit();
+            CopilotResultCitation citation = new CopilotResultCitation();
+            citation.setResultId(result.getId());
+            citation.setRunId(result.getRunId());
+            citation.setRetrievalHitId(hit.getId());
+            citation.setKnowledgeArticleId(hit.getKnowledgeArticleNo());
+            citation.setKnowledgeTitleSnapshot(hit.getKnowledgeTitleSnapshot());
+            citation.setCitationType("VALIDATED_CITATION");
+            citation.setSupportedClaim(summarize(validatedCitation.citation().supportedClaim(), StructuredOutputLimits.CITATION_TEXT_MAX_LENGTH));
+            citation.setEvidenceExcerpt(summarize(defaultText(validatedCitation.citation().evidenceExcerpt(), hit.getExcerptSnapshot()), StructuredOutputLimits.CITATION_TEXT_MAX_LENGTH));
+            citation.setCreatedAt(now);
+            copilotResultCitationMapper.insert(citation);
+        }
+    }
+
+    private AiProviderResult skippedProviderResult(CopilotRun run, long latencyMs, String reasonCode) {
+        return new AiProviderResult(
+            run.getRequestedProvider(),
+            run.getRequestedModel(),
+            false,
+            reasonCode,
+            "NONE",
+            "NONE",
+            "NONE",
+            Math.max(0, latencyMs),
+            "SUCCESS",
+            null,
+            "retrievalHits=0; providerSkipped=true; outputContract=structured-json",
+            "abstention=" + reasonCode,
+            null,
+            "ABSTENTION_POLICY"
+        );
+    }
+
     private TicketAiAnalysisEntity saveAnalysis(
         SupportTicket ticket,
         RuleClassificationResult classification,
@@ -547,6 +755,10 @@ public class TicketWorkflowService {
                 article.getLastVerifiedAt() == null ? "-" : article.getLastVerifiedAt().toLocalDate().toString()
             ))
             .toList();
+        CopilotRun run = latestCopilotRun(ticket.getId());
+        CopilotResult structuredResult = run == null ? null : resultForRun(run.getRunId());
+        List<CopilotResultCitation> validatedCitations = structuredResult == null ? List.of() : citationsForResult(structuredResult.getId());
+        StructuredOutputEvidence structuredOutput = toStructuredOutputEvidence(structuredResult, validatedCitations);
         return new AiAnalysis(
             ticket.getTicketNo(),
             analysis.getClassification(),
@@ -559,7 +771,17 @@ public class TicketWorkflowService {
             hits,
             fromJson(analysis.getTroubleshootingSteps()),
             analysis.getReplySuggestion(),
-            fromJson(analysis.getRiskNotes())
+            fromJson(analysis.getRiskNotes()),
+            structuredOutput,
+            structuredResult != null && Boolean.TRUE.equals(structuredResult.getAbstained()),
+            structuredResult == null ? "UNKNOWN" : defaultText(structuredResult.getAbstentionReasonCode(), "UNKNOWN"),
+            structuredResult == null ? "UNKNOWN" : defaultText(structuredResult.getRiskLevel(), "UNKNOWN"),
+            structuredResult != null && Boolean.TRUE.equals(structuredResult.getModelHumanReviewRequired()),
+            structuredResult == null ? reviewRequired(ticket) : Boolean.TRUE.equals(structuredResult.getFinalHumanReviewRequired()),
+            structuredResult == null ? "NOT_APPLICABLE" : defaultText(structuredResult.getCitationValidationStatus(), "UNKNOWN"),
+            toValidatedCitationEvidence(validatedCitations),
+            structuredResult == null ? List.of() : fromJson(structuredResult.getMissingInformationJson()),
+            structuredResult == null ? "NOT_APPLICABLE" : defaultText(structuredResult.getOutputValidationStatus(), "UNKNOWN")
         );
     }
 
@@ -567,7 +789,9 @@ public class TicketWorkflowService {
         TicketAiAnalysisEntity analysis,
         List<GenerationRecord> records,
         long totalLatency,
-        CopilotRun run
+        CopilotRun run,
+        CopilotResult structuredResult,
+        List<CopilotResultCitation> validatedCitations
     ) {
         GenerationRecord record = analysisRecord(records);
         String status = analysisStatus(records);
@@ -591,7 +815,9 @@ public class TicketWorkflowService {
             run == null ? null : run.getRequestedProtocol(),
             run == null ? recordProviderName(record) : run.getActualProvider(),
             run == null ? null : run.getActualProtocol(),
-            run == null ? legacyErrorCategory(record) : run.getErrorCategory()
+            run == null ? legacyErrorCategory(record) : run.getErrorCategory(),
+            toStructuredOutputEvidence(structuredResult, validatedCitations),
+            toValidatedCitationEvidence(validatedCitations)
         );
     }
 
@@ -882,6 +1108,26 @@ public class TicketWorkflowService {
             .last("limit 1"));
     }
 
+    private CopilotResult resultForRun(String runId) {
+        if (runId == null || runId.isBlank()) {
+            return null;
+        }
+        return copilotResultMapper.selectOne(new LambdaQueryWrapper<CopilotResult>()
+            .eq(CopilotResult::getRunId, runId)
+            .orderByDesc(CopilotResult::getCreatedAt)
+            .orderByDesc(CopilotResult::getId)
+            .last("limit 1"));
+    }
+
+    private List<CopilotResultCitation> citationsForResult(Long resultId) {
+        if (resultId == null) {
+            return List.of();
+        }
+        return copilotResultCitationMapper.selectList(new LambdaQueryWrapper<CopilotResultCitation>()
+            .eq(CopilotResultCitation::getResultId, resultId)
+            .orderByAsc(CopilotResultCitation::getId));
+    }
+
     private String latestRunId(Long ticketId) {
         CopilotRun run = latestCopilotRun(ticketId);
         return run == null ? null : run.getRunId();
@@ -894,7 +1140,51 @@ public class TicketWorkflowService {
             .orderByAsc(ReviewRecord::getId));
     }
 
-    private TraceEvidence.CopilotRunEvidence toCopilotRunEvidence(CopilotRun run) {
+    private StructuredOutputEvidence toStructuredOutputEvidence(CopilotResult result, List<CopilotResultCitation> citations) {
+        if (result == null) {
+            return null;
+        }
+        return new StructuredOutputEvidence(
+            result.getAnswer(),
+            citations.stream()
+                .map(citation -> new StructuredCitation(
+                    citation.getKnowledgeArticleId(),
+                    citation.getSupportedClaim(),
+                    "VALIDATED_CITATION",
+                    citation.getEvidenceExcerpt()
+                ))
+                .toList(),
+            defaultText(result.getRiskLevel(), "UNKNOWN"),
+            Boolean.TRUE.equals(result.getModelHumanReviewRequired()),
+            Boolean.TRUE.equals(result.getFinalHumanReviewRequired()),
+            fromJson(result.getMissingInformationJson()),
+            Boolean.TRUE.equals(result.getAbstained()),
+            defaultText(result.getAbstentionReasonCode(), "UNKNOWN"),
+            defaultText(result.getOutputValidationStatus(), "UNKNOWN"),
+            defaultText(result.getCitationValidationStatus(), "UNKNOWN"),
+            safeInt(result.getValidCitationCount()),
+            safeInt(result.getRejectedCitationCount())
+        );
+    }
+
+    private List<ValidatedCitationEvidence> toValidatedCitationEvidence(List<CopilotResultCitation> citations) {
+        if (citations == null) {
+            return List.of();
+        }
+        return citations.stream()
+            .map(citation -> new ValidatedCitationEvidence(
+                citation.getId(),
+                citation.getRetrievalHitId(),
+                defaultText(citation.getCitationType(), "VALIDATED_CITATION"),
+                citation.getKnowledgeArticleId(),
+                citation.getKnowledgeTitleSnapshot(),
+                citation.getEvidenceExcerpt(),
+                citation.getSupportedClaim()
+            ))
+            .toList();
+    }
+
+    private TraceEvidence.CopilotRunEvidence toCopilotRunEvidence(CopilotRun run, CopilotResult structuredResult) {
         if (run == null) {
             return null;
         }
@@ -917,7 +1207,13 @@ public class TicketWorkflowService {
             Boolean.TRUE.equals(run.getOutputProduced()),
             Boolean.TRUE.equals(run.getHumanReviewRequired()),
             run.getAnalysisId(),
-            run.getGenerationRecordId()
+            run.getGenerationRecordId(),
+            structuredResult == null ? null : structuredResult.getId(),
+            structuredResult == null ? null : structuredResult.getRiskLevel(),
+            structuredResult != null && Boolean.TRUE.equals(structuredResult.getAbstained()),
+            structuredResult == null ? null : structuredResult.getAbstentionReasonCode(),
+            structuredResult == null ? null : structuredResult.getCitationValidationStatus(),
+            structuredResult == null ? null : structuredResult.getOutputValidationStatus()
         );
     }
 
@@ -994,6 +1290,7 @@ public class TicketWorkflowService {
         AiProviderResult providerResult,
         int retrievalHitCount,
         boolean outputProduced,
+        boolean finalHumanReviewRequired,
         long totalLatencyMs
     ) {
         run.setAnalysisId(analysis == null ? null : analysis.getId());
@@ -1009,7 +1306,7 @@ public class TicketWorkflowService {
         run.setTotalLatencyMs(Math.max(0, totalLatencyMs));
         run.setRetrievalHitCount(retrievalHitCount);
         run.setOutputProduced(outputProduced);
-        run.setHumanReviewRequired(true);
+        run.setHumanReviewRequired(finalHumanReviewRequired);
         copilotRunMapper.updateById(run);
     }
 
@@ -1023,7 +1320,8 @@ public class TicketWorkflowService {
         return "FAILED";
     }
 
-    private void saveRetrievalHits(String runId, SupportTicket ticket, List<KnowledgeMatch> matches) {
+    private List<RetrievalHit> saveRetrievalHits(String runId, SupportTicket ticket, List<KnowledgeMatch> matches) {
+        List<RetrievalHit> saved = new java.util.ArrayList<>();
         int rank = 1;
         LocalDateTime now = LocalDateTime.now();
         for (KnowledgeMatch match : matches) {
@@ -1042,7 +1340,9 @@ public class TicketWorkflowService {
             hit.setRetrievedAt(now);
             hit.setCreatedAt(now);
             retrievalHitMapper.insert(hit);
+            saved.add(hit);
         }
+        return saved;
     }
 
     private void appendReviewRecord(
@@ -1216,5 +1516,18 @@ public class TicketWorkflowService {
     private String summarize(String value) {
         String normalized = defaultText(value, "");
         return normalized.length() > 180 ? normalized.substring(0, 180) : normalized;
+    }
+
+    private String summarize(String value, int maxLength) {
+        String normalized = defaultText(value, "");
+        return normalized.length() > maxLength ? normalized.substring(0, maxLength) : normalized;
+    }
+
+    private record StructuredDecision(
+        StructuredCopilotOutput output,
+        OutputValidationStatus outputValidationStatus,
+        CitationValidationResult citationValidationResult,
+        boolean finalHumanReviewRequired
+    ) {
     }
 }

@@ -7,6 +7,8 @@ import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
 import com.enterpriseai.ticketcopilot.mapper.CopilotRunMapper;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultCitationMapper;
+import com.enterpriseai.ticketcopilot.mapper.CopilotResultMapper;
 import com.enterpriseai.ticketcopilot.entity.GenerationRecord;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
@@ -50,6 +52,8 @@ class TicketWorkflowServiceTest {
     @Mock private TicketStatusHistoryMapper statusHistoryMapper;
     @Mock private GenerationRecordMapper generationRecordMapper;
     @Mock private CopilotRunMapper copilotRunMapper;
+    @Mock private CopilotResultMapper copilotResultMapper;
+    @Mock private CopilotResultCitationMapper copilotResultCitationMapper;
     @Mock private RetrievalHitMapper retrievalHitMapper;
     @Mock private ReviewRecordMapper reviewRecordMapper;
     @Mock private RuleClassificationService classificationService;
@@ -68,12 +72,19 @@ class TicketWorkflowServiceTest {
             statusHistoryMapper,
             generationRecordMapper,
             copilotRunMapper,
+            copilotResultMapper,
+            copilotResultCitationMapper,
             retrievalHitMapper,
             reviewRecordMapper,
             classificationService,
             knowledgeMatchingService,
             recommendationTemplateService,
             aiProviderService,
+            new StructuredOutputParser(new ObjectMapper()),
+            new CitationValidator(),
+            new AbstentionPolicy(),
+            new LocalRuleStructuredOutputFactory(new AbstentionPolicy()),
+            new ReviewGate(),
             new ObjectMapper()
         );
     }
