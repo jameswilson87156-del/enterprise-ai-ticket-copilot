@@ -6,7 +6,7 @@ public record StructuredOutputEvidence(
     String answer,
     List<StructuredCitation> citations,
     String riskLevel,
-    boolean modelHumanReviewRequired,
+    Boolean modelHumanReviewRequired,
     boolean finalHumanReviewRequired,
     List<String> missingInformation,
     boolean abstained,

@@ -100,7 +100,7 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
             + "\"humanReviewRequired\":true,"
             + "\"missingInformation\":[],"
             + "\"abstained\":true,"
-            + "\"abstentionReasonCode\":\"MISSING_REQUIRED_INFORMATION\""
+            + "\"abstentionReasonCode\":\"UNSUPPORTED_PROVIDER\""
             + "}");
         String ticketId = createTicket("payment-service returns 500", "Payment service fails after release and returns HTTP 500.").path("id").asText();
 
@@ -119,10 +119,33 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
 
         assertThat(REQUEST_COUNT).hasValue(1);
         assertThat(result.getAbstained()).isTrue();
+        assertThat(result.getAbstentionReasonCode()).isEqualTo("OUTPUT_POLICY_REJECTED");
         assertThat(result.getFinalHumanReviewRequired()).isTrue();
         assertThat(result.getAnswer()).doesNotContain("Restart payment-service", "roll back", "expand capacity");
         assertThat(analysis.getReplySuggestion()).doesNotContain("Restart payment-service", "roll back", "expand capacity");
         assertThat(traceJson).doesNotContain("Restart payment-service", "roll back", "expand capacity");
+    }
+
+    @Test
+    void invalidProviderCitationPreservesModelReviewRecommendationSeparateFromFinalReview() throws Exception {
+        PROVIDER_CONTENT.set(validProviderOutput(
+            "Use a citation that is not in this run.",
+            "KB-FAKE",
+            "model claim",
+            "model excerpt"
+        ));
+        String ticketId = createTicket("payment-service returns 500", "Payment service fails after release and returns HTTP 500.").path("id").asText();
+
+        mockMvc.perform(post("/api/tickets/{id}/run-copilot", ticketId).header("Authorization", token("agent", "agent123")))
+            .andExpect(status().isOk());
+
+        SupportTicket ticket = ticket(ticketId);
+        CopilotResult result = latestResult(ticket.getId());
+
+        assertThat(result.getModelHumanReviewRequired()).isFalse();
+        assertThat(result.getFinalHumanReviewRequired()).isTrue();
+        assertThat(result.getCitationValidationStatus()).isEqualTo("INVALID_CITATION");
+        assertThat(result.getAbstentionReasonCode()).isEqualTo("INVALID_CITATION");
     }
 
     @Test
@@ -169,9 +192,16 @@ class TicketWorkflowStructuredHardeningIntegrationTest {
         CopilotRun run = latestRun(ticket.getId());
         CopilotResult result = latestResult(ticket.getId());
         TicketAiAnalysisEntity analysis = latestAnalysis(ticket.getId());
+        JsonNode trace = objectMapper.readTree(mockMvc.perform(get("/api/tickets/{id}/trace-evidence", ticketId)
+                .header("Authorization", token("agent", "agent123")))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8));
 
         assertThat(REQUEST_COUNT).hasValue(0);
         assertThat(run.getActualProvider()).isEqualTo("NONE");
+        assertThat(trace.path("structuredOutput").path("modelHumanReviewRequired").isNull()).isTrue();
         assertThat(result.getAbstained()).isTrue();
         assertThat(result.getFinalHumanReviewRequired()).isTrue();
         assertThat(analysis.getTroubleshootingSteps()).doesNotContain("重启", "回滚", "扩容", "修改配置", "restart", "rollback", "scale");

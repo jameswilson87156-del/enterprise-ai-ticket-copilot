@@ -17,7 +17,10 @@ CASES = ROOT / "data" / "eval" / "structured_decision_eval_cases.jsonl"
 
 
 def load_cases() -> list[dict]:
-    return [json.loads(line) for line in CASES.read_text(encoding="utf-8").splitlines() if line.strip()]
+    text = CASES.read_text(encoding="utf-8")
+    if "??" in text:
+        raise ValueError("JSONL contains consecutive question-mark placeholder text.")
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def decide(case: dict) -> dict:

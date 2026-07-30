@@ -535,13 +535,15 @@ public class TicketWorkflowService {
                 0,
                 CitationRejectionReasonCode.NO_RETRIEVAL_EVIDENCE
             );
-            return new StructuredDecision(output, OutputValidationStatus.NOT_APPLICABLE, citationValidationResult, true);
+            return new StructuredDecision(output, OutputValidationStatus.NOT_APPLICABLE, citationValidationResult, null, true);
         }
 
         StructuredCopilotOutput candidate;
+        Boolean modelHumanReviewRequired;
         OutputValidationStatus outputValidationStatus;
         if (providerResult.fallbackUsed() || "local-rule".equalsIgnoreCase(defaultText(providerResult.actualProvider(), ""))) {
             candidate = localRuleStructuredOutputFactory.create(ticket, classification, hits, localDraft);
+            modelHumanReviewRequired = candidate.humanReviewRequired();
             outputValidationStatus = OutputValidationStatus.VALID;
         } else {
             StructuredOutputParseResult parseResult = structuredOutputParser.parse(providerResult.content());
@@ -556,16 +558,17 @@ public class TicketWorkflowService {
                     outputValidationStatus,
                     requiresReview(ticket, localDraft)
                 );
-                return new StructuredDecision(output, outputValidationStatus, citationValidationResult, finalReview);
+                return new StructuredDecision(output, outputValidationStatus, citationValidationResult, null, finalReview);
             }
             candidate = parseResult.output();
+            modelHumanReviewRequired = candidate.humanReviewRequired();
         }
 
         CitationValidationResult citationValidationResult = citationValidator.validate(candidate, hits);
         StructuredCopilotOutput finalOutput = candidate;
         if (candidate.abstained()) {
             AbstentionReasonCode reasonCode = citationValidationResult.accepted()
-                ? safeProviderAbstentionReason(candidate.abstentionReasonCode())
+                ? providerDeclaredAbstentionReason()
                 : AbstentionReasonCode.OUTPUT_POLICY_REJECTED;
             finalOutput = abstentionPolicy.abstain(reasonCode);
         } else if (!citationValidationResult.accepted()) {
@@ -581,7 +584,7 @@ public class TicketWorkflowService {
             outputValidationStatus,
             requiresReview(ticket, localDraft)
         );
-        return new StructuredDecision(finalOutput, outputValidationStatus, citationValidationResult, finalReview);
+        return new StructuredDecision(finalOutput, outputValidationStatus, citationValidationResult, modelHumanReviewRequired, finalReview);
     }
 
     private RecommendationDraft draftFromStructured(RecommendationDraft localDraft, StructuredCopilotOutput output) {
@@ -603,11 +606,8 @@ public class TicketWorkflowService {
         );
     }
 
-    private AbstentionReasonCode safeProviderAbstentionReason(AbstentionReasonCode reasonCode) {
-        if (reasonCode == null || reasonCode == AbstentionReasonCode.NONE) {
-            return AbstentionReasonCode.OUTPUT_POLICY_REJECTED;
-        }
-        return reasonCode;
+    private AbstentionReasonCode providerDeclaredAbstentionReason() {
+        return AbstentionReasonCode.OUTPUT_POLICY_REJECTED;
     }
 
     private String sourceTypeForDecision(AiProviderResult providerResult, StructuredDecision decision) {
@@ -632,7 +632,7 @@ public class TicketWorkflowService {
         result.setAbstained(decision.output().abstained());
         result.setAbstentionReasonCode(decision.output().abstentionReasonCode().name());
         result.setRiskLevel(decision.output().riskLevel().name());
-        result.setModelHumanReviewRequired(decision.output().humanReviewRequired());
+        result.setModelHumanReviewRequired(decision.modelHumanReviewRequired());
         result.setFinalHumanReviewRequired(decision.finalHumanReviewRequired());
         result.setCitationValidationStatus(decision.citationValidationResult().status().name());
         result.setCitationRejectionReasonCode(decision.citationValidationResult().rejectionReasonCode().name());
@@ -1170,7 +1170,7 @@ public class TicketWorkflowService {
                 ))
                 .toList(),
             defaultText(result.getRiskLevel(), "UNKNOWN"),
-            Boolean.TRUE.equals(result.getModelHumanReviewRequired()),
+            modelHumanReviewForEvidence(result),
             Boolean.TRUE.equals(result.getFinalHumanReviewRequired()),
             fromJson(result.getMissingInformationJson()),
             Boolean.TRUE.equals(result.getAbstained()),
@@ -1197,6 +1197,22 @@ public class TicketWorkflowService {
                 citation.getSupportedClaim()
             ))
             .toList();
+    }
+
+    private Boolean modelHumanReviewForEvidence(CopilotResult result) {
+        if (result == null) {
+            return null;
+        }
+        boolean noModelOutput = OutputValidationStatus.NOT_APPLICABLE.name().equals(result.getOutputValidationStatus())
+            && CitationValidationStatus.NO_RETRIEVAL_EVIDENCE.name().equals(result.getCitationValidationStatus());
+        boolean invalidStructuredOutput = OutputValidationStatus.INVALID_JSON.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.EMPTY_RESPONSE.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.MISSING_FIELD.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.INVALID_FIELD_TYPE.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.INVALID_ENUM.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.LIMIT_EXCEEDED.name().equals(result.getOutputValidationStatus())
+            || OutputValidationStatus.MULTIPLE_JSON_OBJECTS.name().equals(result.getOutputValidationStatus());
+        return noModelOutput || invalidStructuredOutput ? null : result.getModelHumanReviewRequired();
     }
 
     private TraceEvidence.CopilotRunEvidence toCopilotRunEvidence(CopilotRun run, CopilotResult structuredResult) {
@@ -1550,6 +1566,7 @@ public class TicketWorkflowService {
         StructuredCopilotOutput output,
         OutputValidationStatus outputValidationStatus,
         CitationValidationResult citationValidationResult,
+        Boolean modelHumanReviewRequired,
         boolean finalHumanReviewRequired
     ) {
     }
