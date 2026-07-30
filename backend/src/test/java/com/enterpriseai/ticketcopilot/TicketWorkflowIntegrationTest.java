@@ -25,7 +25,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@org.springframework.test.context.TestPropertySource(properties = "ticket.ai.provider=openai-compatible")
+@org.springframework.test.context.TestPropertySource(properties = {
+    "ticket.ai.provider=openai-compatible",
+    "ticket.ai.protocol=chat-completions",
+    "ticket.ai.base-url=",
+    "ticket.ai.model=test-model",
+    "ticket.ai.api-key=",
+    "ticket.ai.fallback-to-local=true"
+})
 @Sql(scripts = "/schema-h2.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class TicketWorkflowIntegrationTest {
 
@@ -131,7 +138,7 @@ class TicketWorkflowIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.currentStep").value("HUMAN_REVIEW_REQUIRED"))
             .andExpect(jsonPath("$.aiAnalysis.providerName").value("openai-compatible"))
-            .andExpect(jsonPath("$.aiAnalysis.modelName").value("gpt-4o-mini"))
+            .andExpect(jsonPath("$.aiAnalysis.modelName").value("test-model"))
             .andExpect(jsonPath("$.aiAnalysis.fallbackUsed").value(true))
             .andExpect(jsonPath("$.aiAnalysis.fallbackReason").value("API_KEY_MISSING"))
             .andExpect(jsonPath("$.aiAnalysis.status").value("FALLBACK"))

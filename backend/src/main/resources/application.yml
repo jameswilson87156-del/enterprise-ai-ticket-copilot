@@ -4,11 +4,12 @@ spring:
 
 ticket:
   ai:
-    provider: ${TICKET_AI_PROVIDER:local-rule}
-    base-url: ${TICKET_AI_BASE_URL:}
-    model: ${TICKET_AI_MODEL:gpt-4o-mini}
-    api-key: ${TICKET_AI_API_KEY:}
-    fallback-to-local: ${TICKET_AI_FALLBACK_TO_LOCAL:true}
+    provider: ${TICKET_AI_PROVIDER:${PORTFOLIO_AI_PROVIDER:local-rule}}
+    base-url: ${TICKET_AI_BASE_URL:${PORTFOLIO_AI_BASE_URL:}}
+    model: ${TICKET_AI_MODEL:${PORTFOLIO_AI_MODEL:gpt-5.5}}
+    api-key: ${TICKET_AI_API_KEY:${PORTFOLIO_AI_API_KEY:}}
+    protocol: ${TICKET_AI_PROTOCOL:${PORTFOLIO_AI_PROTOCOL:chat-completions}}
+    fallback-to-local: ${TICKET_AI_FALLBACK_TO_LOCAL:${PORTFOLIO_AI_FALLBACK_ENABLED:true}}
   auth:
     jwt-signing-key: ${TICKET_AUTH_JWT_SIGNING_KEY:demo-rbac-signing-key-change-before-production}
 
