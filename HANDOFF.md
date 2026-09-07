@@ -1,5 +1,11 @@
 # Claude / Codex 交接记录
 
+## 2026-09-07 — GITHUB_RELEASE_BRANCH_CI
+
+- `release/ticket-copilot-local-20260907` 已推送到 GitHub；远端分支指向候选记录提交 `15fdb72`。
+- CI run `34137336376` 已全部通过：Backend tests、Frontend build（含生产依赖审计）和 Staging Compose configuration 均为成功。Actions 的 Node 20/setup-java 迁移提示属于平台告警，不影响本次结果。
+- `origin/main` 仍未修改；候选代码相对远端 `main` 为 ahead 1 / behind 1，尚未合并到 `main`，也没有 staging、DNS、证书、云资源或数据库操作。
+
 ## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
 
 - 已在独立分支 `release/ticket-copilot-local-20260907` 形成本地候选提交 `fd8102b119c80e3aed6e2b0707cebbe845d9875e`（`release: assemble ticket copilot staging candidate`）。提交包含后端/前端源码、测试、部署 Compose/Caddy/Nginx 模板、文档和不含真实凭据的 staging `.env.example`；真实 `.env`、构建产物与临时文件未纳入且未删除。

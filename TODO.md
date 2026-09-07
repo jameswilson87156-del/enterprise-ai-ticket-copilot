@@ -1,9 +1,14 @@
 # Enterprise AI Ticket Copilot TODO 路线图
 
+## 2026-09-07 — GITHUB_RELEASE_BRANCH_CI
+
+- [x] `LOCAL_PASS`：release 分支已推送；CI run `34137336376` 的后端测试、前端构建/生产依赖审计和 staging Compose 三个作业全部通过。
+- [ ] `BLOCKED`：候选代码相对 `origin/main` ahead 1 / behind 1；GitHub `main` 尚未合并，需单独审阅后再做合并决定。
+
 ## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
 
 - [x] `LOCAL_PASS`：在 `release/ticket-copilot-local-20260907` 形成候选提交 `fd8102b119c80e3aed6e2b0707cebbe845d9875e`；后端/前端源码、测试、部署模板、文档和安全 staging `.env.example` 已纳入，真实 `.env`、构建产物和临时文件未纳入且保留。
-- [ ] `BLOCKED`：候选代码提交与 `origin/main` 的 ahead 1 / behind 1 差异需在推送前单独审阅；未执行 push、merge、云资源、DNS、证书、数据库或公网 staging。
+- [ ] `BLOCKED`：候选代码提交与 `origin/main` 的 ahead 1 / behind 1 差异需在合并前单独审阅；未执行 merge、云资源、DNS、证书、数据库或公网 staging。
 
 ## 2026-09-07 — RELEASE_CANDIDATE_LOCAL_REAUDIT
 
