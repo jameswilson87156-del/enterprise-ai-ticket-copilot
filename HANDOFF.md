@@ -1,10 +1,16 @@
 # Claude / Codex 交接记录
 
+## 2026-09-08 — GITHUB_MAIN_MERGE
+
+- 已按授权将 `release/ticket-copilot-local-20260907` 以非快进合并提交 `731380e` 推送到本项目自己的 `origin/main`；远端 `main` 已从 `6c1a8ae` 更新到 `731380e`。
+- 合并前 release CI run `34138286007` 的后端测试、前端构建/生产依赖审计和 staging Compose 三个作业全部通过；合并后本地后端 `mvn -B test` 为 291 tests、0 failures、0 errors、0 skipped，前端 `npm.cmd test` 为 6/6，`npm.cmd run typecheck` 与 `npm.cmd run build` 均成功。
+- 本次只完成 GitHub 代码合并，没有购买或启动云资源，没有改 DNS/证书，没有连接公网 staging，也没有删除或覆盖工作区文件；当前 staging 仍为 `STAGING_PENDING`。
+
 ## 2026-09-07 — GITHUB_RELEASE_BRANCH_CI
 
 - `release/ticket-copilot-local-20260907` 已推送到 GitHub；远端分支指向候选记录提交 `15fdb72`。
 - CI run `34137336376` 已全部通过：Backend tests、Frontend build（含生产依赖审计）和 Staging Compose configuration 均为成功。Actions 的 Node 20/setup-java 迁移提示属于平台告警，不影响本次结果。
-- `origin/main` 仍未修改；候选代码相对远端 `main` 为 ahead 1 / behind 1，尚未合并到 `main`，也没有 staging、DNS、证书、云资源或数据库操作。
+- （历史记录）当时 `origin/main` 尚未修改；候选代码提交相对远端 `main` 为 ahead 1 / behind 1，尚未合并到 `main`。
 
 ## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
 

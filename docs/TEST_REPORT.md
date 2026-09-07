@@ -2,6 +2,13 @@
 
 > 本报告是 Enterprise AI Ticket Copilot 的简历展示版测试证据，用于证明 README 中“测试通过”的描述来自真实命令输出。报告只记录本地自动化测试与构建结果，不表示项目已经生产部署。
 
+## 追加验证记录：2026-09-08 GITHUB_MAIN_MERGE
+
+- 合并提交：`731380e`，`release/ticket-copilot-local-20260907` 已按授权推送到本项目自己的 `origin/main`；GitHub 远端 `main` 已确认指向该提交。
+- 后端：在 `backend/` 执行 `mvn -B test`，结果为 `Tests run: 291, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 前端：在 `frontend/` 执行 `npm.cmd test`，6/6 通过；`npm.cmd run typecheck` 通过；`npm.cmd run build` 完成 Vue 类型检查和 Vite 生产构建。
+- 发布边界：本次只完成 GitHub 代码合并；没有云资源、DNS、证书、数据库、公网 staging 或数据删除操作，staging 继续记为 `STAGING_PENDING`。
+
 ## 基本信息
 
 - 测试时间：2026-06-21 23:23:08 +08:00

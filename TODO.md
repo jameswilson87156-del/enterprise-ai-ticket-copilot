@@ -1,9 +1,15 @@
 # Enterprise AI Ticket Copilot TODO 路线图
 
+## 2026-09-08 — GITHUB_MAIN_MERGE
+
+- [x] `LOCAL_PASS`：`release/ticket-copilot-local-20260907` 已按授权以合并提交 `731380e` 推送到本项目自己的 `origin/main`；远端 `main` 已确认指向该提交。
+- [x] `LOCAL_PASS`：合并前 release CI run `34138286007` 的三个作业全部通过；合并后后端 291/291、前端测试 6/6、类型检查与生产构建均通过。
+- [ ] `STAGING_PENDING`：云端 staging、DNS、证书、真实 OIDC/Secret、Redis/MySQL 生产连接和备份恢复仍未验收。
+
 ## 2026-09-07 — GITHUB_RELEASE_BRANCH_CI
 
 - [x] `LOCAL_PASS`：release 分支已推送；CI run `34137336376` 的后端测试、前端构建/生产依赖审计和 staging Compose 三个作业全部通过。
-- [ ] `BLOCKED`：候选代码相对 `origin/main` ahead 1 / behind 1；GitHub `main` 尚未合并，需单独审阅后再做合并决定。
+- （历史记录）当时候选代码相对 `origin/main` ahead 1 / behind 1；GitHub `main` 尚未合并。
 
 ## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
 
