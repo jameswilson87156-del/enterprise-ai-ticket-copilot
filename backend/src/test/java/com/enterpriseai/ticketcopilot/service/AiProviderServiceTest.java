@@ -76,6 +76,19 @@ class AiProviderServiceTest {
     }
 
     @Test
+    void deepSeekAliasUsesTheOpenAiCompatibleAdapterAndPreservesTraceIdentity() {
+        AiProviderResult result = service("deepseek", "chat-completions", false).complete(
+            ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
+        );
+
+        assertThat(result.status()).isEqualTo("SUCCESS");
+        assertThat(result.sourceType()).isEqualTo("OPENAI_COMPATIBLE");
+        assertThat(result.actualProvider()).isEqualTo("deepseek");
+        assertThat(result.actualProtocol()).isEqualTo("chat-completions");
+        assertThat(requestCount).hasValue(1);
+    }
+
+    @Test
     void localRuleNeverCallsProviderEvenWhenConnectionSettingsExist() {
         AiProviderResult result = service("local-rule", "chat-completions", true).complete(
             ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()

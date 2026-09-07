@@ -1,0 +1,96 @@
+/* Product craft layer: shared shell + focused workbench. See docs/design/FRONTEND_CRAFT.md. */
+:root {
+  --app-canvas:#fafbfc; --app-sidebar:#f2f4f6; --app-panel:#fff;
+  --app-line:#e3e7eb; --app-line-strong:#c9d0d8; --app-text:#202830;
+  --app-text-soft:#52606e; --app-muted:#63717f;
+  --app-blue:#3654a4; --app-blue-strong:#293f80; --app-blue-soft:#eef1fa;
+  --app-shadow:none; --app-radius:8px;
+}
+.app-shell { grid-template-columns:208px minmax(0,1fr); }
+.app-sidebar { width:208px; padding:24px 12px 18px; background:var(--app-sidebar); }
+.app-sidebar__brand { padding:10px 4px 28px; gap:9px; }
+.app-sidebar__brand .brand-mark { width:30px; height:30px; }
+.app-sidebar__brand strong { font-size:12px; }
+.app-sidebar__nav { gap:4px; }
+.app-sidebar__nav-item { min-height:40px; padding:9px 11px; border-radius:6px; }
+.app-sidebar__nav-copy small { display:none; }
+.app-sidebar__nav-copy strong { font-size:13px; font-weight:550; }
+.app-sidebar__nav-item--active { background:#e6eaf3; box-shadow:none; }
+.app-sidebar__nav-item--active::before { display:none; }
+.workspace-card { background:transparent; box-shadow:none; }
+.app-main__content { padding:24px; }
+.page-header h1 { font-size:27px; font-weight:650; letter-spacing:-.025em; }
+.page-eyebrow { color:var(--app-muted); font-weight:500; }
+.surface { box-shadow:none; }
+.workbench-page { gap:16px; }
+.workbench-page .page-header { padding-bottom:18px; }
+.workbench-page .workbench-layout { grid-template-columns:250px minmax(300px,1fr) 320px; gap:0; align-items:stretch; border:1px solid var(--app-line); border-radius:9px; overflow:hidden; background:#fff; }
+.workbench-page .workbench-surface { border:0; border-radius:0; box-shadow:none; }
+.workbench-page #ticket-queue { background:#fafbfc; border-right:1px solid var(--app-line); }
+.workbench-page .panel-header { padding:16px; }
+.workbench-page .panel-header__eyebrow { display:none; }
+.workbench-page .queue-toolbar { padding:0 12px 12px; }
+.workbench-page .queue-list-modern { padding:0; gap:0; }
+.workbench-page .queue-item { display:block; width:100%; margin:0; padding:16px 14px; border:0; border-bottom:1px solid var(--app-line); border-radius:0; background:transparent; box-shadow:none; }
+.workbench-page .queue-item--active { background:#edf1f8; box-shadow:inset 3px 0 var(--app-blue); }
+.workbench-page .queue-item__body > strong { font-size:13px; font-weight:600; line-height:1.6; }
+.workbench-page .queue-item__rail { display:none; }
+.workbench-page .queue-item__meta, .workbench-page .queue-item__bottom { font-size:11px; }
+.workbench-page .ticket-context__header { padding:22px; }
+.workbench-page .ticket-context__header h2 { font-size:21px; line-height:1.55; font-weight:650; }
+.workbench-page .ticket-context__meta-grid { margin:0; padding:0 22px 20px; gap:16px; background:transparent; border-bottom:1px solid var(--app-line); }
+.workbench-page .metadata-cell { background:transparent; border:0; padding:0; }
+.workbench-page .metadata-cell strong { font-size:12px; font-weight:500; }
+.workbench-page .ticket-story { padding:22px; }
+.workbench-page .story-block p { font-size:13px; line-height:1.9; }
+.workbench-page .story-block pre { border-radius:5px; font-size:11px; background:#f6f7f9; }
+.workbench-page .copilot-rail { position:static; align-self:stretch; display:block; border:0; border-left:1px solid var(--app-line); border-radius:0; padding:0; background:#fcfcfe; }
+.workbench-page .copilot-rail__header { padding:17px; border-bottom:1px solid var(--app-line); }
+.workbench-page .copilot-rail__header h2 { font-size:14px; font-weight:650; }
+.workbench-page .copilot-rail__header p { font-size:11px; }
+.workbench-page .copilot-card { border:0; border-bottom:1px solid var(--app-line); border-radius:0; margin:0; padding:17px; box-shadow:none; background:transparent; }
+.workbench-page .copilot-card--decision { background:#f2f4fb; }
+.workbench-page .copilot-card__copy { font-size:12px; line-height:1.8; }
+.workbench-page .copilot-decision__headline h3 { font-size:18px; }
+.workbench-page .copilot-decision__confidence { font-size:23px; }
+.workbench-page .copilot-decision__run-note { display:none; }
+.workbench-page .signal-grid { gap:10px; }
+.workbench-page .signal-card { padding:0; border:0; background:transparent; }
+.workbench-page .signal-card strong { font-size:18px; }
+.workbench-page .signal-card small { display:none; }
+.workbench-page .copilot-card--risk { background:#fffaf0; }
+.workbench-page .form-control, .workbench-page .filter-select, .workbench-page .search-input { font-size:12px; }
+.workbench-page .decision-actions .button { font-size:12px; }
+.workbench-evidence { border:1px solid var(--app-line); border-radius:8px; background:#fff; }
+.workbench-evidence > summary { cursor:pointer; padding:16px 20px; font-size:13px; font-weight:600; }
+.workbench-evidence > summary small { margin-left:18px; color:var(--app-muted); font-weight:400; }
+.workbench-evidence > article { border:0; border-top:1px solid var(--app-line); border-radius:0; }
+.ticket-create-dialog { width:min(620px,calc(100vw - 32px)); max-height:calc(100dvh - 48px); margin:auto; padding:0; border:1px solid var(--app-line); border-radius:12px; color:var(--app-text); background:#fff; box-shadow:0 24px 80px #17213230; }
+.ticket-create-dialog::backdrop { background:#17213265; }
+.ticket-create-dialog__heading { display:flex; align-items:center; justify-content:space-between; padding:22px; border-bottom:1px solid var(--app-line); }
+.ticket-create-dialog__heading h2 { margin:5px 0 0; font-size:22px; }
+.ticket-create-dialog__heading small { color:var(--app-muted); }
+.ticket-create-dialog .form-panel { border:0; }
+.ticket-create-dialog .form-layout { padding:22px; }
+.ticket-create-dialog input, .ticket-create-dialog textarea { font-size:14px; }
+@media(min-width:1280px) {
+ .workbench-page .workbench-layout { height:calc(100dvh - 250px); min-height:600px; max-height:900px; }
+ .workbench-page .workbench-layout > * { min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#c5cdd7 transparent; }
+}
+@media(min-width:760px) and (max-width:1279px) {
+ .workbench-page .workbench-layout { grid-template-columns:240px minmax(0,1fr); }
+ .workbench-page .copilot-rail { grid-column:1/-1; border-left:0; border-top:1px solid var(--app-line); }
+}
+@media(max-width:759px) {
+ .app-shell { display:block; }
+ .app-sidebar { width:100%; padding:14px; height:auto; }
+ .app-sidebar__brand { padding-bottom:12px; }
+ .app-main__content { padding:18px 14px 32px; }
+ .workbench-page .workbench-layout { display:block; }
+ .workbench-page #ticket-queue { max-height:390px; overflow:auto; border-right:0; border-bottom:1px solid var(--app-line); }
+ .workbench-page .copilot-rail { border-left:0; border-top:1px solid var(--app-line); }
+ .workbench-page .ticket-context__header, .workbench-page .ticket-story { padding:18px; }
+ .workbench-evidence > summary small { display:block; margin:8px 0 0; }
+ .ticket-create-dialog .form-grid { grid-template-columns:1fr; }
+}
+@media(prefers-reduced-motion:reduce) { .workbench-page * { scroll-behavior:auto; transition:none; } }

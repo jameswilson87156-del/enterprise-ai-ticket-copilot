@@ -1,6 +1,58 @@
 # Claude / Codex 交接记录
 
+## 2026-09-07 — GITHUB_RELEASE_BRANCH_CI
+
+- `release/ticket-copilot-local-20260907` 已推送到 GitHub；远端分支指向候选记录提交 `15fdb72`。
+- CI run `34137336376` 已全部通过：Backend tests、Frontend build（含生产依赖审计）和 Staging Compose configuration 均为成功。Actions 的 Node 20/setup-java 迁移提示属于平台告警，不影响本次结果。
+- `origin/main` 仍未修改；候选代码相对远端 `main` 为 ahead 1 / behind 1，尚未合并到 `main`，也没有 staging、DNS、证书、云资源或数据库操作。
+
+## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
+
+- 已在独立分支 `release/ticket-copilot-local-20260907` 形成本地候选提交 `fd8102b119c80e3aed6e2b0707cebbe845d9875e`（`release: assemble ticket copilot staging candidate`）。提交包含后端/前端源码、测试、部署 Compose/Caddy/Nginx 模板、文档和不含真实凭据的 staging `.env.example`；真实 `.env`、构建产物与临时文件未纳入且未删除。
+- 该提交只代表本地发布候选：没有 `git push`、没有合并远端 `main`、没有 Docker up/down、云资源、DNS、证书、数据库或公网操作。候选代码提交相对 `origin/main` 为 ahead 1 / behind 1；随后仅增加了本条记录，推送前仍需单独审阅远端差异并取得明确授权。
+- 候选提交基于本轮 `LOCAL_PASS` 结果；云端资源/Secret/OIDC/RDS/DNS/ICP/TLS 与公网 staging 仍为 `BLOCKED`/`STAGING_PENDING`。
+
+## 2026-09-07 — RELEASE_CANDIDATE_LOCAL_REAUDIT
+
+- 本次只做本地发布前复验；工作区原有修改和未跟踪文件均保留，没有执行 commit、push、Docker up/down、DNS、证书、云资源或数据库操作。
+- 后端 `mvn -B test package` 结果为 289/289、0 failures/errors/skipped，Spring Boot JAR repackage 成功；测试使用项目 test profile 和隔离 H2，不连接云端 MySQL 或工单数据。
+- 前端没有独立 npm test script；`npm.cmd run typecheck` 和 `npm.cmd run build` 均成功（Vite 68 modules）。生产依赖 `npm.cmd audit --omit=dev --audit-level=high --json` 为 0 high/critical vulnerabilities。
+- staging Compose 普通/TLS `config -q` 均退出 0；`.env.example` 被环境守卫按预期拒绝占位值，审计 fixture 正向通过。`git diff --check` 退出 0，仅有既存 PowerShell LF/CRLF 提示。
+- 当前本地验收：`LOCAL_PASS`（后端、前端 typecheck/build、Compose、隔离守卫）；阿里云主机、RDS、OIDC、DeepSeek Secret、DNS/ICP/TLS 和公网 staging 仍 `BLOCKED`/`STAGING_PENDING`。本地 `main` 比 `origin/main` 落后 1 个提交，工作区有 58 个已跟踪状态条目和 44 个未跟踪状态条目；尚未形成可推送 release commit。
+
+
+## 2026-09-05 — STAGING_PHASE_A_AUDIT
+
+- 当前总状态BLOCKED；最新`backend/mvn -B test package`为289/289，0失败/错误/跳过，前端typecheck/production build及npm生产审计、配置守卫、schema-only MySQL、Compose普通/TLS静态校验为LOCAL_PASS；云端STAGING_PENDING。
+- 已完成本地整改：移除Demo SQL和本地 MySQL 挂载，加入 schema-only 版本化基线与 checksum/备份流程，改为显式 RDS 私网配置，递归排除构建上下文 Secret，并让 staging/production 缺失数据库 URL 时快速失败；没有执行云端 SQL 或公网部署。
+- 本地工单API Key仅做存在性分类，未输出值、未新调用Provider；不借用电商数据或验收。阿里云控制台跳转登录页，资源/ICP/证书BLOCKED。
+- 独立报告：[STAGING_AUDIT_PLAN_20260905](docs/release/STAGING_AUDIT_PLAN_20260905.md)。日志：D:/workhome/deployment-audit-20260905-1800/ticket-*。PRD.md实际缺失，未编造；保留既有修改，无购买/DNS/证书/公网部署/提交/推送。旧历史中的未实现OIDC、84条测试等不代表当前审计版本。
+- 本轮整改复验汇总：`D:/workhome/deployment-remediation-20260905/REMEDIATION_RESULTS.md`；源码/产物哈希清单已同步到 `D:/workhome/deployment-audit-20260905-1800/`。
+- 用户提供的阿里云截图显示华东1（杭州）轻量应用服务器 `OpenClaw-astw` 与 `wzl8.top`“已备案”；两者仅作为只读候选证据，未确认主机可占用、未修改 DNS、未启动项目。
+- 2026-09-06 Workbench 只读检查显示主机 Docker 24.0.9 active、约 1.0 GiB 可用内存，80/443 已被现有服务占用，且有长期运行的 `searxng` 容器；主机作为两个项目 staging 目标为 BLOCKED，不停止或覆盖现有 OpenClaw/SearXNG 服务。
+
 使用规则：每轮把新记录追加在"历史记录"顶部，不覆盖旧记录。没有证据时不要写"测试通过"。
+
+## 2026-09-05 — PHASE_2_REAL_DEEPSEEK_SYNTHETIC
+
+- 已用 GitHub/官方文档调研得到的 Provider 边界、结构化输出和可观测性原则，补充 `scripts/local/verify-deepseek-synthetic.ps1`；脚本只接受本地未跟踪环境文件，把 API Key 注入临时 Spring Boot 进程，不写入前端、源码、日志或证据。
+- 企业工单真实 DeepSeek 合成验收通过：`provider=deepseek`、`model=deepseek-chat`、`run=SUCCESS`、`fallbackUsed=false`、1 条 validated citation、结构化输出/Citation membership `VALID`，Reviewer 后 `RESOLVED`。
+- 脱敏证据：`docs/evidence/deepseek-synthetic-smoke-20260905.md`。临时端口已释放，临时日志未发现 Provider Key。
+- Phase 2 只证明两个项目的真实 Provider 成功路径；真实 IdP、staging 失败矩阵、云端备份恢复、DNS/TLS、监控和公网部署仍未完成。
+
+## 2026-09-05 — PHASE_1_LOCAL_ACCEPTANCE
+
+- 本地 Phase 1 已收口：后端 `mvn -B test` 为 289/289，前端构建通过，新增 `scripts/local/verify-http-smoke.ps1` 的 H2 HTTP smoke 通过创建 → Copilot → Trace → Reviewer Approve，最终 `RESOLVED`。
+- 这条脚本使用 test profile、test classpath 和文件型 H2 schema，日志写入系统临时目录；临时 Java 进程按独立端口启动并在 finally 中清理。
+- 双项目总路线见 [PROJECT_COMPLETION_ROADMAP_20260905.md](../PROJECT_COMPLETION_ROADMAP_20260905.md)。Phase 2 真实 Provider、Phase 3 真实 IdP 和后续阿里云部署仍是未验收边界。
+
+## 2026-09-05 — FRONTEND_CRAFT
+
+- 根据用户要求继续两项目的前端精修，工单限定为现有工作台与共享外壳，没有重构后端或更改认证/Provider。
+- 新增 frontend/src/craft.css，main.ts 导入；工作台新增原生创建 dialog，完整证据和审核历史折叠；取消预填已核对证据的审核备注，默认表单改为中文合成样例。
+- 已修复截图检查发现的队列内容挤窄问题。前端 npm run build 通过（含 vue-tsc，68 modules）。跨项目脚本 D:/workhome/frontend-craft-qa.cjs 最终 53 组页面/状态通过；工单 Demo 创建、Copilot、批准、历史、Escape 和焦点恢复断言通过。
+- 设计规范见 docs/design/FRONTEND_CRAFT.md，主设计文档已指向该补充规范；详细验收见 D:/workhome/frontend-craft-20260905/验收报告.md。
+- 保留全部既有未提交修改；未读/输出密钥、未调用真实模型、未启动数据库、未 commit/push/deploy。5295 工单 Demo 开发服务供本地查看；不是公网部署。
 
 ---
 
@@ -15,6 +67,189 @@
 - 文档：旧 `real-provider-synthetic-smoke-20260730.md` 标为 Historical / Superseded；当前能力指向 `real-structured-output-smoke-20260730.*`。README、resume evidence、trace evidence、TEST_REPORT、TODO 同步区分 fixture self-check、Java runtime verification、demo sample 与真实只读 replay。
 - 实际验证：`backend/mvn test` 通过（86 tests）；`frontend/npm test` 通过（6 tests）；`frontend/npm run build` 通过；两个 Python fixture 脚本通过。`evaluate_structured_decision_demo.py` 明确输出 `fixturePolicySelfCheck=true`、`JAVA_IMPLEMENTATION_EXECUTED=false`，不是模型质量或 Provider benchmark。
 - 当前边界：keyword retrieval + current-run citation ID gating + immutable run + controlled synthetic Provider smoke；不是向量检索、句子级 entailment、生产 SLA、真实企业数据效果、模型准确率或分布式 Trace。
+
+### 2026-09-04 — Codex — REAL_DEEPSEEK_ISOLATED_PROVIDER_SMOKE
+
+- 本机未跟踪的 `deploy/staging/.env` 已按 DeepSeek OpenAI-compatible 配置完成；密钥只在子进程运行时环境中使用，未读取到对话、日志、源码、文档或 Git 状态中。
+- 先执行一条最小、全合成的 Chat Completions 请求：DeepSeek 返回 HTTP `200`，返回内容可解析为严格 JSON，且具备项目结构化输出合同所需字段。
+- 再启动临时 Spring Boot `test` profile + H2 内存库，以 `KB-OPS-003` 作为测试知识证据，完整走 Demo 登录 → 创建合成工单 → `run-copilot` → Trace → Reviewer Approve。实际结果为：`requestedProvider=deepseek`、`actualProvider=deepseek`、`runStatus=SUCCESS`、`fallbackUsed=false`、`errorCategory=NONE`、1 条 retrieval snapshot、`VALID` structured output、`VALID` Citation membership、1 条 validated citation；审核后状态为 `RESOLVED`，review history 含 `APPROVED_RESOLUTION`。
+- 临时进程和 28180 端口均已关闭/释放；没有修改 MySQL、Docker、域名、DNS、云主机或公网部署。详细且不含密钥/原文的证据见 `docs/evidence/deepseek-isolated-smoke-20260904.md`。
+- 验证基线：后端全量 `mvn -B test` 为 289/289，0 failures/errors/skipped；此前前端 type-check/production build、production dependency audit 与 Compose 静态校验均已通过。仍未验证真实 IdP token、公网 HTTPS/DNS、真实 MySQL 迁移、备份/监控、多副本共享限流或生产数据质量；没有 commit、push 或 deploy。
+
+### 2026-09-04 — Codex — SECURITY_HARDENING_AND_RELEASE_GATES
+
+- 企业工单已补齐 staging/production 启动守卫：OIDC issuer、数据库账号、支持的 Provider、Provider base/model/key 均为必填，且 `TICKET_AI_FALLBACK_TO_LOCAL=true` 会直接阻止不安全启动；public profile 不会静默回退到 Demo 或 local-rule。
+- Copilot 运行路由增加按已认证用户的进程内限流（默认 `6 / 60s`），耗尽时返回 `429`、`Retry-After` 和标准 rate-limit headers。多副本 Alibaba Cloud 部署仍必须在网关/WAF 或 Redis 再加一层共享限流，不能把本地内存限流宣称为分布式防护。
+- staging/production 已关闭 SpringDoc/Swagger；Nginx 增加 CSP、`nosniff`、禁止 frame/object、Referrer/Permissions Policy，Caddy TLS profile 增加 HSTS。没有新增真实密钥或公开数据库端口。
+- 前端 production dependency audit 已为 0 vulnerabilities，CI 新增 `npm audit --omit=dev --audit-level=high` 和 staging Compose interpolation gate。
+- 验证：`backend/mvn test` 为 288/288（0 failures/errors/skipped）；`frontend/npm run build`、`npm audit --offline --omit=dev --audit-level=high`、`docker compose ... config -q` 均通过。没有真实 IdP/Provider 成功响应、云/SSH 凭据、commit、push 或 deploy。
+
+## 当前交接更新
+
+### 2026-09-04 — Codex — REAL_AUTH_PROVIDER_DEPLOYMENT_PREPARATION
+
+- 在保留工作区原有未提交修改的前提下，补齐企业工单的可选 OIDC/JWT Resource Server：OIDC 模式使用 issuer discovery/JWKS 验证 bearer token，支持可选 audience 校验和角色映射；Demo 模式继续保留本地测试链路。Staging/production profile 已选择 OIDC，未配置 issuer 时不会静默回到 Demo。
+- 前端增加 Authorization Code + PKCE 适配和企业登录控件；AI API Key 只通过后端运行时环境变量注入，未进入浏览器配置、源码或截图。
+- 新增 `deploy/staging/` 的 MySQL、Java API、Nginx edge 和可选 Caddy TLS 部署骨架，新增 [真实认证、Provider 与部署说明](docs/REAL_AUTH_PROVIDER_DEPLOYMENT.md)。该骨架已通过 `docker compose --env-file deploy/staging/.env.example -f deploy/staging/docker-compose.yml config -q` 静态校验，但没有启动 Docker 服务或公网部署。
+- 企业工单后端全量回归：283/283 通过，0 failures、0 errors、0 skipped；前端 type-check 与 production build 通过。
+- 本机共享 OpenAI-compatible Provider 验证返回 HTTP 403，因此不能记录为真实模型成功；没有真实 IdP token、云/SSH 凭据或公网发布权限。没有执行 reset、checkout、clean、commit、push 或 deploy。
+
+## 当前交接更新
+
+### 2026-09-04 — Codex — PHASE_0-A_TICKET_WORKFLOW_STATE_AND_WRITE_AUTHORIZATION
+
+- 本轮只实施企业工单 Phase 0-A；保留工作区原有未提交修改，没有执行 `reset`、`checkout`、`clean`、commit、push 或 deploy，没有修改 CommerceFlow、电商/前端视觉、真实 Provider、OIDC/OAuth2、公网 DNS/证书、Outbox/队列/Worker 或数据库 schema。
+- 前置检查已执行：`git status --short`、`git diff --stat`、`git diff --check`；已阅读 `AGENTS.md`、当前 `README.md`、`HANDOFF.md`、`TODO.md`、`docs/TEST_REPORT.md`、`docs/architecture.md`、`docs/DESIGN.md` 及本轮指定后端源码/测试。`docs/PRD.md` 文件缺失，未编造 PRD。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/ticket/application/policy/TicketStatusTransitionPolicy.java`：集中约束初始分类、Copilot 首次运行/重跑、审核通过/要求修改/驳回、四条既有合法手工状态边、知识草稿和知识发布；所有没有现有代码、架构说明或 Showcase 流程依据的已知状态边拒绝为 409。保留 `PENDING_PROCESS -> RESOLVED` 与 `RESOLVED -> IN_PROGRESS`，没有为了收敛矩阵而破坏现有流程。
+- `TicketWorkflowService` 的 `updateStatus`、`applyReviewDecision`、`runCopilot` 状态变化、`createKnowledgeDraft`、`confirmKnowledgeDraft` 和 `publishDraft` 均调用集中策略。已发布知识确认继续幂等且不追加虚假历史；同一 Copilot Run 的审核决策不可重复；没有当前 Run 不能审核；Copilot 解决的工单在知识沉淀前必须有完成审核。
+- 状态持久化增加 `support_ticket.id + expected status` 条件更新。竞争更新影响行数不是 1 时返回 409；事务边界保证失败请求不会留下状态历史、审核记录或知识发布副作用。条件更新同时保存 Copilot 更新后的 `category` 和 `ai_confidence`，避免回归旧成功路径。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/ticket/application/policy/TicketAuthorizationPolicy.java`：集中定义 ADMIN、AGENT、REVIEWER、VIEWER 对创建工单、手工状态、Copilot、三种审核、创建草稿、确认/发布知识的权限。`confirm=true` 按发布权限校验；匿名写请求由现有拦截器返回 401，角色不足返回 403。`TicketController` 不再复制散落角色判断，读接口的现有认证边界保持不变。
+- 新增 `backend/src/test/java/com/enterpriseai/ticketcopilot/TicketWorkflowPhase0AIntegrationTest.java`：59 个参数化/集成用例从真实 Demo 登录、拦截器、Controller 走到 H2，覆盖五类身份、所有写入口、HTTP 错误码、ticket/history/review/run/analysis/generation/knowledge 前后快照、非法转移和重复操作。
+- 新增状态策略与授权策略单测；`TicketWorkflowServiceTest` 增加条件更新丢失竞争时的 409 断言，并更新知识发布 mock；已有的 `TicketModuleBoundaryTest` 因 Controller 合法增加授权策略依赖而同步边界预期，未删除或跳过原测试。
+- 新增 `docs/design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md`，并同步 `docs/API.md`、`docs/architecture.md`、`TODO.md`；API 文档补充 401/403/409 语义，状态与授权说明明确当前字符串状态合同、合法边、拒绝策略、权限矩阵、条件更新和 Demo/生产认证边界。
+- 验证：受影响测试集 `mvn -B '-Dtest=TicketWorkflowServiceTest,TicketWorkflowPhase0AIntegrationTest' test` 为 66/66；后端全量 `mvn -B test` 为 282/282，0 failures、0 errors、0 skipped，`BUILD SUCCESS`。中间首次全量因边界测试仍期待旧的单构造器依赖而失败，更新必要边界预期后已重新全量通过；首次服务单测遇到 MyBatis-Plus Lambda cache 的纯 Mockito 环境问题，改为字段名明确的 `UpdateWrapper` 后受影响集通过。
+- 前端验证：`frontend/npm run build` 通过，包含 `vue-tsc`，Vite `63 modules transformed`；当前 `frontend/package.json` 没有 `test` script，因此没有执行不存在的 `npm test`。本轮没有修改前端源码或截图。
+- 认证边界：当前仍是四个硬编码 Demo 用户 + 自定义 HMAC-SHA256 Bearer token，不能称为生产级认证/RBAC；OIDC/OAuth2、JWK/JWKS、issuer/audience、租户隔离、生产密钥托管和资源级 RBAC 均未实现。未接入真实 GPT/DeepSeek、未公网部署、未执行任何外部账号/发布操作。
+
+### 2026-09-03 — Codex — PHASE_9G frontend release acceptance
+
+- 本轮完成 `PHASE_9G` 前端发布验收，并补了一个由静态无障碍检查发现的语义修复：`TicketWorkbenchShowcaseView.vue` 的工单字段和 `HumanReviewShowcaseView.vue` 的复核意见框现在都有明确的 `label` / `id` 关联。
+- 本轮未执行 `git reset`、`git checkout`、清理用户文件、commit、push 或 deploy；没有修改工单后端、数据库迁移、Provider、真实密钥或 `docs/metrics/`。
+- 工单前端：`npm run typecheck` 通过；`npm run build` 通过，`vue-tsc -b --pretty false` 通过，Vite 完成 `63 modules transformed`。`SCREENSHOT_URL=http://127.0.0.1:5190 npm run screenshots` 通过，8 个目标页面的标准、大屏、移动截图已生成到 `docs/images/`、`docs/images/large/` 和 `docs/images/mobile/`。
+- 工单后端回归：`backend/ mvn test` 通过，`84 tests, 0 failures, 0 errors, 0 skipped`，`BUILD SUCCESS`。本轮没有新增后端实现。
+- 电商自动化回归：Admin `npm test` 为 45/45，H5 `npm test` 为 35/35，Java `mvnw.cmd -f apps/mall-api/pom.xml test` 为 53/53，Python `py -3 -m pytest` 为 11/11；Admin/H5 `npm run build`、H5 `npm run build:uni` 均通过。
+- 电商运行验收：`scripts/showcase/verify.ps1 -IncludeMobile -IncludeOrderSmoke -IncludeRateLimitSmoke` 通过；订单幂等回放返回同一订单号、冲突返回 409，限流验证为 `allowed=5 blocked=1`，最终输出 `SHOWCASE_VERIFY_OK`。
+- 电商浏览器验收：H5 在 390/768/1024/1440 宽度均无横向溢出、破图数为 0；搜索“托特”、分类筛选和价格排序可用。Admin 在同样宽度下无横向溢出、破图数为 0；AI 客服真实调用本地 Java API，返回库存回答、`MOCK` Provider 边界、证据和 Trace 信息，没有伪装成真实外部模型。
+- 工单浏览器证据：此前 PHASE_9D 已完成 Demo 工单运行 → Approve → “已解决” → `APPROVED_RESOLUTION` 历史记录；此前隔离 H2 真实 API smoke 已验证 health、创建工单、无检索证据安全拒答、复核和状态闭环。本轮重新生成截图并在表单语义修复后复核构建；没有把当前截图验收写成真实 Provider 成功调用。
+- 静态无障碍检查：修复前为 7 critical / 63 serious / 27 moderate，修复后为 `0 critical / 63 serious / 25 moderate`。剩余项主要是对独立 Vue 子组件运行启发式扫描时产生的 `main`、skip link、`h1`、`nav` 页面壳提示；实际 App 壳已有 skip link、`main#main-content` 和页面级 h1。本项目没有完整 axe/Lighthouse 持续测试套件，因此不宣称完整 WCAG 合规。
+- 后端下一阶段已新增设计文档 `docs/design/BACKEND_NEXT_PHASE_DESIGN.md`，内容覆盖接口版本、身份/RBAC、知识检索、Provider SPI、不可变运行记录、可靠性和 staging 路线；它是下一阶段设计，不代表这些生产能力已经实现。
+- 交接边界：当前本地前端、Demo 链路和已有隔离真实 API 链路达到展示/求职验收门槛；真实 DeepSeek/OpenAI/GPT Provider、公网 DNS/HTTPS、生产 MySQL、域名部署和监控仍需后续配置真实凭据与环境，不能在没有用户提供这些外部条件时伪造“已上线”。
+
+### 2026-09-03 — Codex — BACKEND-T1-MODULE-BOUNDARIES
+
+- 本轮只完成后端第一条模块边界纵向切片；保留工作区已有修改，没有执行 reset、checkout、clean、commit、push 或 deploy，没有新增生产依赖、数据库迁移、Provider、真实密钥或公网配置。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/ticket/application/port/in/TicketWorkflowUseCase.java`，把当前 TicketController 使用的工单、Copilot、Trace、复核和知识草稿用例收敛到入站应用端口。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/ticket/application/LegacyTicketWorkflowFacade.java` 作为过渡适配器；`TicketController` 现在依赖入站端口，不直接依赖旧 `TicketWorkflowService`。旧工作流实现、DTO、数据库字段和 `/api/...` 路径保持不变。
+- 新增 `backend/src/test/java/com/enterpriseai/ticketcopilot/ticket/TicketModuleBoundaryTest.java`，验证 Controller 依赖方向和入站端口不泄漏 Entity、Mapper、旧 Service 类型。
+- 新增 `docs/design/BACKEND_T1_MODULE_BOUNDARIES.md`，同步 `TODO.md`、`docs/TEST_REPORT.md` 与 `docs/architecture.md`。
+- 验证：在 `backend/` 执行 `mvn test`，实际 `Tests run: 92, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。由于仓库没有 `mvnw.cmd`，本轮使用已安装 Maven CLI。
+- 下一轮只进入 `BACKEND-T2-WORKFLOW-PORTS`，抽出一个最小策略/只读端口并继续用结构测试保护边界；完整包迁移、真实身份/RBAC、Provider、Outbox、生产 MySQL 和公网部署仍未完成。
+
+### 2026-09-03 — Codex — BACKEND-T2-WORKFLOW-PORTS
+
+- 本轮只完成工作流策略端口切片；保留工作区已有修改，没有执行 reset、checkout、clean、commit、push 或 deploy，没有新增生产依赖、数据库迁移、Provider、真实密钥或公网配置。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/ticket/application/port/out/ReviewPolicy.java`。端口只使用结构化 Copilot 输出、Citation/结构化校验状态和业务复核标志，不暴露旧 Service、Entity 或 Mapper 类型。
+- `TicketWorkflowService` 现在依赖 `ReviewPolicy`；`ReviewGate` 实现该端口。旧的 `finalHumanReviewRequired(... CitationValidationResult ...)` 保留为兼容包装，新工作流调用 `requiresHumanReview(...)`。
+- 新增 `backend/src/test/java/com/enterpriseai/ticketcopilot/ticket/WorkflowPortBoundaryTest.java`，验证工作流不直接依赖 `ReviewGate`，端口签名不泄漏 legacy/persistence 类型，且 Spring 当前策略实现可赋值给端口。
+- 新增 `docs/design/BACKEND_T2_WORKFLOW_PORTS.md`，同步 `TODO.md`、`docs/TEST_REPORT.md` 与 `docs/architecture.md`。企业工单 T0-T2 当前实现状态已记录为完成；完整模块迁移和生产化能力仍未完成。
+- 验证：在 `backend/` 执行 `mvn test`，实际 `Tests run: 94, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+- 企业工单下一步不再继续混入本轮：按总路线转入电商后端独立 `E0`，或另立真实 Provider/认证/Outbox/部署任务；本轮没有声称这些能力已实现。
+
+### 2026-09-03 — Codex — BACKEND-T0-API-CONTRACT-FREEZE
+
+- 本轮只完成后端 T0 契约冻结，保留工作区已有修改；没有执行 reset、checkout、clean、commit、push 或 deploy，没有新增生产依赖、数据库迁移、Provider、真实密钥或公网配置。
+- 新增 `backend/src/main/java/com/enterpriseai/ticketcopilot/contract/TicketStatusContract.java`，将现有状态字符串、完整状态词汇和通用人工状态接口的目标白名单集中为不可变合同；`TicketWorkflowService` 保留原有公开常量并改为引用合同，避免破坏现有调用方。
+- 新增 `backend/src/test/java/com/enterpriseai/ticketcopilot/api/ApiRouteContractTest.java`，通过 Controller 注解反射固定 `/api/auth`、`/api/health`、`/api/tickets` 的旧路径和 HTTP 方法；新增 `backend/src/test/java/com/enterpriseai/ticketcopilot/contract/TicketStatusContractTest.java` 覆盖状态词汇、内部 intake 状态和未知值边界。
+- 新增 `docs/design/BACKEND_T0_API_CONTRACT.md`，记录兼容 API、状态合同、Copilot/Trace/Review 不变量和 `/api/v1` 只作为后续迁移目标的边界；`docs/API.md` 与 `docs/architecture.md` 已链接该合同。
+- 验证：在 `backend/` 执行 `mvn test`，实际 `Tests run: 90, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。新增 6 个测试（2 个 API 路径合同、4 个状态合同）与原有测试一起通过。
+- 本轮没有实现完整状态转移矩阵、模块包迁移、真实身份/RBAC、真实 Provider、异步 job/Outbox 或 `/api/v1` 实际切换；下一轮只做 `BACKEND-T1-MODULE-BOUNDARIES`，继续以本轮合同测试作为回归门槛。
+
+### 2026-09-03 — Codex — PHASE_9F legacy reference audit
+
+- 本轮只完成 `PHASE_9F`，保留工作区已有未提交修改，没有执行 reset、checkout、clean、commit、push 或 deploy；没有修改 backend、数据库、Provider、评测数据或真实密钥。
+- 新增 `docs/design/LEGACY_COMPONENT_REFERENCE_MAP.md`，通过源码引用结果区分当前壳层/UI 共享组件与 7 个当前 Showcase 路由未引用的 Legacy 业务组件。
+- 当前页面已确认统一使用 `AppSidebar` / `AppTopbar` / `NavIcon` / `BrandMark` 与 `PageHeader` / `PanelHeader` / `StatusBadge` / `EmptyState` / `ErrorState` / `LoadingState`。Legacy 组件没有直接删除，因为旧 props、emit、数据 shape 与现有 `useTicketRealFlow()` 不兼容，且仍可能被历史入口或截图脚本依赖。
+- CSS 债务沿用 9C 结果：静态 inline 样式改为语义 class，运行时百分比进度条保留；Evaluation 的局部 scoped CSS 使用全局 token 映射。
+- 验证：引用清单通过 `rg` 复核；`frontend/npm run typecheck`、`frontend/npm run build` 通过。下一阶段是 `PHASE_9G` 前端发布验收；静态 a11y 候选仍不等同于完整 axe / Lighthouse 审计。
+
+### 2026-09-03 — Codex — PHASE_9E language and progressive disclosure
+
+- 本轮只完成 `PHASE_9E`，保留工作区已有未提交修改，没有执行 reset、checkout、clean、commit、push 或 deploy；没有修改 backend、数据库、Provider、Demo fixture、评测数据或真实密钥。
+- Workbench、Human Review、Knowledge Base、Retrieval Evidence、Trace Timeline、Dashboard 的用户面文案和 aria label 改为中文优先；Trace、Provider、Citation、fallback 等需要保留的技术词放在中文解释之后或低频审计字段中。
+- Human Review 的主要动作改为“批准 · Approve / 要求修改 · Request changes / 驳回 · Reject”，确认提示与必填原因提示同步更新，但提交给 flow 的 decision 枚举保持不变。
+- Knowledge / Retrieval 文案明确区分知识命中、检索参考、已校验引用和 Citation membership validation；Workbench 的 runId / traceId / Provider 等低频字段继续通过 `details` 渐进展示。
+- 验证：`frontend/npm run typecheck`、`frontend/npm run build` 通过。下一阶段是 `PHASE_9F` Legacy 组件与样式债务盘点；静态 a11y 候选仍不等同于完整 axe / Lighthouse 审计。
+
+### 2026-09-03 — Codex — PHASE_9D mobile workflow
+
+- 本轮只完成 `PHASE_9D`，保留工作区已有未提交修改，没有执行 reset、checkout、clean、commit、push 或 deploy；没有修改 backend、数据库、Provider、评测数据或真实密钥。
+- `frontend/src/views/TicketWorkbenchShowcaseView.vue` 在 760px 以下增加队列、工单、建议与证据、复核四步当前页内导航；点击通过 `scrollIntoView` 定位，不会把应用级 hash 路由误切到 Dashboard，并尊重 reduced motion。
+- `frontend/src/styles.css` 让 390px 的 Workbench 维持队列 → 工单 → Copilot → 复核单列；决策/复核按钮最小高度 44px，两个次级复核动作在窄屏纵向排列；768/1024/1440 既有两列/三列布局保留。
+- 浏览器 Demo smoke 通过：390px 选择 `DEMO-0005` → 运行本地 Copilot → 查看建议、证据和风险 → Approve，最终状态为“已解决”；390、768、1024、1440 无横向溢出，破图数量为 0。
+- 验证：`frontend/npm run typecheck`、`frontend/npm run build` 通过。下一阶段是 `PHASE_9E` 页面语言与渐进披露；静态 a11y 候选仍不等同于完整 axe / Lighthouse 审计。
+
+### 2026-09-03 — Codex — PHASE_9C typography and token closure
+
+- 本轮只完成 `PHASE_9C`，保留工作区已有未提交修改，没有执行 reset、checkout、clean、commit、push 或 deploy；没有修改 backend、数据库、Provider、评测数据或真实密钥。
+- `frontend/src/styles.css` 新增共享字号、间距和 focus ring token；普通辅助说明、Copilot 解释、证据摘录和复核上下文不再统一压到 10px，技术 ID/评分等低频字段继续使用等宽小字号。
+- `frontend/src/views/EvaluationMetricsShowcaseView.vue` 的评测语义色改为映射全局 `--app-*` token；`TicketWorkbenchShowcaseView.vue`、`TraceTimelineShowcaseView.vue`、`KnowledgeRagShowcaseView.vue`、`HumanReviewShowcaseView.vue` 的静态 inline 样式迁移到语义 class。动态进度条的百分比 `:style` 是运行时必要值，保留。
+- 验证：`frontend/npm run typecheck` 通过；`frontend/npm run build` 通过（Vite 6.4.3，63 modules）；`git diff --check` 无 diff 错误。下一阶段是 `PHASE_9D` 移动端工作流；静态 a11y 候选仍不等同于完整 axe / Lighthouse 审计。
+
+### 2026-09-03 — Codex — PHASE_9B Copilot decision center
+
+- 本轮只完成 `PHASE_9B`，没有顺手进入字体 token、移动端专门工作流、legacy 清理或后端改造；保留工作区已有未提交修改，没有执行 reset、checkout、clean、commit、push 或 deploy。
+- `frontend/src/views/TicketWorkbenchShowcaseView.vue`：右侧 Copilot 改为“决策建议 → 建议回复 → 关联证据 → 风险与复核门禁 → 人工复核 → 运行信息 / 审计字段”的任务顺序。新增决策主卡，首屏展示推荐处理、分类置信度、运行按钮和下一步提示；风险、Citation 数量和复核门禁独立成摘要卡。
+- `frontend/src/styles.css`：新增决策主卡、风险摘要卡和移动端阅读样式；没有改变 API 路径、DTO、hash 路由、`data-e2e` 选择器、Demo / Real / Fallback 语义或审核状态流转。
+- 验证：`frontend/npm run typecheck` 通过；`frontend/npm run build` 通过（Vite 6.4.3，63 modules）；`SCREENSHOT_URL=http://127.0.0.1:5190 npm run screenshots` 通过 8 个目标并生成标准、大屏、移动端截图。
+- 浏览器验收：390px 无横向溢出且按队列 → 详情 → 决策中心纵向排列；768px、1024px 为两列内容加整行 Copilot；1440px 为三列。四个视口破图数量均为 0，页面 console error/warning 为 0。Demo `DEMO-0004` → 本地 Copilot → 确认 Approve 后，工单状态为“已解决”，review history 含 `APPROVED_RESOLUTION`，成功消息可见并重新读取 Trace。
+- 静态可访问性审查：执行 `a11y_scanner.py frontend/src --format text`，得到 27 个文件、97 个候选（7 critical / 63 serious / 27 moderate）。结果包含组件级 landmark / label heuristic，不能等同于 axe / Lighthouse；本轮未把它写成完整合规结论，也未扩展为全站 a11y 重构。
+- 本轮未修改 backend、数据库迁移、Provider、`docs/metrics/`、真实密钥、外部账号或部署配置；下一阶段仍是 `PHASE_9C`，后端改造门槛仍未达成。
+
+### 2026-09-03 — Codex — PHASE_9A interaction and accessibility foundation
+
+- 承接网络中断前的前端改造任务；先新增 `docs/design/FRONTEND_REDESIGN_ROADMAP.md`，把“前端全部改造”拆成 9A～9G 的可验收阶段。本轮只完成 9A，9B～9G 仍保持待开始，后端改造门槛尚未宣告达成。
+- `frontend/src/App.vue`：命令中心现在会把焦点送入搜索框，支持 ↑ / ↓ 选择、Enter 导航、Escape 关闭并恢复触发控件焦点，Tab / Shift+Tab 在弹层内循环；补充 `combobox` / `listbox` / `option` / `aria-activedescendant` 语义，并复用 `NavIcon.vue` 渲染结果图标。
+- `frontend/src/styles.css`：提高 `--app-muted`、`--app-amber`、`--app-red` 在白色面板上的可读性，增加当前项和 keyboard focus 的可见样式；`frontend/src/components/layout/AppSidebar.vue` 校正工作区 aria-label 的中文语义。
+- 验证：`frontend/npm run build` 通过（Vite 6.4.3，63 modules）；`SCREENSHOT_URL=http://127.0.0.1:5190 npm run screenshots` 通过 8 个目标及标准 / 大屏 / 移动端截图、1366/390 横向溢出检查；一次性 Chrome smoke 通过命令中心焦点与键盘路径，以及 `DEMO-0002` Copilot → Approve → 已解决闭环，`consoleErrors=[]`、`pageErrors=[]`。
+- 对比度仅完成静态核心 token 检查，没有把它写成完整 axe / Lighthouse 结果；前端没有独立持续测试 runner。本轮没有重跑真实 API 浏览器 smoke，Phase 6 历史证据继续保留；后端源码、数据库迁移、Provider、`docs/metrics/` 和 API 链路未改动，未新增依赖、密钥、外部资产、commit、push 或 deploy。
+
+### 2026-09-03 — Codex — PHASE_8 reference-led premium brand polish
+
+- 根据用户要求继续深看案例后完成第二轮视觉细修；保留已有工作区修改，没有执行 reset、checkout、清理、提交或推送。本轮新增 `NavIcon.vue`，重做自有 `BrandMark.vue`，并把颜色、字体和指标文案进一步产品化。
+- 研究依据包括 Intercom Inbox 的团队 Inbox / 客户上下文 / Copilot / keyboard-first 入口，Zendesk Agent Workspace 的单工单 / 右侧 context panel / Knowledge panel，Jira Service Management 的优先级队列 / SLA / 知识库，ServiceNow CSM Workspace 的 case context / activity，以及 Linear Search 的快捷搜索和紧凑结果。另参考 Atlassian Design / Primer 对 token、typography、spacing、iconography、elevation、border 和 radius 的公开设计系统原则。
+- 前端现在使用自绘票据 / 证据节点品牌 mark、统一笔画的 SVG 导航图标、`Aptos` / `Segoe UI Variable` 本地优先字体栈、温润中性色画布（`#f7f7f4`）、浅色侧栏（`#f0f1ee`）、克制靛蓝操作色和少量赤陶色品牌识别点。没有引入第三方 Logo、图片、字体文件、图标包或复制代码。
+- Dashboard 指标和数据来源文案同步中文化；App Shell、Workbench、Dashboard、Knowledge、Retrieval、Trace、Human Review、Evaluation 继续共享同一套 token、状态 badge、边框和响应式规则。后端业务链路、API 路径、DTO、hash 路由、`data-e2e` 选择器和 Demo/Real/Fallback 语义未改变。
+- `frontend/npm run build` 通过（Vite 6.4.3，`63 modules transformed`）；`SCREENSHOT_URL=http://127.0.0.1:5190 npm run screenshots` 通过并刷新标准、大屏、移动端截图；Demo browser smoke 通过队列加载 / P1 筛选 / Copilot / Approve / Ctrl+K 导航，console/page errors 为 0。
+- 本轮是视觉与可见文案修订，没有重跑真实 API 浏览器服务；Phase 6 的真实 API smoke 保留为历史证据，不把 Demo、local-rule fallback 或截图写成真实模型成功接入。后端和 `docs/metrics/` diff 保持 clean；未公网部署、未新增依赖、未执行 Git commit/push。
+
+### 2026-09-03 — Codex — PHASE_7_REFERENCE_LED_CALM_SAAS_VISUAL_REFINEMENT
+
+- 根据用户对上一版“深色科技风”的明确反馈，完成参考案例导向的浅色中性客服工作台视觉纠偏；本轮保留已有工作区修改，没有执行 reset、checkout、清理、提交或推送。
+- 视觉结构参考 Intercom Inbox 的队列 / 会话 / 客户上下文、Zendesk Agent Workspace 的单工单与右侧上下文、Jira Service Management 的优先级 / 队列 / 知识关联、ServiceNow 的活动与上下文工作区，以及 Linear 的紧凑检索与信息密度；只借鉴信息架构和交互语义，不复制品牌、Logo、图片、字体或产品页面。
+- `frontend/src/styles.css` 改为浅灰画布、白色面板、克制蓝色主操作和低饱和状态色；移除渐变、霓虹、发光和装饰性科技背景。`BrandMark.vue`、`AppSidebar.vue`、`AppTopbar.vue`、`App.vue` 及七个 Showcase 页面同步调整为中文客服运营语义。
+- Workbench 继续保持队列 → 工单上下文 → 处理建议 / 证据 / 人工复核的三栏结构；Dashboard 强调队列与健康状态；Knowledge、Retrieval、Trace、Human Review、Evaluation 页面共用同一浅色壳层。API 路径、DTO、hash 路由、`data-e2e` 选择器、Demo/Real/Fallback 边界和后端业务链路均未改变。
+- 本轮涉及前端视觉、可见文案、截图和交付文档：`frontend/src/styles.css`、`frontend/src/App.vue`、`frontend/src/components/layout/BrandMark.vue`、`AppSidebar.vue`、`AppTopbar.vue`、`frontend/src/views/` 下相关 Showcase 页面、`README.md`、`TODO.md`、`docs/` 设计 / 架构 / 测试文档以及 `docs/images/` 标准、大屏、移动截图；未修改 backend 源码、数据库迁移、`docs/metrics/` 或另一个项目。
+- 验证结果：`frontend/npm run build` 通过（`vue-tsc` + Vite 6.4.3，60 modules）；`SCREENSHOT_URL=http://127.0.0.1:5190 npm run screenshots` 通过 8 个目标、1440/1920/390 三套尺寸和横向溢出检查；Demo 浏览器 smoke 通过队列筛选、Copilot、Approve、Ctrl/Cmd+K 导航，console/page errors 均为 0；`backend/mvn test` 通过（84 tests，0 failures/errors/skipped）。
+- 本轮是样式与文案修订，没有重新启动真实 API 服务；Phase 6 记录的真实 API smoke 作为历史证据保留，本轮不把 Demo 截图或本地规则 fallback 写成真实模型成功接入。未公网部署、未新增依赖、未添加真实密钥、未执行 Git commit/push。
+
+### 2026-09-03 — Codex — PHASE_6 frontend full redesign and browser acceptance recovery
+
+- 承接网络中断后的未完成任务；保留工作区已有修改，没有执行 reset、checkout、清理、提交或推送。当前范围完成前端整体重做、真实 API 复验、响应式截图和文档收口。
+- 新增 `docs/design/FRONTEND_CURRENT_AUDIT.md` 与 `docs/design/FRONTEND_PAGE_SPECS.md`，以实际源码/API 为准记录七个主要页面、Demo/Real/Fallback 边界、状态设计、桌面/390px 布局和截图标准。
+- 前端重做：`App.vue` + `AppSidebar` / `AppTopbar` / `BrandMark` + `PageHeader` / `PanelHeader` / `StatusBadge` / `MetricCard` / `LoadingState` / `EmptyState` / `ErrorState` 形成统一深色审计型工作台；Dashboard、Ticket Workbench、Knowledge Base、Retrieval Evidence、Trace Timeline、Human Review 完成布局与信息层级重排，Evaluation / Metrics 接入新壳层。
+- 保留 API 路径、DTO 字段、hash 路由兼容别名、`data-e2e` 选择器和现有后端业务链路；旧 `frontend/src/components/` 未被删除，未使用的旧组件标记为后续 legacy cleanup 候选。
+- Demo 浏览器 smoke（Vite 5182）通过：本地 Copilot → `DEMO_LOCAL` 证据 → Human Review Approve → `已解决` / `APPROVED_RESOLUTION`；同时验证队列筛选、Ctrl/Cmd+K 页面搜索、确认对话框，console errors 和 page errors 均为 0。
+- Real API 浏览器 smoke（隔离 H2 后端 28081 + Vite 5184）通过：`/api/health=200`，UI 创建合成工单，Copilot `POST=200`，返回一个 `KB-OPS-003` retrieval snapshot、`IMMUTABLE_RUN`、`VALID` structured output / Citation membership；Approve `POST=200` 后工单为 `RESOLVED`，Trace review history 有 `APPROVED_RESOLUTION`。本机已有 Provider 环境使后端尝试 OpenAI-compatible 路径并收到 HTTP 403，随后按现有后端策略安全 fallback 到 `local-rule`；这不是成功真实模型接入，也没有新增或提交任何密钥。
+- `frontend/npm run build` 通过（`vue-tsc` + Vite 6.4.3，60 modules）；`backend/mvn test` 通过（84 tests，0 failures/errors/skipped）；截图脚本通过 8 个目标，并生成 `docs/images/` 标准、`docs/images/large/` 1920×1200、`docs/images/mobile/` 390×844 三套截图，1366/390 横向溢出检查通过。
+- `frontend/scripts/capture-screenshots.mjs` 增加移动端截图落盘和 Chromium 异常清理，避免截图异常后遗留浏览器进程。当前未配置前端独立测试 runner；未公网部署；未改另一个项目。
+- 文档已同步：`README.md`、`TODO.md`、`docs/TEST_REPORT.md`、`docs/architecture.md`、`docs/frontend-real-flow-implementation.md` 与新增设计审查/规格文档。
+
+---
+
+### 2026-09-02 — Codex — PHASE_5 frontend real-flow audit continuation
+
+- 本轮承接中断前的前端真实链路任务；没有重新开始，也没有回滚已有未提交改动。范围限定为 Vue 前端真实 API / Demo 边界、浏览器验收和记录同步，已冻结的后端核心、数据库迁移、Provider、RAG 算法与 Docker Compose 未扩展。
+- `frontend/src/api/tickets.ts`：真实模式继续通过 `/api` 调用后端并在内存保存登录会话；网络/登录异常统一转为安全错误；Trace、Copilot run、Approve / Request changes / Reject 在 `MODE=demo` 下显式走本地适配器，真实模式没有静默 Mock fallback。
+- `frontend/src/data/demoTickets.ts`：补齐本地 Trace、结构化输出、检索引用、Citation membership fixture、运行记录和 append-only review history；所有本地证据使用 `DEMO_LOCAL` / `DEMO-*` 标识，不伪装成 `IMMUTABLE_RUN`。
+- `frontend/src/composables/useTicketRealFlow.ts`：Demo 与真实模式统一读取 Trace，保持列表、详情、分析、运行、复核后的重新读取行为一致。
+- 页面文案同步明确 `Local Demo Fixture` 与 `Backend API` 的数据源差异，避免截图中的本地数据被误读为后端持久化结果。
+- Demo 截图验证：在 5180 启动本项目 `npm run dev:demo`，执行 `SCREENSHOT_URL=http://127.0.0.1:5180 npm run screenshots`；结果通过，8 个 Showcase 目标完成标准/1920x1200 截图，并通过 1366 桌面与 390 移动端横向溢出检查。
+- Demo 浏览器 smoke：`DEMO-0005` → 本地 Demo Copilot → `DEMO_LOCAL` → Approve；详情状态变为“已解决”，生成 `APPROVED_RESOLUTION` review history。
+- 真实浏览器 smoke：隔离 H2 test profile 后端运行在 28080，前端 Vite 运行在 5181 并代理到该后端；创建合成工单 → 后端 Copilot → `NO_RETRIEVAL_EVIDENCE` 安全拒答 → Approve，详情状态变为“已解决”，review history 可见。该 H2 实例为 schema-only，因此没有把空库伪写成 Citation-positive 证据。
+- 当前前端没有独立测试 runner；本轮以 `npm run build`、截图脚本和上述两条可重复浏览器 smoke 作为验收证据。真实知识命中、Citation 校验和 IMMUTABLE_RUN 持久化仍由现有后端 JUnit / H2 集成测试覆盖。
+- 文档已同步：`README.md`、`docs/architecture.md`、`docs/frontend-real-flow-implementation.md`、`docs/TEST_REPORT.md`、`TODO.md`。
+
+---
 
 ### 2026-07-30 — Codex — Real Provider Evidence Closeout
 

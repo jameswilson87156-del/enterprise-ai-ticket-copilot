@@ -1,0 +1,86 @@
+name: ticket-staging
+
+services:
+  ticket-api:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_URL: ${TICKET_DB_URL:?TICKET_DB_URL is required}
+      SPRING_DATASOURCE_USERNAME: ${TICKET_DB_USERNAME:?TICKET_DB_USERNAME is required}
+      SPRING_DATASOURCE_PASSWORD: ${TICKET_DB_PASSWORD:?TICKET_DB_PASSWORD is required}
+      SPRING_SQL_INIT_MODE: never
+      TICKET_AUTH_MODE: OIDC
+      TICKET_AUTH_ISSUER_URI: ${TICKET_AUTH_ISSUER_URI:?TICKET_AUTH_ISSUER_URI is required}
+      TICKET_AUTH_AUDIENCE: ${TICKET_AUTH_AUDIENCE:?TICKET_AUTH_AUDIENCE is required}
+      TICKET_AUTH_ROLES_CLAIM: ${TICKET_AUTH_ROLES_CLAIM:-roles}
+      TICKET_AUTH_PRINCIPAL_CLAIM: ${TICKET_AUTH_PRINCIPAL_CLAIM:-sub}
+      TICKET_AI_PROVIDER: ${TICKET_AI_PROVIDER:?TICKET_AI_PROVIDER is required}
+      TICKET_AI_BASE_URL: ${TICKET_AI_BASE_URL:?TICKET_AI_BASE_URL is required}
+      TICKET_AI_PROTOCOL: ${TICKET_AI_PROTOCOL:-chat-completions}
+      TICKET_AI_MODEL: ${TICKET_AI_MODEL:?TICKET_AI_MODEL is required}
+      TICKET_AI_API_KEY: ${TICKET_AI_API_KEY:?TICKET_AI_API_KEY is required}
+      TICKET_AI_FALLBACK_TO_LOCAL: ${TICKET_AI_FALLBACK_TO_LOCAL:-false}
+      TICKET_AI_RATE_LIMIT_ENABLED: "true"
+      TICKET_AI_RATE_LIMIT_LIMIT: ${TICKET_AI_RATE_LIMIT_LIMIT:-6}
+      TICKET_AI_RATE_LIMIT_WINDOW_SECONDS: ${TICKET_AI_RATE_LIMIT_WINDOW_SECONDS:-60}
+    networks: [ticket-staging]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8080/api/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ticket-edge:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/frontend.Dockerfile
+      args:
+        VITE_TICKET_AUTH_MODE: OIDC
+        VITE_TICKET_AUTH_ISSUER_URI: ${TICKET_AUTH_ISSUER_URI:?TICKET_AUTH_ISSUER_URI is required}
+        VITE_TICKET_AUTH_CLIENT_ID: ${VITE_TICKET_AUTH_CLIENT_ID:?VITE_TICKET_AUTH_CLIENT_ID is required}
+        VITE_TICKET_AUTH_AUDIENCE: ${TICKET_AUTH_AUDIENCE:?TICKET_AUTH_AUDIENCE is required}
+        VITE_TICKET_AUTH_SCOPE: ${VITE_TICKET_AUTH_SCOPE:-openid profile email}
+    restart: unless-stopped
+    depends_on:
+      ticket-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${TICKET_HTTP_PORT:-8087}:8080"
+    networks: [ticket-staging]
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Optional public TLS termination. Start only after TICKET_HOST resolves to
+  # this machine and the operator has reviewed the DNS and certificate plan.
+  caddy:
+    image: caddy:2.9-alpine
+    profiles: [tls]
+    restart: unless-stopped
+    depends_on:
+      ticket-edge:
+        condition: service_healthy
+    environment:
+      TICKET_HOST: ${TICKET_HOST:?TICKET_HOST is required}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required for TLS profile}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - staging-ticket-caddy-data:/data
+      - staging-ticket-caddy-config:/config
+    ports:
+      - "${TICKET_PUBLIC_HTTP_PORT:-80}:80"
+      - "${TICKET_PUBLIC_HTTPS_PORT:-443}:443"
+    networks: [ticket-staging]
+
+networks:
+  ticket-staging:
+    driver: bridge
+
+volumes:
+  staging-ticket-caddy-data:
+  staging-ticket-caddy-config:

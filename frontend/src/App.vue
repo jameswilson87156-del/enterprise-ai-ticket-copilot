@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue'
-import {
-  boundaryStatements,
-  evaluationSnapshot,
-  providerStatusItems,
-  recentTicketRuns
-} from './data/evaluationMetrics'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Component, watch } from 'vue'
+import { isDemoRuntime } from './api/tickets'
+import { useTicketRealFlow } from './composables/useTicketRealFlow'
+import AppSidebar from './components/layout/AppSidebar.vue'
+import AppTopbar from './components/layout/AppTopbar.vue'
+import NavIcon from './components/layout/NavIcon.vue'
 import DashboardShowcaseView from './views/DashboardShowcaseView.vue'
 import EvaluationMetricsShowcaseView from './views/EvaluationMetricsShowcaseView.vue'
 import HumanReviewShowcaseView from './views/HumanReviewShowcaseView.vue'
@@ -27,13 +26,13 @@ interface NavItem {
   label: string
   caption: string
   route: ShowcaseRoute
+  icon: 'overview' | 'workbench' | 'knowledge' | 'evidence' | 'trace' | 'review' | 'evaluation'
 }
 
 interface RouteMeta {
   eyebrow: string
   title: string
   description: string
-  contextTitle: string
 }
 
 const routeAliases: Record<string, ShowcaseRoute> = {
@@ -48,7 +47,7 @@ const routeAliases: Record<string, ShowcaseRoute> = {
   retrieval: 'retrieval-evidence',
   'retrieval-evidence': 'retrieval-evidence',
   trace: 'trace-timeline',
-  'trace-evidence': 'trace-timeline',
+  'trace-evidence': 'retrieval-evidence',
   'trace-timeline': 'trace-timeline',
   review: 'human-review',
   'human-review': 'human-review',
@@ -59,13 +58,13 @@ const routeAliases: Record<string, ShowcaseRoute> = {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', caption: '系统总览', route: 'dashboard' },
-  { label: 'Ticket Workbench', caption: '工单工作台', route: 'ticket-detail' },
-  { label: 'Knowledge Base', caption: '知识库管理', route: 'knowledge-base' },
-  { label: 'Retrieval Evidence', caption: '检索证据', route: 'retrieval-evidence' },
-  { label: 'Trace Timeline', caption: '运行链路', route: 'trace-timeline' },
-  { label: 'Human Review', caption: '人工复核', route: 'human-review' },
-  { label: 'Evaluation / Metrics', caption: '本地评测', route: 'evaluation-metrics' }
+  { label: '总览', caption: '支持运营', route: 'dashboard', icon: 'overview' },
+  { label: '工单工作台', caption: '队列与处理', route: 'ticket-detail', icon: 'workbench' },
+  { label: '知识库', caption: '关联内容', route: 'knowledge-base', icon: 'knowledge' },
+  { label: '检索证据', caption: '引用与来源', route: 'retrieval-evidence', icon: 'evidence' },
+  { label: '运行记录', caption: '处理过程', route: 'trace-timeline', icon: 'trace' },
+  { label: '人工复核', caption: '待决策', route: 'human-review', icon: 'review' },
+  { label: '评测指标', caption: '离线数据', route: 'evaluation-metrics', icon: 'evaluation' }
 ]
 
 const showcaseComponents: Record<ShowcaseRoute, Component> = {
@@ -80,936 +79,310 @@ const showcaseComponents: Record<ShowcaseRoute, Component> = {
 
 const routeMeta: Record<ShowcaseRoute, RouteMeta> = {
   dashboard: {
-    eyebrow: 'Showcase Demo / Operations Cockpit',
-    title: 'Enterprise Ticket RAG Copilot',
-    description: 'RAG Evidence, Trace, Human Review, and Evaluation Metrics for a synthetic enterprise ticket demo.',
-    contextTitle: 'Dashboard context'
+    eyebrow: '支持运营 / 总览',
+    title: '总览',
+    description: '从当前工单队列、AI 证据和复核门禁快速判断系统下一步。'
   },
   'ticket-detail': {
-    eyebrow: 'Ticket Workbench',
-    title: 'Ticket Workbench',
-    description: 'Queue, ticket context, local-rule analysis, citation preview, and visible review actions.',
-    contextTitle: 'Workbench context'
+    eyebrow: '工单 / 工作台',
+    title: '工单工作台',
+    description: '队列、工单上下文、Copilot 建议、证据和审核动作保持在一个工作区。'
   },
   'knowledge-base': {
-    eyebrow: 'Knowledge Operations',
-    title: 'Knowledge Base',
-    description: 'Keyword retrieval sources, chunk evidence, related tickets, and citation preview.',
-    contextTitle: 'Knowledge context'
+    eyebrow: '知识库 / 只读',
+    title: '知识库',
+    description: '查看当前工单关联的知识命中与检索快照；本页只读，不扩展知识库 CRUD。'
   },
   'retrieval-evidence': {
-    eyebrow: 'Retrieval Evidence',
-    title: 'Retrieval Evidence',
-    description: 'Top-K keyword matches, citation decisions, fallback notes, and review cues.',
-    contextTitle: 'Evidence context'
+    eyebrow: '证据 / 引用',
+    title: '检索证据',
+    description: '把检索参考与已校验 Citation 分层展示，避免把命中误读为事实正确。'
   },
   'trace-timeline': {
-    eyebrow: 'Trace Timeline',
-    title: 'Trace Timeline',
-    description: 'Run steps, provider fallback, generation record, JSON evidence, and human gate.',
-    contextTitle: 'Trace context'
+    eyebrow: '运行记录 / 详情',
+    title: '运行记录',
+    description: '回放一次 Copilot 运行的步骤、状态、延迟、fallback 和人工复核证据。'
   },
   'human-review': {
-    eyebrow: 'Human Review',
-    title: 'Human Review',
-    description: 'Evidence-first review queue with approve, request changes, and reject decisions.',
-    contextTitle: 'Review context'
+    eyebrow: '人工复核 / 待决策',
+    title: '人工复核',
+    description: '在可审计的建议、风险与引用上下文中完成最终人工决策。'
   },
   'evaluation-metrics': {
-    eyebrow: 'Evaluation / Metrics',
+    eyebrow: '评测 / 本地数据',
     title: '评测指标中心',
-    description: '本地 RAG 评测与引用证据指标。',
-    contextTitle: '评测上下文'
+    description: '查看本地 RAG 评测 baseline、引用证据指标与下一阶段实验边界。'
   }
 }
 
+const flow = useTicketRealFlow()
 const activeRoute = ref<ShowcaseRoute>(readHashRoute())
+const commandOpen = ref(false)
+const commandQuery = ref('')
+const commandActiveIndex = ref(0)
+const commandDialogRef = ref<HTMLElement | null>(null)
+const commandInputRef = ref<HTMLInputElement | null>(null)
+const commandTriggerRef = ref<HTMLElement | null>(null)
 const activeComponent = computed(() => showcaseComponents[activeRoute.value])
 const activeMeta = computed(() => routeMeta[activeRoute.value])
-const activeNavLabel = computed(() => navItems.find((item) => item.route === activeRoute.value)?.label ?? 'Dashboard')
-const showContextPanel = computed(() => activeRoute.value === 'dashboard' || activeRoute.value === 'evaluation-metrics')
+const activeNavLabel = computed(() => navItems.find((item) => item.route === activeRoute.value)?.label ?? '总览')
+const pendingReviewCount = computed(() => flow.pendingReviewCount.value)
+const runtimeLabel = computed(() => {
+  if (isDemoRuntime) {
+    return 'Demo · 本地演示'
+  }
+  if (flow.backendState.value === 'CONNECTED') {
+    return 'Real · 后端 API'
+  }
+  if (flow.backendState.value === 'UNAVAILABLE') {
+    return '后端不可用'
+  }
+  return '正在连接后端'
+})
+const runtimeTone = computed<'demo' | 'real' | 'error' | 'checking'>(() => {
+  if (isDemoRuntime) {
+    return 'demo'
+  }
+  if (flow.backendState.value === 'CONNECTED') {
+    return 'real'
+  }
+  if (flow.backendState.value === 'UNAVAILABLE') {
+    return 'error'
+  }
+  return 'checking'
+})
+const providerLabel = computed(() => {
+  if (isDemoRuntime) {
+    return '本地规则路径'
+  }
+  return flow.backendState.value === 'CONNECTED' ? '后端处理' : '尚未确认'
+})
+const providerTone = computed<'connected' | 'fallback' | 'unknown'>(() => {
+  if (isDemoRuntime) {
+    return 'fallback'
+  }
+  return flow.backendState.value === 'CONNECTED' ? 'connected' : 'unknown'
+})
+const commandItems = computed(() => {
+  const query = commandQuery.value.trim().toLowerCase()
+  if (!query) {
+    return navItems
+  }
+  return navItems.filter((item) => `${item.label} ${item.caption}`.toLowerCase().includes(query))
+})
+const activeCommandOptionId = computed(() => {
+  const item = commandItems.value[commandActiveIndex.value]
+  return item ? commandOptionId(item.route) : undefined
+})
+
+watch(commandQuery, () => {
+  commandActiveIndex.value = 0
+})
+
+watch(commandItems, (items) => {
+  if (commandActiveIndex.value >= items.length) {
+    commandActiveIndex.value = Math.max(items.length - 1, 0)
+  }
+})
 
 function readHashRoute(): ShowcaseRoute {
   const hash = window.location.hash.replace(/^#\/?/, '').trim()
   return routeAliases[hash] ?? 'dashboard'
 }
 
-function navigateTo(route: ShowcaseRoute) {
-  activeRoute.value = route
-  window.history.pushState(null, '', `#${route}`)
+function navigateTo(route: string) {
+  const nextRoute = routeAliases[route] ?? 'dashboard'
+  activeRoute.value = nextRoute
+  closeCommandPalette(false)
+  window.history.pushState(null, '', `#${nextRoute}`)
 }
 
 function handleRouteChange() {
   activeRoute.value = readHashRoute()
 }
 
+function commandOptionId(route: ShowcaseRoute) {
+  return `command-option-${route}`
+}
+
+function openCommandPalette(trigger?: HTMLElement | null) {
+  commandTriggerRef.value = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+  commandOpen.value = true
+  commandQuery.value = ''
+  commandActiveIndex.value = 0
+  void nextTick(() => commandInputRef.value?.focus())
+}
+
+function closeCommandPalette(restoreFocus = true) {
+  const trigger = commandTriggerRef.value
+  commandOpen.value = false
+  commandQuery.value = ''
+  commandActiveIndex.value = 0
+  commandTriggerRef.value = null
+  if (restoreFocus) {
+    void nextTick(() => trigger?.focus())
+  }
+}
+
+function commandFocusableElements() {
+  const dialog = commandDialogRef.value
+  if (!dialog) {
+    return []
+  }
+  return Array.from(dialog.querySelectorAll<HTMLElement>('input:not([disabled]), button:not([disabled])'))
+    .filter((element) => element.offsetParent !== null)
+}
+
+function handleCommandKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeCommandPalette()
+    return
+  }
+
+  if (event.key === 'Tab') {
+    const focusable = commandFocusableElements()
+    if (!focusable.length) {
+      return
+    }
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+    return
+  }
+
+  if (!commandItems.value.length) {
+    return
+  }
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    commandActiveIndex.value = (commandActiveIndex.value + direction + commandItems.value.length) % commandItems.value.length
+    return
+  }
+
+  if (event.key === 'Enter' && event.target === commandInputRef.value) {
+    event.preventDefault()
+    const item = commandItems.value[commandActiveIndex.value]
+    if (item) {
+      navigateTo(item.route)
+    }
+  }
+}
+
+function handleGlobalKeydown(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    if (commandOpen.value) {
+      closeCommandPalette()
+    } else {
+      openCommandPalette()
+    }
+    return
+  }
+  if (event.key === 'Escape' && commandOpen.value) {
+    event.preventDefault()
+    closeCommandPalette()
+  }
+}
+
 onMounted(() => {
   window.addEventListener('hashchange', handleRouteChange)
   window.addEventListener('popstate', handleRouteChange)
+  window.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('hashchange', handleRouteChange)
   window.removeEventListener('popstate', handleRouteChange)
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
 <template>
-  <div class="portfolio-shell" :data-active-route="activeRoute">
-    <aside class="portfolio-shell__sidebar" aria-label="Showcase navigation">
-      <div class="portfolio-shell__brand" aria-label="Enterprise Ticket RAG Copilot">
-        <span class="portfolio-shell__brand-mark" aria-hidden="true">
-          <svg class="portfolio-shell__brand-glyph" viewBox="0 0 48 48" focusable="false">
-            <defs>
-              <linearGradient id="portfolio-brand-shell" x1="7" y1="7" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#39e1ef" />
-                <stop offset="0.48" stop-color="#3d7cff" />
-                <stop offset="1" stop-color="#8b7cf6" />
-              </linearGradient>
-              <linearGradient id="portfolio-brand-ticket" x1="12" y1="12" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#12324a" />
-                <stop offset="1" stop-color="#121d48" />
-              </linearGradient>
-            </defs>
-            <rect x="5.5" y="5.5" width="37" height="37" rx="10" fill="#071627" stroke="url(#portfolio-brand-shell)" stroke-width="2.2" />
-            <path d="M16.4 13.8h15.2c1.5 0 2.7 1.2 2.7 2.7v3.2c-1.9.6-3.1 2.2-3.1 4.3s1.2 3.7 3.1 4.3v3.2c0 1.5-1.2 2.7-2.7 2.7H16.4c-1.5 0-2.7-1.2-2.7-2.7v-3.2c1.9-.6 3.1-2.2 3.1-4.3s-1.2-3.7-3.1-4.3v-3.2c0-1.5 1.2-2.7 2.7-2.7Z" fill="url(#portfolio-brand-ticket)" stroke="#7eeeff" stroke-width="1.45" />
-            <path d="M18.8 18.6h10.4M18.8 29.4h10.4" stroke="#9bf3ff" stroke-width="1.35" stroke-linecap="round" opacity="0.9" />
-            <path d="M33.4 15.2c3.3.5 5.4 2.3 5.4 5.2M33.4 32.8c3.3-.5 5.4-2.3 5.4-5.2" stroke="#73a7ff" stroke-width="1.25" stroke-linecap="round" opacity="0.72" />
-            <path
-              d="M24 18.3v11.4"
-              stroke="rgba(255,255,255,0.18)"
-              stroke-width="1"
-              stroke-linecap="round"
-            />
-            <text
-              x="24"
-              y="28.2"
-              fill="#f1fcff"
-              font-family="Cascadia Code, SFMono-Regular, Consolas, monospace"
-              font-size="13.2"
-              font-weight="900"
-              letter-spacing="0"
-              text-anchor="middle"
-            >ET</text>
-            <circle cx="37.7" cy="20.4" r="1.8" fill="#c9fbff" />
-            <circle cx="37.7" cy="27.6" r="1.8" fill="#d7d0ff" />
-            <circle cx="10.4" cy="24" r="1.25" fill="#38dff0" opacity="0.9" />
-          </svg>
-        </span>
-        <div>
-          <strong>Enterprise Ticket</strong>
-          <span>RAG Copilot</span>
-        </div>
-      </div>
+  <div class="app-shell" :data-active-route="activeRoute">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
 
-      <nav class="portfolio-shell__nav" aria-label="Primary showcase routes">
-        <button
-          v-for="item in navItems"
-          :key="item.route"
-          type="button"
-          class="portfolio-shell__nav-item"
-          :class="{ 'portfolio-shell__nav-item--active': activeRoute === item.route }"
-          @click="navigateTo(item.route)"
-        >
-          <span class="portfolio-shell__nav-dot" aria-hidden="true"></span>
-          <span>
-            <strong>{{ item.label }}</strong>
-            <small>{{ item.caption }}</small>
-          </span>
-        </button>
-      </nav>
+    <AppSidebar
+      :active-route="activeRoute"
+      :items="navItems"
+      :pending-review-count="pendingReviewCount"
+      :runtime-label="runtimeLabel"
+      @navigate="navigateTo"
+    />
 
-      <section class="portfolio-shell__team" aria-label="当前演示空间">
-        <span class="portfolio-shell__team-mark" aria-hidden="true">ET</span>
-        <div>
-          <strong>Enterprise Team</strong>
-          <small>Showcase Demo</small>
-        </div>
-      </section>
-    </aside>
+    <div class="app-shell__workspace">
+      <AppTopbar
+        :eyebrow="activeMeta.eyebrow"
+        :title="activeNavLabel"
+        :runtime-label="runtimeLabel"
+        :runtime-tone="runtimeTone"
+        :provider-label="providerLabel"
+        :provider-tone="providerTone"
+        @open-search="openCommandPalette()"
+      />
 
-    <section class="portfolio-shell__workspace">
-      <header
-        class="portfolio-shell__topbar"
-        :class="{ 'portfolio-shell__topbar--evaluation': activeRoute === 'evaluation-metrics' }"
-        aria-label="Runtime status"
-      >
-        <div v-if="activeRoute !== 'evaluation-metrics'" class="portfolio-shell__topbar-title">
-          <span>{{ activeMeta.eyebrow }}</span>
-          <strong>{{ activeNavLabel }}</strong>
-        </div>
-        <div class="portfolio-shell__status-strip">
-          <span>Showcase Demo</span>
-          <span>Provider：local-rule fallback</span>
-          <span>Retrieval：keyword retrieval</span>
-          <span>Eval Dataset：{{ evaluationSnapshot.sampleCount }} synthetic cases</span>
-        </div>
-      </header>
-
-      <main class="portfolio-shell__body" :class="{ 'portfolio-shell__body--with-context': showContextPanel }">
-        <section class="portfolio-shell__content" aria-live="polite">
+      <main id="main-content" class="app-main">
+        <div class="app-main__content">
           <component :is="activeComponent" />
-        </section>
-
-        <aside v-if="showContextPanel" class="portfolio-shell__context" :aria-label="activeMeta.contextTitle">
-          <template v-if="activeRoute === 'evaluation-metrics'">
-            <section class="portfolio-shell__context-card portfolio-shell__context-card--insight">
-              <h2>当前评测结论</h2>
-              <p>
-                当前 demo 评测中，Top-K 命中表现稳定；引用准确率和失败样本仍是后续 Hybrid retrieval、Rerank 与真实 Provider 评测的优化重点。
-              </p>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <h2>评测快照</h2>
-              <div class="portfolio-shell__mini-metrics portfolio-shell__mini-metrics--summary">
-                <section>
-                  <b>{{ evaluationSnapshot.topKHitRate }}</b>
-                  <small>Top-K 命中率</small>
-                </section>
-                <section>
-                  <b>{{ evaluationSnapshot.citationPrecision }}</b>
-                  <small>引用准确率</small>
-                </section>
-                <section>
-                  <b>{{ evaluationSnapshot.avgRetrievalLatency }}</b>
-                  <small>平均检索耗时</small>
-                </section>
-              </div>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <h2>Provider 与检索范围</h2>
-              <dl class="portfolio-shell__scope-pairs">
-                <div><dt>真实 Provider</dt><dd>未配置</dd></div>
-                <div><dt>Vector DB</dt><dd>未启用</dd></div>
-                <div><dt>检索方式</dt><dd>keyword retrieval</dd></div>
-                <div><dt>Provider 路径</dt><dd>local-rule fallback</dd></div>
-                <div><dt>API Key</dt><dd>未提交 / 未使用</dd></div>
-              </dl>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <h2>最近 Trace / Review</h2>
-              <ol class="portfolio-shell__trace-list">
-                <li v-for="run in recentTicketRuns.slice(0, 3)" :key="run.caseId">
-                  <strong>{{ run.ticketId }}</strong>
-                  <span>{{ run.citationStatus }} · {{ run.reviewStatus }}</span>
-                  <small>{{ run.caseId }} · {{ run.providerPath }}</small>
-                </li>
-              </ol>
-              <a class="portfolio-shell__context-link" href="#trace-timeline">查看全部 Trace / Review <span aria-hidden="true">→</span></a>
-            </section>
-
-            <section class="portfolio-shell__context-card portfolio-shell__context-card--boundary">
-              <h2>Demo 边界说明</h2>
-              <p>本页指标来自 synthetic evaluation cases 与本地评测脚本。</p>
-              <p>用于展示检索、引用证据、fallback 与 review gate 的评测边界。</p>
-              <p>不代表真实向量 RAG、真实模型准确率、生产数据或真实用户流量。</p>
-            </section>
-          </template>
-
-          <template v-else>
-            <section class="portfolio-shell__context-card portfolio-shell__context-card--strong">
-              <span>Provider status</span>
-              <strong>local-rule fallback active</strong>
-              <p>OpenAI-compatible provider path is optional and not configured in this no-key local run.</p>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <span>Eval snapshot</span>
-              <div class="portfolio-shell__mini-metrics">
-                <b>{{ evaluationSnapshot.topKHitRate }}</b>
-                <small>Top-K Hit Rate</small>
-                <b>{{ evaluationSnapshot.citationPrecision }}</b>
-                <small>Citation Precision</small>
-                <b>{{ evaluationSnapshot.avgRetrievalLatency }}</b>
-                <small>Avg Retrieval Latency</small>
-              </div>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <span>Provider / retrieval scope</span>
-              <div class="portfolio-shell__status-list">
-                <article v-for="item in providerStatusItems" :key="item.label" :data-tone="item.tone">
-                  <strong>{{ item.value }}</strong>
-                  <span>{{ item.label }}</span>
-                  <small>{{ item.note }}</small>
-                </article>
-              </div>
-            </section>
-
-            <section class="portfolio-shell__context-card">
-              <span>Recent trace / review</span>
-              <ol class="portfolio-shell__trace-list">
-                <li v-for="run in recentTicketRuns.slice(0, 3)" :key="run.caseId">
-                  <strong>{{ run.ticketId }}</strong>
-                  <span>{{ run.citationStatus }} / {{ run.reviewStatus }}</span>
-                  <small>{{ run.caseId }} · {{ run.providerPath }}</small>
-                </li>
-              </ol>
-            </section>
-
-            <section class="portfolio-shell__context-card portfolio-shell__context-card--boundary">
-              <span>Boundary note</span>
-              <p>Demo metrics are generated from synthetic evaluation cases and local scripts. They are used for portfolio verification, not production claims.</p>
-              <div>
-                <small v-for="item in boundaryStatements.slice(0, 4)" :key="item">{{ item }}</small>
-              </div>
-            </section>
-          </template>
-        </aside>
+        </div>
       </main>
-    </section>
+    </div>
+
+    <div v-if="commandOpen" class="command-layer" @click.self="closeCommandPalette()">
+      <section
+        ref="commandDialogRef"
+        class="command-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="command-dialog-title"
+        @keydown="handleCommandKeydown"
+      >
+        <h2 id="command-dialog-title" class="visually-hidden">页面搜索</h2>
+        <div class="command-dialog__header">
+          <span class="command-dialog__icon" aria-hidden="true">⌕</span>
+          <input
+            ref="commandInputRef"
+            v-model="commandQuery"
+            autofocus
+            role="combobox"
+            aria-label="搜索页面"
+            aria-autocomplete="list"
+            aria-controls="command-dialog-list"
+            aria-expanded="true"
+            :aria-activedescendant="activeCommandOptionId"
+            placeholder="跳转到页面…"
+          />
+          <kbd>Esc</kbd>
+        </div>
+        <div id="command-dialog-list" class="command-dialog__list" role="listbox" aria-label="页面结果">
+          <button
+            v-for="(item, index) in commandItems"
+            :id="commandOptionId(item.route)"
+            :key="item.route"
+            type="button"
+            role="option"
+            :aria-selected="index === commandActiveIndex"
+            :class="{ 'command-dialog__item--active': index === commandActiveIndex }"
+            @mouseenter="commandActiveIndex = index"
+            @focus="commandActiveIndex = index"
+            @click="navigateTo(item.route)"
+          >
+            <span class="app-sidebar__nav-icon" aria-hidden="true"><NavIcon :name="item.icon" /></span>
+            <span><strong>{{ item.label }}</strong><small>{{ item.caption }}</small></span>
+            <span v-if="item.route === 'human-review' && pendingReviewCount" class="app-sidebar__count">{{ pendingReviewCount }}</span>
+          </button>
+          <p v-if="!commandItems.length" class="command-dialog__empty">没有匹配的页面</p>
+        </div>
+        <p class="command-dialog__hint">Ctrl K 打开 · ↑↓ 选择 · Enter 进入 · Esc 关闭</p>
+      </section>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.portfolio-shell {
-  --shell-canvas: #07101d;
-  --shell-canvas-deep: #040912;
-  --shell-sidebar: #08111f;
-  --shell-panel: rgba(12, 23, 38, 0.88);
-  --shell-panel-strong: rgba(16, 31, 51, 0.94);
-  --shell-border: rgba(151, 180, 214, 0.16);
-  --shell-border-strong: rgba(91, 141, 239, 0.26);
-  --shell-text: #eef5ff;
-  --shell-secondary: #c7d5ea;
-  --shell-muted: #7e91ab;
-  --shell-blue: #3d7cff;
-  --shell-cyan: #21c7d9;
-  --shell-green: #2bd88f;
-  --shell-amber: #ffb45c;
-  --shell-red: #ff5c7a;
-  --shell-violet: #8b7cf6;
-  display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
-  min-height: 100vh;
-  overflow: hidden;
-  color: var(--shell-text);
-  background:
-    linear-gradient(135deg, rgba(4, 9, 18, 0.98), rgba(7, 16, 29, 0.98)),
-    repeating-linear-gradient(90deg, rgba(151, 180, 214, 0.035) 0 1px, transparent 1px 72px);
-  font-family: Aptos, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  letter-spacing: 0;
-}
-
-.portfolio-shell *,
-.portfolio-shell *::before,
-.portfolio-shell *::after {
-  box-sizing: border-box;
-}
-
-.portfolio-shell__sidebar {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 16px;
-  min-height: 100vh;
-  border-right: 1px solid var(--shell-border);
-  padding: 16px 14px;
-  background:
-    linear-gradient(180deg, rgba(8, 17, 31, 0.98), rgba(4, 9, 18, 0.98)),
-    var(--shell-sidebar);
-  box-shadow: 16px 0 38px rgba(0, 0, 0, 0.2);
-}
-
-.portfolio-shell__brand {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-height: 50px;
-}
-
-.portfolio-shell__brand-mark {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border: 1px solid rgba(128, 225, 255, 0.58);
-  border-radius: 13px;
-  color: #dff8ff;
-  background:
-    radial-gradient(circle at 25% 18%, rgba(53, 228, 242, 0.42), transparent 40%),
-    linear-gradient(135deg, rgba(4, 18, 34, 0.99), rgba(14, 35, 70, 0.98) 48%, rgba(35, 31, 92, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 0 0 1px rgba(61, 124, 255, 0.16),
-    0 14px 30px rgba(3, 10, 26, 0.4);
-}
-
-.portfolio-shell__brand-mark::after {
-  position: absolute;
-  inset: 4px;
-  z-index: 0;
-  border: 1px solid rgba(183, 248, 255, 0.13);
-  border-radius: 10px;
-  content: "";
-}
-
-.portfolio-shell__brand-glyph {
-  position: relative;
-  z-index: 1;
-  width: 39px;
-  height: 39px;
-  filter: drop-shadow(0 3px 7px rgba(33, 199, 217, 0.28));
-}
-
-.portfolio-shell__brand > div > strong,
-.portfolio-shell__brand > div > span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.portfolio-shell__brand > div > strong {
-  color: var(--shell-text);
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.portfolio-shell__brand > div > span {
-  margin-top: 3px;
-  color: var(--shell-muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.portfolio-shell__nav {
-  display: grid;
-  align-content: start;
-  gap: 7px;
-  min-height: 0;
-  overflow: auto;
-}
-
-.portfolio-shell__nav-item {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-height: 48px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 7px 9px;
-  color: var(--shell-secondary);
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.portfolio-shell__nav-item:hover,
-.portfolio-shell__nav-item--active {
-  border-color: rgba(61, 124, 255, 0.38);
-  color: var(--shell-text);
-  background: linear-gradient(135deg, rgba(61, 124, 255, 0.22), rgba(33, 199, 217, 0.08));
-}
-
-.portfolio-shell__nav-item--active {
-  box-shadow: inset 3px 0 0 rgba(33, 199, 217, 0.88), 0 12px 28px rgba(61, 124, 255, 0.12);
-}
-
-.portfolio-shell__nav-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 3px;
-  background: rgba(126, 145, 171, 0.55);
-}
-
-.portfolio-shell__nav-item--active .portfolio-shell__nav-dot {
-  background: var(--shell-cyan);
-  box-shadow: 0 0 0 4px rgba(33, 199, 217, 0.14);
-}
-
-.portfolio-shell__nav-item strong,
-.portfolio-shell__nav-item small {
-  display: block;
-}
-
-.portfolio-shell__nav-item strong {
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-.portfolio-shell__nav-item small {
-  margin-top: 3px;
-  color: var(--shell-muted);
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.portfolio-shell__team {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  border: 1px solid var(--shell-border);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(12, 23, 38, 0.58);
-}
-
-.portfolio-shell__team-mark {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border-radius: 50%;
-  color: #d9f7fb;
-  background: rgba(33, 199, 217, 0.13);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-}
-
-.portfolio-shell__team strong,
-.portfolio-shell__team small {
-  display: block;
-}
-
-.portfolio-shell__team strong {
-  color: var(--shell-secondary);
-  font-size: 12px;
-}
-
-.portfolio-shell__team small {
-  margin-top: 4px;
-  color: var(--shell-muted);
-  font-size: 10.5px;
-}
-
-.portfolio-shell__context-card > span,
-.portfolio-shell__topbar-title span {
-  color: #9fc4ff;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.portfolio-shell__workspace {
-  min-width: 0;
-  min-height: 100vh;
-}
-
-.portfolio-shell__topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: minmax(190px, 0.28fr) minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  min-height: 62px;
-  border-bottom: 1px solid var(--shell-border);
-  padding: 9px 16px;
-  background: rgba(4, 9, 18, 0.9);
-  backdrop-filter: blur(18px);
-}
-
-.portfolio-shell__topbar--evaluation {
-  grid-template-columns: 1fr;
-}
-
-.portfolio-shell__topbar--evaluation .portfolio-shell__status-strip {
-  justify-content: flex-start;
-}
-
-.portfolio-shell__topbar-title {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.portfolio-shell__topbar-title strong {
-  overflow: hidden;
-  color: var(--shell-text);
-  font-size: 15px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.portfolio-shell__status-strip {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 7px;
-  min-width: 0;
-}
-
-.portfolio-shell__status-strip span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  border: 1px solid var(--shell-border);
-  border-radius: 8px;
-  padding: 0 9px;
-  color: var(--shell-secondary);
-  background: rgba(12, 23, 38, 0.76);
-  font-size: 11.5px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.portfolio-shell__status-strip span:nth-child(2),
-.portfolio-shell__status-strip span:nth-child(3) {
-  border-color: rgba(33, 199, 217, 0.22);
-  color: #9fe8f1;
-}
-
-.portfolio-shell__status-strip span:nth-child(4) {
-  border-color: rgba(139, 124, 246, 0.24);
-  color: #d8d2ff;
-}
-
-.portfolio-shell__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  width: min(100%, 1720px);
-  min-width: 0;
-  margin: 0 auto;
-  padding: 12px 14px 18px;
-}
-
-.portfolio-shell__body--with-context {
-  grid-template-columns: minmax(0, 1fr) 360px;
-}
-
-.portfolio-shell__content {
-  min-width: 0;
-}
-
-.portfolio-shell__context {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  min-width: 0;
-}
-
-.portfolio-shell__context-card {
-  display: grid;
-  gap: 8px;
-  border: 1px solid var(--shell-border);
-  border-radius: 8px;
-  padding: 12px;
-  background:
-    linear-gradient(180deg, rgba(16, 31, 51, 0.82), rgba(8, 17, 31, 0.92)),
-    var(--shell-panel);
-}
-
-.portfolio-shell__context-card h2 {
-  margin: 0;
-  color: var(--shell-text);
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.portfolio-shell__context-card--strong {
-  border-color: rgba(33, 199, 217, 0.24);
-  background: linear-gradient(135deg, rgba(33, 199, 217, 0.12), rgba(12, 23, 38, 0.9));
-}
-
-.portfolio-shell__context-card--boundary {
-  border-color: rgba(255, 180, 92, 0.18);
-  background: linear-gradient(135deg, rgba(255, 180, 92, 0.055), rgba(12, 23, 38, 0.88));
-}
-
-.portfolio-shell__context-card--insight {
-  border-color: rgba(139, 124, 246, 0.2);
-  background: linear-gradient(135deg, rgba(139, 124, 246, 0.085), rgba(12, 23, 38, 0.9));
-}
-
-.portfolio-shell__context-card strong {
-  color: var(--shell-text);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.portfolio-shell__context-card p {
-  margin: 0;
-  color: var(--shell-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.portfolio-shell__mini-metrics {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px 9px;
-  align-items: center;
-}
-
-.portfolio-shell__mini-metrics b {
-  color: var(--shell-cyan);
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 13px;
-}
-
-.portfolio-shell__mini-metrics small {
-  color: var(--shell-muted);
-  font-size: 11px;
-}
-
-.portfolio-shell__mini-metrics--summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-}
-
-.portfolio-shell__mini-metrics--summary section {
-  display: grid;
-  gap: 4px;
-  border-right: 1px solid var(--shell-border);
-  padding: 2px 8px;
-}
-
-.portfolio-shell__mini-metrics--summary section:first-child {
-  padding-left: 0;
-}
-
-.portfolio-shell__mini-metrics--summary section:last-child {
-  border-right: 0;
-  padding-right: 0;
-}
-
-.portfolio-shell__mini-metrics--summary b {
-  font-size: 12px;
-}
-
-.portfolio-shell__mini-metrics--summary small {
-  line-height: 1.35;
-}
-
-.portfolio-shell__scope-pairs {
-  display: grid;
-  gap: 0;
-  margin: 0;
-}
-
-.portfolio-shell__scope-pairs div {
-  display: grid;
-  grid-template-columns: 105px minmax(0, 1fr);
-  gap: 10px;
-  border-bottom: 1px solid rgba(151, 180, 214, 0.08);
-  padding: 7px 0;
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.portfolio-shell__scope-pairs div:last-child {
-  border-bottom: 0;
-}
-
-.portfolio-shell__scope-pairs dt {
-  color: var(--shell-muted);
-}
-
-.portfolio-shell__scope-pairs dd {
-  margin: 0;
-  color: var(--shell-secondary);
-  overflow-wrap: anywhere;
-}
-
-.portfolio-shell__status-list {
-  display: grid;
-  gap: 6px;
-}
-
-.portfolio-shell__status-list article {
-  display: grid;
-  gap: 3px;
-  border: 1px solid rgba(151, 180, 214, 0.09);
-  border-left: 3px solid var(--shell-blue);
-  border-radius: 8px;
-  padding: 7px 8px;
-  background: rgba(4, 9, 18, 0.38);
-}
-
-.portfolio-shell__status-list article[data-tone='green'] {
-  border-left-color: var(--shell-green);
-}
-
-.portfolio-shell__status-list article[data-tone='amber'] {
-  border-left-color: var(--shell-amber);
-}
-
-.portfolio-shell__status-list article[data-tone='cyan'] {
-  border-left-color: var(--shell-cyan);
-}
-
-.portfolio-shell__status-list article[data-tone='slate'] {
-  border-left-color: #5b6f8d;
-}
-
-.portfolio-shell__status-list strong {
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-}
-
-.portfolio-shell__status-list span,
-.portfolio-shell__status-list small {
-  color: var(--shell-muted);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.portfolio-shell__trace-list {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.portfolio-shell__trace-list li {
-  display: grid;
-  gap: 3px;
-  border-left: 2px solid rgba(33, 199, 217, 0.42);
-  padding-left: 9px;
-}
-
-.portfolio-shell__trace-list strong {
-  color: #dfeaff;
-  font-family: "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-}
-
-.portfolio-shell__trace-list span,
-.portfolio-shell__trace-list small {
-  color: var(--shell-muted);
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.portfolio-shell__context-link {
-  width: fit-content;
-  color: #69a8ff;
-  font-size: 11px;
-  font-weight: 750;
-  text-decoration: none;
-}
-
-.portfolio-shell__context-link:hover,
-.portfolio-shell__context-link:focus-visible {
-  color: #acd2ff;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.portfolio-shell__context-card--boundary div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.portfolio-shell__context-card--boundary small {
-  border: 1px solid rgba(255, 180, 92, 0.16);
-  border-radius: 6px;
-  padding: 4px 6px;
-  color: #ffd6a8;
-  background: rgba(255, 180, 92, 0.06);
-  font-size: 10.5px;
-}
-
-.portfolio-shell__content :deep(.knowledge-showcase),
-.portfolio-shell__content :deep(.trace-showcase),
-.portfolio-shell__content :deep(.human-review-showcase) {
-  grid-template-columns: 1fr !important;
-  min-height: auto !important;
-  background: transparent !important;
-  overflow: visible !important;
-}
-
-.portfolio-shell__content :deep(.knowledge-showcase-sidebar),
-.portfolio-shell__content :deep(.trace-showcase-sidebar),
-.portfolio-shell__content :deep(.human-review-showcase-sidebar),
-.portfolio-shell__content :deep(.knowledge-showcase-topbar),
-.portfolio-shell__content :deep(.trace-showcase-topbar),
-.portfolio-shell__content :deep(.human-review-showcase-topbar) {
-  display: none !important;
-}
-
-.portfolio-shell__content :deep(.knowledge-showcase-main),
-.portfolio-shell__content :deep(.trace-showcase-main),
-.portfolio-shell__content :deep(.human-review-showcase-main) {
-  min-height: auto !important;
-  height: auto !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-.portfolio-shell__content :deep(.human-review-showcase-workspace),
-.portfolio-shell__content :deep(.trace-showcase-workspace),
-.portfolio-shell__content :deep(.knowledge-showcase-workspace) {
-  min-height: auto !important;
-}
-
-@media (max-width: 1320px) {
-  .portfolio-shell__body,
-  .portfolio-shell__body--with-context {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .portfolio-shell__context {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 980px) {
-  .portfolio-shell {
-    grid-template-columns: 1fr;
-    overflow: visible;
-  }
-
-  .portfolio-shell__sidebar {
-    min-height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--shell-border);
-  }
-
-  .portfolio-shell__nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .portfolio-shell__topbar,
-  .portfolio-shell__body,
-  .portfolio-shell__context {
-    grid-template-columns: 1fr;
-  }
-
-  .portfolio-shell__status-strip {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 620px) {
-  .portfolio-shell__sidebar {
-    padding: 12px;
-  }
-
-  .portfolio-shell__context {
-    grid-template-columns: 1fr;
-  }
-
-  .portfolio-shell__nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
-  }
-
-  .portfolio-shell__nav-item {
-    min-height: 44px;
-    padding: 6px 7px;
-  }
-
-  .portfolio-shell__body {
-    padding: 10px;
-  }
-
-  .portfolio-shell__status-strip span {
-    white-space: normal;
-  }
-}
-</style>

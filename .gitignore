@@ -3,6 +3,7 @@ node_modules/
 dist/
 .env
 .env.*
+!deploy/staging/.env.example
 application-local.yml
 backend/src/main/resources/application-local.yml
 .mysql-data/

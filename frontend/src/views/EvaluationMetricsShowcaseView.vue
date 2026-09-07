@@ -37,17 +37,17 @@ const supplementalMetrics = [
   <section class="evaluation-showcase" data-screenshot="evaluation-metrics" aria-label="评测指标中心">
     <header class="evaluation-showcase__hero">
       <div class="evaluation-showcase__intro">
-        <p class="evaluation-showcase__eyebrow">Evaluation / Metrics · 本地 RAG 评测与引用证据指标</p>
+        <p class="evaluation-showcase__eyebrow">评测 / 本地数据 · 检索与引用指标</p>
         <h1>评测指标中心</h1>
         <p class="evaluation-showcase__summary">
-          基于自建工单评测集，评估检索命中、引用证据、失败样本与人工复核门禁。
+          基于自建工单评测集，查看检索命中、引用证据、失败样本与人工复核门禁。
         </p>
         <div class="evaluation-showcase__hero-tags" aria-label="当前评测范围">
-          <span>synthetic demo dataset</span>
+          <span>合成评测集</span>
           <span>Top-K: {{ evaluationSnapshot.topK }}</span>
-          <span>local keyword retrieval</span>
-          <span>citation gating</span>
-          <span>local-rule fallback</span>
+          <span>关键词检索</span>
+          <span>引用校验</span>
+          <span>本地规则路径</span>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ const supplementalMetrics = [
         <strong>{{ metric.value }}</strong>
         <p>{{ metric.note }}</p>
         <a v-if="metric.label === '失败样本数'" href="#trace-timeline">查看失败案例 <span aria-hidden="true">→</span></a>
-        <a v-else-if="metric.label === '需人工复核'" href="#human-review">查看 Review <span aria-hidden="true">→</span></a>
+        <a v-else-if="metric.label === '需人工复核'" href="#human-review">查看复核队列 <span aria-hidden="true">→</span></a>
       </article>
     </section>
 
@@ -95,7 +95,7 @@ const supplementalMetrics = [
       <article class="evaluation-showcase__panel evaluation-showcase__panel--baseline">
         <div class="evaluation-showcase__panel-heading">
           <div>
-            <p class="evaluation-showcase__eyebrow">Baseline / Scope</p>
+            <p class="evaluation-showcase__eyebrow">当前范围</p>
             <h2>当前版本 baseline</h2>
           </div>
           <a href="#evaluation-metrics" title="本地演示入口">查看 baseline 详情 <span aria-hidden="true">→</span></a>
@@ -129,7 +129,7 @@ const supplementalMetrics = [
       <article class="evaluation-showcase__panel evaluation-showcase__panel--next">
         <div class="evaluation-showcase__panel-heading">
           <div>
-            <p class="evaluation-showcase__eyebrow">Planned Experiments</p>
+            <p class="evaluation-showcase__eyebrow">后续计划</p>
             <h2>下一阶段实验计划</h2>
           </div>
           <span class="evaluation-showcase__planned-badge">规划中</span>
@@ -147,20 +147,21 @@ const supplementalMetrics = [
 
 <style scoped>
 .evaluation-showcase {
-  --eval-panel: rgba(11, 24, 39, 0.88);
-  --eval-panel-strong: rgba(14, 29, 47, 0.94);
-  --eval-border: rgba(145, 174, 207, 0.17);
-  --eval-text: #edf4ff;
-  --eval-secondary: #bdcbe0;
-  --eval-muted: #788ca6;
-  --eval-blue: #4b8cff;
-  --eval-cyan: #32c8d6;
-  --eval-green: #36d48d;
-  --eval-amber: #f4ae42;
-  --eval-red: #ff635f;
-  --eval-violet: #a27af4;
+  /* Evaluation semantics map to the shared application tokens instead of a second palette. */
+  --eval-panel: var(--app-panel);
+  --eval-panel-subtle: var(--app-panel-subtle);
+  --eval-border: var(--app-line);
+  --eval-text: var(--app-text);
+  --eval-secondary: var(--app-text-soft);
+  --eval-muted: var(--app-muted);
+  --eval-blue: var(--app-blue);
+  --eval-cyan: var(--app-cyan);
+  --eval-green: var(--app-green);
+  --eval-amber: var(--app-amber);
+  --eval-red: var(--app-red);
+  --eval-violet: var(--app-violet);
   display: grid;
-  gap: 9px;
+  gap: 14px;
   min-width: 0;
   color: var(--eval-text);
 }
@@ -185,18 +186,16 @@ const supplementalMetrics = [
 .evaluation-showcase__supplemental {
   border: 1px solid var(--eval-border);
   border-radius: 9px;
-  background:
-    linear-gradient(180deg, rgba(16, 32, 51, 0.9), rgba(7, 17, 30, 0.94)),
-    var(--eval-panel);
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.16);
+  background: var(--eval-panel);
+  box-shadow: 0 1px 2px rgba(30, 42, 58, 0.04), 0 8px 24px rgba(30, 42, 58, 0.035);
 }
 
 .evaluation-showcase__hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.43fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+  gap: 20px;
   align-items: stretch;
-  padding: 15px 16px;
+  padding: 19px 20px;
 }
 
 .evaluation-showcase__intro {
@@ -204,24 +203,25 @@ const supplementalMetrics = [
 }
 
 .evaluation-showcase__eyebrow {
-  color: #a8c8f7;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
+  color: var(--eval-blue);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.035em;
 }
 
 .evaluation-showcase__hero h1 {
-  margin-top: 7px;
-  font-size: clamp(27px, 2.2vw, 36px);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
+  margin-top: 5px;
+  font-size: clamp(27px, 2.2vw, 34px);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
 }
 
 .evaluation-showcase__summary {
   margin-top: 9px !important;
   color: var(--eval-secondary);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .evaluation-showcase__hero-tags,
@@ -233,7 +233,7 @@ const supplementalMetrics = [
 }
 
 .evaluation-showcase__hero-tags {
-  margin-top: 12px;
+  margin-top: 13px;
 }
 
 .evaluation-showcase__hero-tags span,
@@ -243,31 +243,31 @@ const supplementalMetrics = [
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  border: 1px solid rgba(75, 140, 255, 0.18);
+  border: 1px solid #d5e0f3;
   border-radius: 6px;
   padding: 3px 8px;
-  color: #9fc4ff;
-  background: rgba(75, 140, 255, 0.055);
-  font-size: 10.5px;
-  font-weight: 750;
+  color: var(--eval-blue);
+  background: #f4f7fd;
+  font-size: 10px;
+  font-weight: 680;
 }
 
 .evaluation-showcase__hero-tags span:nth-child(3),
 .evaluation-showcase__hero-tags span:nth-child(4),
 .evaluation-showcase__scope-list span:not(:last-child) {
-  border-color: rgba(54, 212, 141, 0.16);
-  color: #7addad;
-  background: rgba(54, 212, 141, 0.045);
+  border-color: #cae2d4;
+  color: var(--eval-green);
+  background: #f1faf4;
 }
 
 .evaluation-showcase__dataset-card {
   display: grid;
   align-content: center;
   gap: 10px;
-  border: 1px solid rgba(145, 174, 207, 0.16);
-  border-radius: 8px;
+  border: 1px solid var(--eval-border);
+  border-radius: 7px;
   padding: 13px 14px;
-  background: rgba(5, 13, 24, 0.46);
+  background: var(--eval-panel-subtle);
 }
 
 .evaluation-showcase__dataset-title {
@@ -279,14 +279,14 @@ const supplementalMetrics = [
 }
 
 .evaluation-showcase__dataset-title > span {
-  color: var(--eval-cyan);
-  font-size: 17px;
+  color: var(--eval-blue);
+  font-size: 16px;
 }
 
 .evaluation-showcase__dataset-card code {
   overflow-wrap: anywhere;
-  color: #dbe9fb;
-  font: 11px/1.45 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  color: var(--eval-secondary);
+  font: 10px/1.45 ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 .evaluation-showcase__dataset-card dl {
@@ -299,7 +299,7 @@ const supplementalMetrics = [
   justify-content: space-between;
   gap: 12px;
   color: var(--eval-muted);
-  font-size: 10.5px;
+  font-size: 10px;
 }
 
 .evaluation-showcase__dataset-card dd {
@@ -309,7 +309,7 @@ const supplementalMetrics = [
 .evaluation-showcase__metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 11px;
 }
 
 .evaluation-showcase__metrics article {
@@ -317,19 +317,17 @@ const supplementalMetrics = [
   display: grid;
   align-content: start;
   gap: 7px;
-  min-height: 128px;
-  padding: 12px 13px;
+  min-height: 124px;
+  padding: 14px 15px;
   overflow: hidden;
 }
 
 .evaluation-showcase__metrics article::after {
   position: absolute;
-  inset: 0 auto auto 0;
-  width: 2px;
-  height: 100%;
+  inset: 0 0 auto;
+  height: 3px;
   background: var(--metric-color, var(--eval-blue));
   content: '';
-  opacity: 0.82;
 }
 
 .evaluation-showcase__metrics article[data-tone='green'] { --metric-color: var(--eval-green); }
@@ -343,8 +341,8 @@ const supplementalMetrics = [
   gap: 7px;
   align-items: center;
   color: var(--eval-secondary);
-  font-size: 11.5px;
-  font-weight: 760;
+  font-size: 11px;
+  font-weight: 680;
 }
 
 .evaluation-showcase__metric-dot {
@@ -352,32 +350,32 @@ const supplementalMetrics = [
   height: 7px;
   border: 1px solid var(--metric-color, var(--eval-blue));
   border-radius: 50%;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--metric-color, var(--eval-blue)) 12%, transparent);
+  background: #fff;
 }
 
 .evaluation-showcase__metrics strong {
   color: var(--eval-text);
-  font: 500 clamp(24px, 2vw, 33px)/1 "Cascadia Code", SFMono-Regular, Consolas, monospace;
-  letter-spacing: -0.035em;
+  font: 650 clamp(24px, 2vw, 32px)/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: -0.05em;
 }
 
 .evaluation-showcase__metrics p {
   color: var(--eval-muted);
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.4;
 }
 
 .evaluation-showcase a {
   width: fit-content;
-  color: #69a8ff;
+  color: var(--eval-blue);
   font-size: 10.5px;
-  font-weight: 750;
+  font-weight: 700;
   text-decoration: none;
 }
 
 .evaluation-showcase a:hover,
 .evaluation-showcase a:focus-visible {
-  color: #a9d1ff;
+  color: var(--app-blue-strong, #264f9f);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -385,7 +383,7 @@ const supplementalMetrics = [
 .evaluation-showcase__supplemental {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 9px 12px;
+  padding: 10px 12px;
   box-shadow: none;
 }
 
@@ -393,7 +391,7 @@ const supplementalMetrics = [
   display: grid;
   gap: 4px;
   min-width: 0;
-  border-right: 1px solid rgba(145, 174, 207, 0.12);
+  border-right: 1px solid var(--eval-border);
   padding: 2px 14px;
 }
 
@@ -408,13 +406,13 @@ const supplementalMetrics = [
 .evaluation-showcase__supplemental span,
 .evaluation-showcase__supplemental small {
   color: var(--eval-muted);
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.35;
 }
 
 .evaluation-showcase__supplemental strong {
-  color: #c5d3e6;
-  font: 500 17px/1.2 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  color: var(--eval-secondary);
+  font: 600 17px/1.2 ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 .evaluation-showcase__supplemental .evaluation-showcase__status-value {
@@ -426,7 +424,7 @@ const supplementalMetrics = [
 .evaluation-showcase__planning-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.07fr) minmax(330px, 0.93fr);
-  gap: 9px;
+  gap: 14px;
 }
 
 .evaluation-showcase__panel {
@@ -440,31 +438,32 @@ const supplementalMetrics = [
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--eval-border);
-  padding: 10px 12px;
+  padding: 13px 15px 11px;
 }
 
 .evaluation-showcase__panel-heading h2 {
   margin-top: 2px;
   font-size: 15px;
-  line-height: 1.2;
+  font-weight: 720;
+  line-height: 1.25;
 }
 
 .evaluation-showcase__scope-list,
 .evaluation-showcase__next-list {
-  padding: 9px 11px 0;
+  padding: 11px 13px 0;
 }
 
 .evaluation-showcase__next-list span,
 .evaluation-showcase__planned-badge {
-  border-color: rgba(162, 122, 244, 0.16);
-  color: #c7b2f3;
-  background: rgba(162, 122, 244, 0.045);
+  border-color: #d8d0e9;
+  color: var(--eval-violet);
+  background: #f7f4fc;
 }
 
 .evaluation-showcase__baseline-table {
   display: grid;
   gap: 4px;
-  padding: 9px 10px 10px;
+  padding: 11px 12px 12px;
 }
 
 .evaluation-showcase__baseline-head,
@@ -476,18 +475,18 @@ const supplementalMetrics = [
 }
 
 .evaluation-showcase__baseline-head {
-  padding: 0 7px 3px;
+  padding: 0 8px 3px;
   color: var(--eval-muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 680;
 }
 
 .evaluation-showcase__baseline-row {
-  min-height: 46px;
-  border: 1px solid rgba(145, 174, 207, 0.08);
-  border-radius: 7px;
-  padding: 7px;
-  background: rgba(4, 11, 21, 0.32);
+  min-height: 48px;
+  border: 1px solid var(--eval-border);
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: var(--eval-panel-subtle);
 }
 
 .evaluation-showcase__baseline-row strong,
@@ -496,30 +495,30 @@ const supplementalMetrics = [
 }
 
 .evaluation-showcase__baseline-row strong {
-  color: #dbe7f7;
+  color: var(--eval-secondary);
   font-size: 11px;
 }
 
 .evaluation-showcase__baseline-row small {
   margin-top: 3px;
-  color: #63758d;
-  font: 9px/1.25 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  color: var(--eval-muted);
+  font: 9px/1.25 ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 .evaluation-showcase__baseline-row > span {
   color: var(--eval-secondary);
-  font: 10.5px/1.3 "Cascadia Code", SFMono-Regular, Consolas, monospace;
+  font: 10px/1.3 ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 .evaluation-showcase__plain-note {
-  margin: 10px 11px 11px !important;
-  border: 1px solid rgba(145, 174, 207, 0.12);
-  border-radius: 7px;
+  margin: 11px 13px 13px !important;
+  border: 1px solid var(--eval-border);
+  border-radius: 6px;
   padding: 10px;
   color: var(--eval-muted);
-  background: rgba(4, 11, 21, 0.32);
-  font-size: 11px;
-  line-height: 1.55;
+  background: var(--eval-panel-subtle);
+  font-size: 10.5px;
+  line-height: 1.6;
 }
 
 @media (max-width: 1180px) {
@@ -538,7 +537,7 @@ const supplementalMetrics = [
   }
 
   .evaluation-showcase__supplemental article:nth-child(n + 3) {
-    border-top: 1px solid rgba(145, 174, 207, 0.12);
+    border-top: 1px solid var(--eval-border);
     padding-top: 8px;
   }
 }
@@ -550,13 +549,17 @@ const supplementalMetrics = [
     grid-template-columns: 1fr;
   }
 
+  .evaluation-showcase__hero {
+    padding: 16px;
+  }
+
   .evaluation-showcase__metrics article {
-    min-height: 116px;
+    min-height: 112px;
   }
 
   .evaluation-showcase__supplemental article {
     border-right: 0;
-    border-bottom: 1px solid rgba(145, 174, 207, 0.12);
+    border-bottom: 1px solid var(--eval-border);
     padding: 8px 2px;
   }
 

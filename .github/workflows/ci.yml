@@ -50,6 +50,21 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      - name: Audit production frontend dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  staging-compose:
+    name: Staging Compose configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate staging Compose interpolation
+        run: docker compose --env-file deploy/staging/.env.example -f deploy/staging/docker-compose.yml config -q

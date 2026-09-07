@@ -9,6 +9,7 @@ const frontendRoot = resolve(__dirname, '..')
 const repoRoot = resolve(frontendRoot, '..')
 const outputRoot = resolve(repoRoot, 'docs', 'images')
 const largeRoot = resolve(outputRoot, 'large')
+const mobileRoot = resolve(outputRoot, 'mobile')
 const baseUrl = process.env.SCREENSHOT_URL || 'http://127.0.0.1:5173'
 const shouldStartServer = !process.env.SCREENSHOT_URL
 const standardViewport = { width: 1440, height: 960 }
@@ -122,6 +123,16 @@ async function captureLarge(page, name) {
   await page.setViewportSize(standardViewport)
 }
 
+async function captureMobile(page, name) {
+  const mobileViewport = { width: 390, height: 844 }
+  await page.setViewportSize(mobileViewport)
+  await page.screenshot({
+    path: resolve(mobileRoot, `${name}.png`),
+    animations: 'disabled'
+  })
+  await page.setViewportSize(standardViewport)
+}
+
 async function openShowcase(page, target, viewport = standardViewport) {
   await page.setViewportSize(viewport)
   await page.goto(targetUrl(target.route), { waitUntil: 'networkidle' })
@@ -132,6 +143,7 @@ async function openShowcase(page, target, viewport = standardViewport) {
 
 mkdirSync(outputRoot, { recursive: true })
 mkdirSync(largeRoot, { recursive: true })
+mkdirSync(mobileRoot, { recursive: true })
 
 const server = shouldStartServer ? startServer() : null
 
@@ -140,6 +152,8 @@ if (server) {
   server.stderr.on('data', (chunk) => process.stderr.write(chunk))
 }
 
+let browser
+
 try {
   await waitForServer(baseUrl, server)
   const executablePath = findBrowser()
@@ -147,13 +161,22 @@ try {
     throw new Error('No Chrome or Edge executable found. Set CHROME_PATH to a Chromium-based browser.')
   }
 
-  const browser = await chromium.launch({
+  browser = await chromium.launch({
     executablePath,
     headless: true
   })
   const page = await browser.newPage({ viewport: standardViewport, deviceScaleFactor: 1 })
+  const browserErrors = { console: [], page: [] }
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.console.push(message.text())
+    }
+  })
+  page.on('pageerror', (error) => browserErrors.page.push(error.message))
 
   for (const target of showcaseTargets) {
+    browserErrors.console.length = 0
+    browserErrors.page.length = 0
     await openShowcase(page, target)
     await captureViewport(page, target.name)
     await captureLarge(page, target.name)
@@ -161,10 +184,16 @@ try {
     await assertNoHorizontalOverflow(page, { width: 1366, height: 900 }, `${target.name} 1366 desktop`)
     await openShowcase(page, target, { width: 390, height: 844 })
     await assertNoHorizontalOverflow(page, { width: 390, height: 844 }, `${target.name} 390 mobile`)
+    await captureMobile(page, target.name)
+    if (browserErrors.console.length || browserErrors.page.length) {
+      throw new Error(`${target.name} browser errors: console=${JSON.stringify(browserErrors.console)}, page=${JSON.stringify(browserErrors.page)}`)
+    }
   }
 
-  await browser.close()
-  console.log(`Screenshots saved to ${outputRoot}`)
+  console.log(`Screenshots saved to ${outputRoot} (standard, large, mobile)`)
 } finally {
+  if (browser) {
+    await browser.close().catch(() => {})
+  }
   stopServer(server)
 }

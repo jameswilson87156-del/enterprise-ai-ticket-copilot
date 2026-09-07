@@ -1,0 +1,6 @@
+{$TICKET_HOST} {
+    email {$ACME_EMAIL}
+    encode gzip
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    reverse_proxy ticket-edge:8080
+}

@@ -33,6 +33,7 @@ public class AuthService {
 
     private final ObjectMapper objectMapper;
     private final String signingKey;
+    private final String authMode;
 
     public AuthService(ObjectMapper objectMapper, Environment environment) {
         this.objectMapper = objectMapper;
@@ -40,9 +41,13 @@ public class AuthService {
             "ticket.auth.jwt-signing-key",
             "demo-rbac-signing-key-change-before-production"
         );
+        this.authMode = environment.getProperty("ticket.auth.mode", "DEMO");
     }
 
     public AuthResponse login(LoginRequest request) {
+        if ("OIDC".equalsIgnoreCase(authMode)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Password login is disabled in OIDC mode.");
+        }
         DemoUser demoUser = DEMO_USERS.get(request.username());
         if (demoUser == null || !demoUser.password().equals(request.password())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid demo username or password.");

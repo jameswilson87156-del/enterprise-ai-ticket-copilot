@@ -10,8 +10,18 @@ ticket:
     api-key: ${TICKET_AI_API_KEY:${PORTFOLIO_AI_API_KEY:}}
     protocol: ${TICKET_AI_PROTOCOL:${PORTFOLIO_AI_PROTOCOL:chat-completions}}
     fallback-to-local: ${TICKET_AI_FALLBACK_TO_LOCAL:${PORTFOLIO_AI_FALLBACK_ENABLED:true}}
+    rate-limit:
+      enabled: ${TICKET_AI_RATE_LIMIT_ENABLED:false}
+      limit: ${TICKET_AI_RATE_LIMIT_LIMIT:6}
+      window-seconds: ${TICKET_AI_RATE_LIMIT_WINDOW_SECONDS:60}
+      maximum-keys: ${TICKET_AI_RATE_LIMIT_MAXIMUM_KEYS:10000}
   auth:
+    mode: ${TICKET_AUTH_MODE:DEMO}
     jwt-signing-key: ${TICKET_AUTH_JWT_SIGNING_KEY:demo-rbac-signing-key-change-before-production}
+    issuer-uri: ${TICKET_AUTH_ISSUER_URI:}
+    audience: ${TICKET_AUTH_AUDIENCE:}
+    roles-claim: ${TICKET_AUTH_ROLES_CLAIM:roles}
+    principal-claim: ${TICKET_AUTH_PRINCIPAL_CLAIM:sub}
 
 server:
   port: 8080

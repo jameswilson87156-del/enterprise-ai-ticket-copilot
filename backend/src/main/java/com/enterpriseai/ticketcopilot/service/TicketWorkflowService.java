@@ -14,11 +14,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.enterpriseai.ticketcopilot.dto.CreateKnowledgeDraftRequest;
 import com.enterpriseai.ticketcopilot.dto.CreateTicketRequest;
 import com.enterpriseai.ticketcopilot.dto.UpdateTicketStatusRequest;
 import com.enterpriseai.ticketcopilot.dto.WorkbenchMetrics;
+import com.enterpriseai.ticketcopilot.contract.TicketStatusContract;
 import com.enterpriseai.ticketcopilot.entity.CopilotResult;
 import com.enterpriseai.ticketcopilot.entity.CopilotResultCitation;
 import com.enterpriseai.ticketcopilot.entity.CopilotRun;
@@ -56,6 +57,8 @@ import com.enterpriseai.ticketcopilot.model.StructuredCitation;
 import com.enterpriseai.ticketcopilot.model.StructuredCopilotOutput;
 import com.enterpriseai.ticketcopilot.model.StructuredOutputEvidence;
 import com.enterpriseai.ticketcopilot.model.ValidatedCitationEvidence;
+import com.enterpriseai.ticketcopilot.ticket.application.port.out.ReviewPolicy;
+import com.enterpriseai.ticketcopilot.ticket.application.policy.TicketStatusTransitionPolicy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,20 +67,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class TicketWorkflowService {
 
-    public static final String STATUS_PENDING_CLASSIFICATION = "PENDING_CLASSIFICATION";
-    public static final String STATUS_PENDING_PROCESS = "PENDING_PROCESS";
-    public static final String STATUS_AI_DRAFTED = "AI_DRAFTED";
-    public static final String STATUS_REVIEW_REQUIRED = "REVIEW_REQUIRED";
-    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-    public static final String STATUS_APPROVED = "APPROVED";
-    public static final String STATUS_RESOLVED = "RESOLVED";
-    public static final String STATUS_REJECTED = "REJECTED";
-    public static final String STATUS_KNOWLEDGE_BASED = "KNOWLEDGE_BASED";
+    public static final String STATUS_PENDING_CLASSIFICATION = TicketStatusContract.PENDING_CLASSIFICATION;
+    public static final String STATUS_PENDING_PROCESS = TicketStatusContract.PENDING_PROCESS;
+    public static final String STATUS_AI_DRAFTED = TicketStatusContract.AI_DRAFTED;
+    public static final String STATUS_REVIEW_REQUIRED = TicketStatusContract.REVIEW_REQUIRED;
+    public static final String STATUS_IN_PROGRESS = TicketStatusContract.IN_PROGRESS;
+    public static final String STATUS_APPROVED = TicketStatusContract.APPROVED;
+    public static final String STATUS_RESOLVED = TicketStatusContract.RESOLVED;
+    public static final String STATUS_REJECTED = TicketStatusContract.REJECTED;
+    public static final String STATUS_KNOWLEDGE_BASED = TicketStatusContract.KNOWLEDGE_BASED;
     private static final String CONFIRMATION_STATE = "待人工确认";
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter TICKET_NO_FORMATTER = DateTimeFormatter.ofPattern("yyMMddHHmmss");
@@ -100,7 +104,8 @@ public class TicketWorkflowService {
     private final CitationValidator citationValidator;
     private final AbstentionPolicy abstentionPolicy;
     private final LocalRuleStructuredOutputFactory localRuleStructuredOutputFactory;
-    private final ReviewGate reviewGate;
+    private final ReviewPolicy reviewPolicy;
+    private final TicketStatusTransitionPolicy transitionPolicy;
     private final ObjectMapper objectMapper;
 
     public TicketWorkflowService(
@@ -122,7 +127,8 @@ public class TicketWorkflowService {
         CitationValidator citationValidator,
         AbstentionPolicy abstentionPolicy,
         LocalRuleStructuredOutputFactory localRuleStructuredOutputFactory,
-        ReviewGate reviewGate,
+        ReviewPolicy reviewPolicy,
+        TicketStatusTransitionPolicy transitionPolicy,
         ObjectMapper objectMapper
     ) {
         this.supportTicketMapper = supportTicketMapper;
@@ -143,7 +149,8 @@ public class TicketWorkflowService {
         this.citationValidator = citationValidator;
         this.abstentionPolicy = abstentionPolicy;
         this.localRuleStructuredOutputFactory = localRuleStructuredOutputFactory;
-        this.reviewGate = reviewGate;
+        this.reviewPolicy = reviewPolicy;
+        this.transitionPolicy = transitionPolicy;
         this.objectMapper = objectMapper;
     }
 
@@ -316,6 +323,14 @@ public class TicketWorkflowService {
 
         ticket.setCategory(classification.category());
         ticket.setAiConfidence(classification.confidence());
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            STATUS_PENDING_CLASSIFICATION,
+            STATUS_PENDING_PROCESS,
+            TicketStatusTransitionPolicy.Operation.INITIAL_CLASSIFICATION,
+            false,
+            false,
+            false
+        ));
         ticket.setStatus(STATUS_PENDING_PROCESS);
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
@@ -326,6 +341,16 @@ public class TicketWorkflowService {
     @Transactional
     public TicketDetail runCopilot(String ticketNo, String actor) {
         SupportTicket ticket = findTicket(ticketNo);
+        CopilotRun previousRun = latestCopilotRun(ticket.getId());
+        ReviewProgress previousReview = reviewProgress(previousRun);
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            ticket.getStatus(),
+            ticket.getStatus(),
+            TicketStatusTransitionPolicy.Operation.RUN_COPILOT,
+            previousRun != null,
+            previousReview.completed(),
+            previousReview.decisionRecorded()
+        ));
         long runStarted = System.currentTimeMillis();
         CopilotRun run = startCopilotRun(ticket, aiProviderService.runtimeSettings());
         long started = System.currentTimeMillis();
@@ -345,6 +370,7 @@ public class TicketWorkflowService {
 
         if ("ERROR".equalsIgnoreCase(defaultText(providerResult.status(), "")) && !providerResult.fallbackUsed()) {
             completeCopilotRun(run, null, providerGeneration, providerResult, retrievalSnapshots.size(), false, true, System.currentTimeMillis() - runStarted);
+            assertTicketStatusStillCurrent(ticket, ticket.getStatus());
             appendHistory(
                 ticket.getId(),
                 ticket.getStatus(),
@@ -363,11 +389,17 @@ public class TicketWorkflowService {
 
         String from = ticket.getStatus();
         String target = decision.finalHumanReviewRequired() ? STATUS_REVIEW_REQUIRED : STATUS_AI_DRAFTED;
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            from,
+            target,
+            TicketStatusTransitionPolicy.Operation.RUN_COPILOT,
+            true,
+            false,
+            false
+        ));
         ticket.setCategory(classification.category());
         ticket.setAiConfidence(classification.confidence());
-        ticket.setStatus(target);
-        ticket.setUpdatedAt(LocalDateTime.now());
-        supportTicketMapper.updateById(ticket);
+        transitionTicketStatus(ticket, from, target, ticket.getResolvedSummary());
         appendHistory(
             ticket.getId(),
             from,
@@ -393,6 +425,7 @@ public class TicketWorkflowService {
         return applyReviewDecision(
             ticketNo,
             STATUS_RESOLVED,
+            TicketStatusTransitionPolicy.Operation.APPROVE_REVIEW,
             defaultText(actor, "Reviewer"),
             "APPROVED_RESOLUTION",
             defaultText(comment, "审核通过，人工确认建议草稿可作为处理结论。")
@@ -404,6 +437,7 @@ public class TicketWorkflowService {
         return applyReviewDecision(
             ticketNo,
             STATUS_REVIEW_REQUIRED,
+            TicketStatusTransitionPolicy.Operation.REQUEST_REVIEW_CHANGES,
             defaultText(actor, "Reviewer"),
             "REQUEST_CHANGES",
             defaultText(comment, "需要补充信息后重新审核。")
@@ -415,6 +449,7 @@ public class TicketWorkflowService {
         return applyReviewDecision(
             ticketNo,
             STATUS_REJECTED,
+            TicketStatusTransitionPolicy.Operation.REJECT_REVIEW,
             defaultText(actor, "Reviewer"),
             "REJECTED",
             defaultText(comment, "审核拒绝，保留原因并停止当前建议草稿。")
@@ -425,14 +460,22 @@ public class TicketWorkflowService {
     public TicketDetail updateStatus(String ticketNo, UpdateTicketStatusRequest request) {
         SupportTicket ticket = findTicket(ticketNo);
         String target = required(request.status(), "status");
-        if (!List.of(STATUS_PENDING_PROCESS, STATUS_AI_DRAFTED, STATUS_REVIEW_REQUIRED, STATUS_IN_PROGRESS, STATUS_APPROVED, STATUS_RESOLVED, STATUS_REJECTED, STATUS_KNOWLEDGE_BASED).contains(target)) {
+        if (!TicketStatusContract.isKnown(target)) {
             throw new ResponseStatusException(BAD_REQUEST, "Unsupported status: " + target);
         }
         String from = ticket.getStatus();
-        ticket.setStatus(target);
-        ticket.setResolvedSummary(defaultText(request.resolvedSummary(), ticket.getResolvedSummary()));
-        ticket.setUpdatedAt(LocalDateTime.now());
-        supportTicketMapper.updateById(ticket);
+        CopilotRun currentRun = latestCopilotRun(ticket.getId());
+        ReviewProgress currentReview = reviewProgress(currentRun);
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            from,
+            target,
+            TicketStatusTransitionPolicy.Operation.MANUAL_STATUS_UPDATE,
+            currentRun != null,
+            currentReview.completed(),
+            currentReview.decisionRecorded()
+        ));
+        String resolvedSummary = defaultText(request.resolvedSummary(), ticket.getResolvedSummary());
+        transitionTicketStatus(ticket, from, target, resolvedSummary);
         appendHistory(ticket.getId(), from, target, defaultText(request.actor(), "Support Desk"), defaultText(request.note(), "人工确认状态流转。"));
         appendReviewRecord(
             ticket.getId(),
@@ -449,9 +492,16 @@ public class TicketWorkflowService {
     @Transactional
     public KnowledgeDraft createKnowledgeDraft(String ticketNo, CreateKnowledgeDraftRequest request) {
         SupportTicket ticket = findTicket(ticketNo);
-        if (!STATUS_RESOLVED.equals(ticket.getStatus()) && !STATUS_KNOWLEDGE_BASED.equals(ticket.getStatus())) {
-            throw new ResponseStatusException(BAD_REQUEST, "Only resolved tickets can generate knowledge drafts.");
-        }
+        CopilotRun currentRun = latestCopilotRun(ticket.getId());
+        ReviewProgress currentReview = reviewProgress(currentRun);
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            ticket.getStatus(),
+            ticket.getStatus(),
+            TicketStatusTransitionPolicy.Operation.CREATE_KNOWLEDGE_DRAFT,
+            currentRun != null,
+            currentReview.completed(),
+            currentReview.decisionRecorded()
+        ));
         KnowledgeArticle draft = findDraft(ticket.getId());
         if (draft == null) {
             long started = System.currentTimeMillis();
@@ -462,11 +512,11 @@ public class TicketWorkflowService {
             draft.setKeywords(ticket.getSystemName() + "," + ticket.getCategory() + "," + ticket.getUrgency());
             draft.setContent(defaultText(request.content(), createDraftContent(ticket)));
             draft.setOwner(defaultText(request.owner(), "Knowledge Owner"));
-            draft.setStatus(request.confirm() ? "PUBLISHED" : "DRAFT");
+            draft.setStatus("DRAFT");
             draft.setSourceTicketId(ticket.getId());
             draft.setCreatedAt(LocalDateTime.now());
             draft.setUpdatedAt(LocalDateTime.now());
-            draft.setLastVerifiedAt(request.confirm() ? LocalDateTime.now() : null);
+            draft.setLastVerifiedAt(null);
             knowledgeArticleMapper.insert(draft);
             saveGeneration(ticket.getId(), "KNOWLEDGE_DRAFT", "RULE_TEMPLATE", ticket.getTitle(), draft.getTitle(), started, "SUCCESS");
         }
@@ -483,40 +533,77 @@ public class TicketWorkflowService {
         if (draft == null) {
             throw new ResponseStatusException(NOT_FOUND, "Knowledge draft not found: " + articleNo);
         }
-        if ("PUBLISHED".equals(draft.getStatus())) {
+        if (transitionPolicy.isIdempotentKnowledgeConfirmation(draft.getStatus())) {
             return toKnowledgeDraft(draft);
         }
         SupportTicket ticket = supportTicketMapper.selectById(draft.getSourceTicketId());
         if (ticket == null) {
             throw new ResponseStatusException(NOT_FOUND, "Source ticket not found.");
         }
+        CopilotRun currentRun = latestCopilotRun(ticket.getId());
+        ReviewProgress currentReview = reviewProgress(currentRun);
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            ticket.getStatus(),
+            STATUS_KNOWLEDGE_BASED,
+            TicketStatusTransitionPolicy.Operation.CONFIRM_KNOWLEDGE_DRAFT,
+            currentRun != null,
+            currentReview.completed(),
+            currentReview.decisionRecorded()
+        ));
         publishDraft(ticket, draft);
         return toKnowledgeDraft(draft);
     }
 
     private void publishDraft(SupportTicket ticket, KnowledgeArticle draft) {
+        if (!"DRAFT".equals(draft.getStatus())) {
+            throw new ResponseStatusException(CONFLICT, "Knowledge draft is not publishable: " + draft.getArticleNo());
+        }
+        CopilotRun currentRun = latestCopilotRun(ticket.getId());
+        ReviewProgress currentReview = reviewProgress(currentRun);
+        String from = ticket.getStatus();
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            from,
+            STATUS_KNOWLEDGE_BASED,
+            TicketStatusTransitionPolicy.Operation.PUBLISH_KNOWLEDGE_DRAFT,
+            currentRun != null,
+            currentReview.completed(),
+            currentReview.decisionRecorded()
+        ));
         draft.setStatus("PUBLISHED");
         draft.setLastVerifiedAt(LocalDateTime.now());
         draft.setUpdatedAt(LocalDateTime.now());
         knowledgeArticleMapper.updateById(draft);
-        String from = ticket.getStatus();
-        ticket.setStatus(STATUS_KNOWLEDGE_BASED);
-        ticket.setUpdatedAt(LocalDateTime.now());
-        supportTicketMapper.updateById(ticket);
+        transitionTicketStatus(ticket, from, STATUS_KNOWLEDGE_BASED, ticket.getResolvedSummary());
         appendHistory(ticket.getId(), from, STATUS_KNOWLEDGE_BASED, "Knowledge Reviewer", "人工确认知识库草稿并完成知识沉淀。");
     }
 
-    private TicketDetail applyReviewDecision(String ticketNo, String targetStatus, String actor, String decision, String comment) {
+    private TicketDetail applyReviewDecision(
+        String ticketNo,
+        String targetStatus,
+        TicketStatusTransitionPolicy.Operation operation,
+        String actor,
+        String decision,
+        String comment
+    ) {
         SupportTicket ticket = findTicket(ticketNo);
+        CopilotRun currentRun = latestCopilotRun(ticket.getId());
+        ReviewProgress currentReview = reviewProgress(currentRun);
         String from = ticket.getStatus();
-        ticket.setStatus(targetStatus);
+        transitionPolicy.assertAllowed(new TicketStatusTransitionPolicy.TransitionContext(
+            from,
+            targetStatus,
+            operation,
+            currentRun != null,
+            currentReview.completed(),
+            currentReview.decisionRecorded()
+        ));
+        String resolvedSummary = ticket.getResolvedSummary();
         if (STATUS_RESOLVED.equals(targetStatus) || STATUS_APPROVED.equals(targetStatus)) {
-            ticket.setResolvedSummary(comment);
+            resolvedSummary = comment;
         }
-        ticket.setUpdatedAt(LocalDateTime.now());
-        supportTicketMapper.updateById(ticket);
+        transitionTicketStatus(ticket, from, targetStatus, resolvedSummary);
         appendHistory(ticket.getId(), from, targetStatus, actor, decision + ": " + comment);
-        appendReviewRecord(ticket.getId(), latestRunId(ticket.getId()), decision, actor, comment, from, targetStatus);
+        appendReviewRecord(ticket.getId(), currentRun == null ? null : currentRun.getRunId(), decision, actor, comment, from, targetStatus);
         return toDetail(ticket);
     }
 
@@ -551,10 +638,10 @@ public class TicketWorkflowService {
             if (!parseResult.valid()) {
                 StructuredCopilotOutput output = abstentionPolicy.abstain(AbstentionReasonCode.INVALID_STRUCTURED_OUTPUT);
                 CitationValidationResult citationValidationResult = CitationValidationResult.notApplicable();
-                boolean finalReview = reviewGate.finalHumanReviewRequired(
+                boolean finalReview = reviewPolicy.requiresHumanReview(
                     output,
                     providerResult.fallbackUsed(),
-                    citationValidationResult,
+                    citationValidationResult == null ? null : citationValidationResult.status(),
                     outputValidationStatus,
                     requiresReview(ticket, localDraft)
                 );
@@ -577,10 +664,10 @@ public class TicketWorkflowService {
                 : AbstentionReasonCode.INVALID_CITATION;
             finalOutput = abstentionPolicy.abstain(reasonCode);
         }
-        boolean finalReview = reviewGate.finalHumanReviewRequired(
+        boolean finalReview = reviewPolicy.requiresHumanReview(
             finalOutput,
             providerResult.fallbackUsed(),
-            citationValidationResult,
+            citationValidationResult == null ? null : citationValidationResult.status(),
             outputValidationStatus,
             requiresReview(ticket, localDraft)
         );
@@ -1115,6 +1202,60 @@ public class TicketWorkflowService {
         return analysis;
     }
 
+    /**
+     * Persist a state change only if the ticket still has the status that was
+     * read at the beginning of the use case. This is the Phase 0 optimistic
+     * concurrency guard: a competing status update yields 409 and the caller
+     * transaction rolls back its history/review side effects.
+     */
+    private void transitionTicketStatus(
+        SupportTicket ticket,
+        String from,
+        String target,
+        String resolvedSummary
+    ) {
+        if (Objects.equals(from, target)) {
+            assertTicketStatusStillCurrent(ticket, from);
+            ticket.setResolvedSummary(resolvedSummary);
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        int updated = supportTicketMapper.update(
+            null,
+            new UpdateWrapper<SupportTicket>()
+                .eq("id", ticket.getId())
+                .eq("status", from)
+                .set("status", target)
+                .set("category", ticket.getCategory())
+                .set("ai_confidence", ticket.getAiConfidence())
+                .set("resolved_summary", resolvedSummary)
+                .set("updated_at", now)
+        );
+        if (updated != 1) {
+            throw new ResponseStatusException(
+                CONFLICT,
+                "Ticket status changed before this transition could be saved; reload the ticket and retry."
+            );
+        }
+        ticket.setStatus(target);
+        ticket.setResolvedSummary(resolvedSummary);
+        ticket.setUpdatedAt(now);
+    }
+
+    private void assertTicketStatusStillCurrent(SupportTicket ticket, String expectedStatus) {
+        SupportTicket current = supportTicketMapper.selectById(ticket.getId());
+        if (current == null) {
+            throw new ResponseStatusException(NOT_FOUND, "Ticket not found: " + ticket.getTicketNo());
+        }
+        if (!Objects.equals(expectedStatus, current.getStatus())) {
+            throw new ResponseStatusException(
+                CONFLICT,
+                "Ticket status changed before this operation completed; reload the ticket and retry."
+            );
+        }
+    }
+
     private CopilotRun latestCopilotRun(Long ticketId) {
         return copilotRunMapper.selectOne(new LambdaQueryWrapper<CopilotRun>()
             .eq(CopilotRun::getTicketId, ticketId)
@@ -1149,10 +1290,32 @@ public class TicketWorkflowService {
     }
 
     private List<ReviewRecord> reviewRecordsForRun(String runId) {
-        return reviewRecordMapper.selectList(new LambdaQueryWrapper<ReviewRecord>()
+        if (runId == null || runId.isBlank()) {
+            return List.of();
+        }
+        List<ReviewRecord> records = reviewRecordMapper.selectList(new LambdaQueryWrapper<ReviewRecord>()
             .eq(ReviewRecord::getRunId, runId)
             .orderByAsc(ReviewRecord::getCreatedAt)
             .orderByAsc(ReviewRecord::getId));
+        return records == null ? List.of() : records;
+    }
+
+    private ReviewProgress reviewProgress(CopilotRun run) {
+        if (run == null) {
+            return new ReviewProgress(false, false);
+        }
+        List<ReviewRecord> records = reviewRecordsForRun(run.getRunId());
+        if (records.isEmpty()) {
+            return new ReviewProgress(false, false);
+        }
+        ReviewRecord latest = records.get(records.size() - 1);
+        return new ReviewProgress(isCompletedReviewDecision(latest.getDecision()), true);
+    }
+
+    private boolean isCompletedReviewDecision(String decision) {
+        return "APPROVED_RESOLUTION".equals(decision)
+            || "APPROVED_DRAFT".equals(decision)
+            || "REJECTED".equals(decision);
     }
 
     private StructuredOutputEvidence toStructuredOutputEvidence(CopilotResult result, List<CopilotResultCitation> citations) {
@@ -1560,6 +1723,9 @@ public class TicketWorkflowService {
     private String summarize(String value, int maxLength) {
         String normalized = defaultText(value, "");
         return normalized.length() > maxLength ? normalized.substring(0, maxLength) : normalized;
+    }
+
+    private record ReviewProgress(boolean completed, boolean decisionRecorded) {
     }
 
     private record StructuredDecision(

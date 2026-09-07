@@ -1,5 +1,7 @@
 # 架构说明
 
+> 后端当前处于 T0 契约冻结 + T1 入站边界 + T2 策略端口 + Phase 0-A 状态/授权加固阶段，并已补齐 OIDC/JWT Resource Server 与 staging 部署骨架：旧 `/api/...` 路径、状态词汇和证据链保持兼容，REST 入口已通过入站应用端口隔离旧工作流服务，工作流已通过 `ReviewPolicy` 隔离复核策略，状态和写权限分别由集中策略约束；后续完整模块化迁移按照 [Backend T0 API 契约冻结](design/BACKEND_T0_API_CONTRACT.md)、[Backend T1 模块边界](design/BACKEND_T1_MODULE_BOUNDARIES.md)、[Backend T2 工作流策略端口](design/BACKEND_T2_WORKFLOW_PORTS.md)、[Phase 0-A 状态与授权说明](design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md) 和 [后端下一阶段设计](design/BACKEND_NEXT_PHASE_DESIGN.md) 逐步进行。真实认证、Provider 和部署参数见 [真实认证、Provider 与部署说明](REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
+
 Enterprise Ticket RAG Copilot 是一个面向企业内部员工、IT 支持、运维和业务支持团队的工单辅助处理与知识库工作台。Copilot 在本项目中表示辅助处理工作台，不代表生产级自动客服。当前默认链路使用本地规则、关键词匹配和模板生成；配置临时环境变量后可走 OpenAI-compatible Provider `/chat/completions` 代码路径，失败或未配置 Key 时自动回退到 local-rule fallback。所有建议必须经过人工确认后进入状态流转或知识沉淀。
 
 ## 前后端架构图
@@ -15,13 +17,15 @@ flowchart LR
   end
 
   subgraph backend["Spring Boot 3 Backend"]
-    api["REST Controller"] --> workflow["TicketWorkflowService"]
-    api --> auth["AuthController + Demo JWT/RBAC"]
-    workflow --> classifier["RuleClassificationService"]
-    workflow --> matcher["KnowledgeMatchingService"]
-    workflow --> template["RecommendationTemplateService"]
-    workflow --> provider["AiProviderService<br/>OpenAI-compatible or local-rule fallback"]
-    workflow --> mapper["MyBatis-Plus Mapper"]
+    api["REST Controller"] --> workflow["TicketWorkflowUseCase<br/>inbound port"]
+    workflow --> legacy["LegacyTicketWorkflowFacade<br/>transitional adapter"]
+    legacy --> service["TicketWorkflowService<br/>legacy implementation"]
+    api --> auth["AuthController + Demo JWT/RBAC or OIDC/JWT"]
+    service --> classifier["RuleClassificationService"]
+    service --> matcher["KnowledgeMatchingService"]
+    service --> template["RecommendationTemplateService"]
+    service --> provider["AiProviderService<br/>OpenAI-compatible or local-rule fallback"]
+    service --> mapper["MyBatis-Plus Mapper"]
   end
 
   subgraph mysql["MySQL"]
@@ -52,8 +56,12 @@ stateDiagram-v2
   KNOWLEDGE_BASED --> [*]
 
   PENDING_PROCESS --> RESOLVED: 简单问题人工确认解决
-  RESOLVED --> IN_PROGRESS: 复核发现仍需处理
+RESOLVED --> IN_PROGRESS: 复核发现仍需处理
 ```
+
+## Phase 0-A 状态策略与写权限
+
+状态图中的合法边、审核 Run 前置条件、知识发布边界、条件更新并发保护，以及 ADMIN / AGENT / REVIEWER / VIEWER 的写权限矩阵，统一记录在 [企业 AI 工单状态转移与写接口授权](design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md)。所有未被现有源码、架构说明和 Showcase 流程明确支持的已知状态边均保持拒绝，不用通用目标白名单替代状态机判断。
 
 ## 规则分析 + 人工确认流程图
 
@@ -148,3 +156,53 @@ The accepted result is persisted in `copilot_result`; validated Citation relatio
 No-evidence runs abstain without remote Provider calls. Provider malformed output, self-declared abstention, missing Citation, or invalid Citation IDs are converted into safe system abstentions and require human review. Final review is determined by model/local-rule recommendation plus system gates: high risk, missing information, fallback, abstention, citation failure, structured-output failure, and existing business rules. This phase does not add a Responses API adapter, vector database, Elasticsearch, distributed tracing, automatic approval, or automatic ticket closure.
 
 See `docs/structured-output-and-citation.md` for the detailed contract and safety boundaries.
+
+## Frontend real API flow and Demo boundary (2026-09-02)
+
+The Vue frontend has two explicit runtime modes. The normal `npm run dev` mode uses the Vite `/api` proxy and calls the Spring Boot ticket API. It keeps the login token in browser memory only, renders backend loading/error/empty states, and never falls back to the local fixture when an API request fails. The optional `npm run dev:demo` mode is an in-memory showcase adapter for environments without MySQL or a running backend.
+
+The Demo adapter covers the same visible workflow surface needed by the portfolio page: ticket list/detail, metrics, Trace evidence, local-rule Copilot run, structured output, retrieval/citation presentation, and the three Human Review decisions. Demo traces are explicitly labeled `DEMO_LOCAL`, use `demo-local-derived` / `demo-local-run` trace modes, and use `DEMO-*` run identifiers; they are not persisted `IMMUTABLE_RUN` evidence. This adapter does not change backend behavior, database schema, retrieval logic, Provider configuration, or the evaluation dataset.
+
+The real frontend flow remains backend-mediated:
+
+```text
+Vite UI -> /api/auth/login -> /api/tickets and /api/tickets/{id}/...
+                              -> Spring Boot workflow
+                              -> local-rule or optional Provider path
+                              -> persisted structured result / Trace / review record
+```
+
+## 后端 T1/T2 依赖方向
+
+当前第一条纵向切片已经把 REST 入口从旧的全能 `TicketWorkflowService` 解耦到 `TicketWorkflowUseCase`；T2 又把工作流的最终人工复核判断解耦到 `ReviewPolicy`。`LegacyTicketWorkflowFacade` 仍是迁移期适配器，负责复用已验证的工作流实现；`ReviewGate` 仍是当前策略实现，不是最终完整模块拆分结果。后续可以在独立任务中继续抽取 Provider、检索和审计端口。
+
+For a real backend run with no retrieval evidence, the expected safe path is `NO_RETRIEVAL_EVIDENCE` plus Human Review. The frontend displays that abstention instead of fabricating a Citation or silently switching to Demo data. See `docs/frontend-real-flow-implementation.md` for the endpoint mapping and repeatable browser smoke record.
+
+## Frontend Showcase shell and page architecture (2026-09-03)
+
+The frontend keeps the existing Vue 3 + TypeScript + Vite stack and hash-route compatibility, but the page composition is now organized around a reusable support-operations shell:
+
+| Layer | Responsibility | Main files |
+| --- | --- | --- |
+| App Shell | Runtime boundary, active route, keyboard page search, skip link | `frontend/src/App.vue`, `frontend/src/components/layout/AppSidebar.vue`, `frontend/src/components/layout/AppTopbar.vue` |
+| Shared UI | Page/panel headers, status semantics, metrics, loading/empty/error states | `frontend/src/components/ui/` |
+| Domain state | Ticket list/detail, analysis, Trace, metrics, run and review action state | `frontend/src/composables/useTicketRealFlow.ts` |
+| API boundary | `/api` proxy, in-memory real-mode session, Demo adapter switch and safe errors | `frontend/src/api/tickets.ts` |
+| Showcase pages | Dashboard, Workbench, Knowledge, Retrieval Evidence, Trace, Human Review, Evaluation | `frontend/src/views/` |
+| Visual system | Light neutral canvas/panel tokens, compact support-workbench density, restrained status colors, responsive breakpoints and reduced motion | `frontend/src/styles.css` |
+
+The seven primary routes are `#dashboard`, `#ticket-detail` / `#ticket-workbench`, `#knowledge-base`, `#retrieval-evidence`, `#trace-timeline`, `#human-review`, and `#evaluation-metrics`. Legacy aliases such as `#trace-evidence`, `#rag`, `#review`, and `#metrics` remain mapped for existing links. `#trace-evidence` now resolves to the dedicated Retrieval Evidence page; the actual Trace Timeline page is `#trace-timeline`.
+
+The Workbench remains the primary write path: queue selection → TicketDetail read → Copilot run → persisted result/Trace read → Human Review decision. The redesigned pages only reorder and label those existing DTO fields; they do not add backend behavior, change field meaning, call a Provider directly, or turn Demo fixture data into persistence.
+
+Screenshot acceptance is implemented by `frontend/scripts/capture-screenshots.mjs`. It writes real browser captures to `docs/images/` (`1440x960`), `docs/images/large/` (`1920x1200`) and `docs/images/mobile/` (`390x844`), and checks horizontal overflow at `1366x900` and `390x844`. The script closes Chromium in its cleanup path so a failed capture does not leave a browser process holding test resources.
+
+## Frontend reference-led visual refinement (2026-09-03)
+
+The current frontend visual system is a calm, light support workspace rather than a dark technology cockpit. The shell uses warm neutral navigation/canvas surfaces (`#f7f7f4` / `#f0f1ee`), white content panels, restrained indigo actions, low-saturation semantic status colors, compact borders, and a local `Aptos` / `Segoe UI Variable` display stack with Chinese system fallbacks. The primary Workbench hierarchy is queue → ticket context → processing suggestion / evidence / human review; Dashboard prioritizes queue health and actionable work.
+
+The information architecture takes cues from public support-workspace cases: Intercom-style team inbox and context, Zendesk-style single-ticket workspace with customer context, Jira Service Management-style priority / queue / knowledge semantics, ServiceNow-style activity and workspace context, and Linear-style compact search and issue density. These are structural references only: no third-party brand assets, fonts, images, or code were added.
+
+This refinement changes CSS tokens, page composition, and visible labels only. Existing hash routes, API paths, DTOs, Demo / Real / Fallback behavior, `data-e2e` selectors, and the backend ticket workflow remain unchanged. The browser screenshot pipeline continues to produce standard, large, and mobile captures under `docs/images/` and to verify horizontal overflow.
+
+The shell's visual identity is self-contained: `BrandMark.vue` draws the ticket / evidence-node mark, and `NavIcon.vue` supplies the shared line-icon vocabulary for overview, workbench, knowledge, evidence, Trace, review and evaluation. No external icon library, remote font, third-party logo, or copied product code is required at runtime.

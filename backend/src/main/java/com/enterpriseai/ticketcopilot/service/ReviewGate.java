@@ -4,15 +4,17 @@ import com.enterpriseai.ticketcopilot.model.CitationValidationStatus;
 import com.enterpriseai.ticketcopilot.model.OutputValidationStatus;
 import com.enterpriseai.ticketcopilot.model.RiskLevel;
 import com.enterpriseai.ticketcopilot.model.StructuredCopilotOutput;
+import com.enterpriseai.ticketcopilot.ticket.application.port.out.ReviewPolicy;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ReviewGate {
+public class ReviewGate implements ReviewPolicy {
 
-    public boolean finalHumanReviewRequired(
+    @Override
+    public boolean requiresHumanReview(
         StructuredCopilotOutput output,
         boolean fallbackUsed,
-        CitationValidationResult citationValidationResult,
+        CitationValidationStatus citationValidationStatus,
         OutputValidationStatus outputValidationStatus,
         boolean businessRuleRequiresReview
     ) {
@@ -20,9 +22,9 @@ public class ReviewGate {
         boolean highRisk = output == null || output.riskLevel() == RiskLevel.HIGH;
         boolean abstained = output == null || output.abstained();
         boolean missingInformation = output != null && output.missingInformation() != null && !output.missingInformation().isEmpty();
-        boolean citationFailed = citationValidationResult != null
-            && citationValidationResult.status() != CitationValidationStatus.VALID
-            && citationValidationResult.status() != CitationValidationStatus.NOT_APPLICABLE;
+        boolean citationFailed = citationValidationStatus != null
+            && citationValidationStatus != CitationValidationStatus.VALID
+            && citationValidationStatus != CitationValidationStatus.NOT_APPLICABLE;
         boolean structuredOutputFailed = outputValidationStatus != null
             && outputValidationStatus != OutputValidationStatus.VALID
             && outputValidationStatus != OutputValidationStatus.NOT_APPLICABLE;
@@ -34,5 +36,25 @@ public class ReviewGate {
             || citationFailed
             || structuredOutputFailed
             || businessRuleRequiresReview;
+    }
+
+    /**
+     * Compatibility method for existing service-package callers and tests.
+     * New application code depends on {@link ReviewPolicy} instead.
+     */
+    public boolean finalHumanReviewRequired(
+        StructuredCopilotOutput output,
+        boolean fallbackUsed,
+        CitationValidationResult citationValidationResult,
+        OutputValidationStatus outputValidationStatus,
+        boolean businessRuleRequiresReview
+    ) {
+        return requiresHumanReview(
+            output,
+            fallbackUsed,
+            citationValidationResult == null ? null : citationValidationResult.status(),
+            outputValidationStatus,
+            businessRuleRequiresReview
+        );
     }
 }
