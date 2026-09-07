@@ -1,5 +1,11 @@
 # Claude / Codex 交接记录
 
+## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
+
+- 已在独立分支 `release/ticket-copilot-local-20260907` 形成本地候选提交 `fd8102b119c80e3aed6e2b0707cebbe845d9875e`（`release: assemble ticket copilot staging candidate`）。提交包含后端/前端源码、测试、部署 Compose/Caddy/Nginx 模板、文档和不含真实凭据的 staging `.env.example`；真实 `.env`、构建产物与临时文件未纳入且未删除。
+- 该提交只代表本地发布候选：没有 `git push`、没有合并远端 `main`、没有 Docker up/down、云资源、DNS、证书、数据库或公网操作。候选代码提交相对 `origin/main` 为 ahead 1 / behind 1；随后仅增加了本条记录，推送前仍需单独审阅远端差异并取得明确授权。
+- 候选提交基于本轮 `LOCAL_PASS` 结果；云端资源/Secret/OIDC/RDS/DNS/ICP/TLS 与公网 staging 仍为 `BLOCKED`/`STAGING_PENDING`。
+
 ## 2026-09-07 — RELEASE_CANDIDATE_LOCAL_REAUDIT
 
 - 本次只做本地发布前复验；工作区原有修改和未跟踪文件均保留，没有执行 commit、push、Docker up/down、DNS、证书、云资源或数据库操作。

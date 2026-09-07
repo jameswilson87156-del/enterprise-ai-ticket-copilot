@@ -1,9 +1,14 @@
 # Enterprise AI Ticket Copilot TODO 路线图
 
+## 2026-09-07 — LOCAL_RELEASE_CANDIDATE_COMMITTED
+
+- [x] `LOCAL_PASS`：在 `release/ticket-copilot-local-20260907` 形成候选提交 `fd8102b119c80e3aed6e2b0707cebbe845d9875e`；后端/前端源码、测试、部署模板、文档和安全 staging `.env.example` 已纳入，真实 `.env`、构建产物和临时文件未纳入且保留。
+- [ ] `BLOCKED`：候选代码提交与 `origin/main` 的 ahead 1 / behind 1 差异需在推送前单独审阅；未执行 push、merge、云资源、DNS、证书、数据库或公网 staging。
+
 ## 2026-09-07 — RELEASE_CANDIDATE_LOCAL_REAUDIT
 
 - [x] `LOCAL_PASS`：后端 289/289、0 failures/errors/skipped，JAR 构建成功；前端 typecheck 和 production build 成功；生产依赖审计为 0 high/critical；Compose 普通/TLS 静态配置和正向隔离 fixture 通过。
-- [ ] `BLOCKED`/`STAGING_PENDING`：干净 release commit、镜像 digest/SBOM、阿里云资源/Secret/OIDC/RDS/DNS/ICP/TLS 和公网 staging；等待独立资源与用户确认。
+- [ ] `BLOCKED`/`STAGING_PENDING`：镜像 digest/SBOM、阿里云资源/Secret/OIDC/RDS/DNS/ICP/TLS 和公网 staging；等待独立资源与用户确认。
 
 
 ## 2026-09-05 — STAGING_PHASE_A_AUDIT
