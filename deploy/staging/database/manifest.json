@@ -1,0 +1,10 @@
+{
+  "project": "enterprise-ai-ticket-copilot",
+  "migrations": [
+    {
+      "version": 1,
+      "file": "V1__schema_only.sql",
+      "sha256": "19a2dab9ef9e257b660345b0094028d93d5ecf03f208fb323ebdc4b7666fdcf7"
+    }
+  ]
+}

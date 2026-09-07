@@ -2,6 +2,10 @@
 
 > 本文档面向 GitHub 展示和面试快速阅读，整理后端真实 REST API 的设计、请求响应结构、统一错误格式和项目边界。完整机器可读接口仍以运行后的 Swagger / OpenAPI 为准。
 
+当前兼容路径和状态词汇已在 [Backend T0 API 契约冻结](design/BACKEND_T0_API_CONTRACT.md) 中通过自动化合同测试固定；`/api/v1` 是下一阶段目标，不代表当前接口已完成版本迁移。
+
+当前认证与部署边界：默认 Showcase 使用 Demo JWT；`staging` / `production` profile 已提供 OIDC/JWT Resource Server、issuer/JWKS 校验、可选 audience 校验和角色映射。真实 IdP token、真实 Provider 账户和公网部署尚未在本工作区完成验收，具体配置见 [真实认证、Provider 与部署说明](REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
+
 ## 1. API 概览
 
 后端基于 Spring Boot 3，REST API 面向企业工单辅助处理流程，覆盖工单录入、队列查询、详情查看、规则引擎辅助分析、知识库评分匹配、状态流转、知识草稿生成与发布确认、健康检查等场景。
@@ -48,7 +52,10 @@
 - `IllegalArgumentException`：`400 Bad Request`。
 - 资源不存在：`404 Not Found`。
 - `ResponseStatusException`：沿用异常中指定的状态码和 reason。
+- 已知但不允许的工作流状态边：`409 Conflict`；匿名请求为 `401 Unauthorized`，角色不足为 `403 Forbidden`。
 - 未预期异常：`500 Internal Server Error`，只返回“服务器内部错误”，不泄露堆栈。
+
+当前写权限矩阵和状态转移矩阵见 [Phase 0-A 状态与授权说明](design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md)。
 
 ## 4. 核心接口列表
 
@@ -60,7 +67,7 @@
 | `POST` | `/api/auth/login` | JWT + RBAC demo 登录 | `LoginRequest` | 返回 token 与当前用户 | demo 账号见 `docs/auth-rbac-demo.md` |
 | `GET` | `/api/auth/me` | 查询当前用户 | Bearer token | 返回当前用户 | 需要登录 |
 | `GET` | `/api/tickets` | 查询工单队列 | 无查询参数 | 返回 `TicketSummary[]` | 当前后端不提供分页或筛选参数 |
-| `POST` | `/api/tickets` | 创建工单，并同步生成规则分类、知识匹配和模板化建议草稿 | `CreateTicketRequest` | 返回 `TicketDetail` | DTO 使用 Bean Validation 校验 |
+| `POST` | `/api/tickets` | 创建工单，并同步生成规则分类、知识匹配和模板化建议草稿 | `CreateTicketRequest` | 返回 `TicketDetail` | 需 `ADMIN / AGENT`；DTO 使用 Bean Validation 校验 |
 | `GET` | `/api/tickets/metrics` | 查询工作台指标 | 无 | 返回 `WorkbenchMetrics` | `knowledgeCoverage` 是兼容字段名，前端展示为知识关联率 |
 | `GET` | `/api/tickets/{id}` | 查看工单详情、上下文、状态历史和知识草稿 | 路径参数 `id` | 返回 `TicketDetail` | 工单不存在返回统一 `404` |
 | `GET` | `/api/tickets/{id}/ai-analysis` | 查询规则引擎辅助分析结果 | 路径参数 `id` | 返回 `AiAnalysis` | 路径保留历史命名；当前不是 LLM 分析 |
@@ -69,9 +76,9 @@
 | `POST` | `/api/tickets/{id}/review/approve` | 审核通过 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
 | `POST` | `/api/tickets/{id}/review/request-changes` | 要求补充修改 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
 | `POST` | `/api/tickets/{id}/review/reject` | 拒绝建议草稿 | `ReviewDecisionRequest` | 返回 `TicketDetail` | 需 `ADMIN / REVIEWER` |
-| `POST` | `/api/tickets/{id}/status` | 人工确认工单状态流转 | `UpdateTicketStatusRequest` | 返回更新后的 `TicketDetail` | 只接受源码允许的状态值 |
-| `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决或已沉淀工单生成知识草稿，可选直接发布 | `CreateKnowledgeDraftRequest` | 返回 `KnowledgeDraft` | 非已解决工单会返回统一 `400` |
-| `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 | 路径参数 `articleNo` | 返回 `KnowledgeDraft` | 已发布草稿重复确认会直接返回当前结果 |
+| `POST` | `/api/tickets/{id}/status` | 人工确认工单状态流转 | `UpdateTicketStatusRequest` | 返回更新后的 `TicketDetail` | 需 `ADMIN / AGENT`；状态边不合法返回统一 `409` |
+| `POST` | `/api/tickets/{id}/knowledge-draft` | 为已解决或已沉淀工单生成知识草稿，可选直接发布 | `CreateKnowledgeDraftRequest` | 返回 `KnowledgeDraft` | `confirm=false` 需 `ADMIN / AGENT`；`confirm=true` 需 `ADMIN / REVIEWER`；来源/状态不合法返回 `409` |
+| `POST` | `/api/tickets/knowledge/{articleNo}/confirm` | 人工确认并发布知识草稿 | 路径参数 `articleNo` | 返回 `KnowledgeDraft` | 需 `ADMIN / REVIEWER`；已发布草稿重复确认会直接返回当前结果 |
 
 ### 4.1 请求 DTO
 
@@ -244,7 +251,7 @@
 | `ragReferences[].relevanceScore` | 通过现有关键词匹配服务重算；历史表未持久化每次 score |
 | `humanReview` | 从状态历史中的人工 actor 推导，不是独立审核任务表 |
 
-接口边界：默认 Provider 为 `local-rule`；配置 `TICKET_AI_PROVIDER=openai-compatible`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY` 后才会尝试真实 `/chat/completions` 调用。本轮没有真实 Key 验证记录；当前没有向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
+接口边界：默认 Provider 为 `local-rule`；配置 `TICKET_AI_PROVIDER=openai-compatible`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY` 后才会尝试真实 `/chat/completions` 调用。2026-09-05 已用合成数据完成一次真实 DeepSeek 隔离验收，结果见 [`docs/evidence/deepseek-synthetic-smoke-20260905.md`](evidence/deepseek-synthetic-smoke-20260905.md)；这不等于生产模型质量、真实认证或公网部署完成。当前没有向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
 
 ### 5.4 人工确认状态流转
 
@@ -270,7 +277,7 @@
 - `REJECTED`
 - `KNOWLEDGE_BASED`
 
-传入其他状态会返回统一 `400`，例如 `Unsupported status: CLOSED`。
+传入完全未知状态会返回统一 `400`，例如 `Unsupported status: CLOSED`；已知但不符合当前状态边的目标会返回统一 `409`。完整状态转移矩阵见 [Phase 0-A 状态与授权说明](design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md)。
 
 ### 5.5 生成知识草稿
 

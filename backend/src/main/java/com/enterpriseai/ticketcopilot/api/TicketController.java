@@ -14,7 +14,8 @@ import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
 import com.enterpriseai.ticketcopilot.model.TicketSummary;
 import com.enterpriseai.ticketcopilot.model.TraceEvidence;
-import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
+import com.enterpriseai.ticketcopilot.ticket.application.port.in.TicketWorkflowUseCase;
+import com.enterpriseai.ticketcopilot.ticket.application.policy.TicketAuthorizationPolicy;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,10 +30,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Tickets", description = "工单录入、规则分类、知识匹配、状态流转和知识沉淀接口")
 public class TicketController {
 
-    private final TicketWorkflowService ticketWorkflowService;
+    private final TicketWorkflowUseCase ticketWorkflowService;
+    private final TicketAuthorizationPolicy authorizationPolicy;
 
-    public TicketController(TicketWorkflowService ticketWorkflowService) {
+    public TicketController(
+        TicketWorkflowUseCase ticketWorkflowService,
+        TicketAuthorizationPolicy authorizationPolicy
+    ) {
         this.ticketWorkflowService = ticketWorkflowService;
+        this.authorizationPolicy = authorizationPolicy;
     }
 
     @GetMapping
@@ -42,6 +48,7 @@ public class TicketController {
 
     @PostMapping
     public TicketDetail createTicket(@Valid @RequestBody CreateTicketRequest request) {
+        authorize(TicketAuthorizationPolicy.Action.CREATE_TICKET);
         return ticketWorkflowService.createTicket(request);
     }
 
@@ -67,48 +74,50 @@ public class TicketController {
 
     @PostMapping("/{id}/run-copilot")
     public TicketDetail runCopilot(@PathVariable String id) {
-        AuthUser user = requireRoles("ADMIN", "AGENT");
+        AuthUser user = authorize(TicketAuthorizationPolicy.Action.RUN_COPILOT);
         return ticketWorkflowService.runCopilot(id, user.displayName());
     }
 
     @PostMapping("/{id}/review/approve")
     public TicketDetail approveReview(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
-        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        AuthUser user = authorize(TicketAuthorizationPolicy.Action.APPROVE_REVIEW);
         return ticketWorkflowService.approveReview(id, user.displayName(), request.comment());
     }
 
     @PostMapping("/{id}/review/request-changes")
     public TicketDetail requestReviewChanges(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
-        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        AuthUser user = authorize(TicketAuthorizationPolicy.Action.REQUEST_REVIEW_CHANGES);
         return ticketWorkflowService.requestReviewChanges(id, user.displayName(), request.comment());
     }
 
     @PostMapping("/{id}/review/reject")
     public TicketDetail rejectReview(@PathVariable String id, @Valid @RequestBody ReviewDecisionRequest request) {
-        AuthUser user = requireRoles("ADMIN", "REVIEWER");
+        AuthUser user = authorize(TicketAuthorizationPolicy.Action.REJECT_REVIEW);
         return ticketWorkflowService.rejectReview(id, user.displayName(), request.comment());
     }
 
     @PostMapping("/{id}/status")
     public TicketDetail updateStatus(@PathVariable String id, @Valid @RequestBody UpdateTicketStatusRequest request) {
+        authorize(TicketAuthorizationPolicy.Action.UPDATE_STATUS);
         return ticketWorkflowService.updateStatus(id, request);
     }
 
     @PostMapping("/{id}/knowledge-draft")
     public KnowledgeDraft createKnowledgeDraft(@PathVariable String id, @Valid @RequestBody CreateKnowledgeDraftRequest request) {
+        AuthUser user = AuthContext.requireUser();
+        authorizationPolicy.requireKnowledgeDraftWrite(user, request.confirm());
         return ticketWorkflowService.createKnowledgeDraft(id, request);
     }
 
     @PostMapping("/knowledge/{articleNo}/confirm")
     public KnowledgeDraft confirmKnowledgeDraft(@PathVariable String articleNo) {
+        authorize(TicketAuthorizationPolicy.Action.CONFIRM_KNOWLEDGE_DRAFT);
         return ticketWorkflowService.confirmKnowledgeDraft(articleNo);
     }
 
-    private AuthUser requireRoles(String... roles) {
+    private AuthUser authorize(TicketAuthorizationPolicy.Action action) {
         AuthUser user = AuthContext.requireUser();
-        if (!user.hasAnyRole(roles)) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Insufficient role for this operation.");
-        }
+        authorizationPolicy.require(user, action);
         return user;
     }
 }

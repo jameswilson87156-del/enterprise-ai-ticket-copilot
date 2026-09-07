@@ -2,9 +2,13 @@ package com.enterpriseai.ticketcopilot.api;
 
 import java.util.List;
 
+import com.enterpriseai.ticketcopilot.auth.AuthContext;
+import com.enterpriseai.ticketcopilot.auth.AuthUser;
 import com.enterpriseai.ticketcopilot.model.SystemContext;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
-import com.enterpriseai.ticketcopilot.service.TicketWorkflowService;
+import com.enterpriseai.ticketcopilot.contract.TicketStatusContract;
+import com.enterpriseai.ticketcopilot.ticket.application.port.in.TicketWorkflowUseCase;
+import com.enterpriseai.ticketcopilot.ticket.application.policy.TicketAuthorizationPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TicketControllerTest {
 
     @Mock
-    private TicketWorkflowService ticketWorkflowService;
+    private TicketWorkflowUseCase ticketWorkflowService;
 
     private MockMvc mockMvc;
     private LocalValidatorFactoryBean validator;
@@ -40,7 +44,7 @@ class TicketControllerTest {
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders
-            .standaloneSetup(new TicketController(ticketWorkflowService))
+            .standaloneSetup(new TicketController(ticketWorkflowService, new TicketAuthorizationPolicy()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setValidator(validator)
             .build();
@@ -48,6 +52,7 @@ class TicketControllerTest {
 
     @AfterEach
     void tearDown() {
+        AuthContext.clear();
         validator.close();
     }
 
@@ -107,12 +112,13 @@ class TicketControllerTest {
 
     @Test
     void acceptsValidTicketAndReturnsWorkflowResult() throws Exception {
+        AuthContext.set(new AuthUser("agent", "支持专员", "AGENT"));
         when(ticketWorkflowService.createTicket(any())).thenReturn(new TicketDetail(
             "TCK-1",
             "Redis 连接失败",
             "员工自助提交",
             "内部支持",
-            TicketWorkflowService.STATUS_PENDING_PROCESS,
+            TicketStatusContract.PENDING_PROCESS,
             "P2",
             "系统故障",
             "员工门户会话超时",

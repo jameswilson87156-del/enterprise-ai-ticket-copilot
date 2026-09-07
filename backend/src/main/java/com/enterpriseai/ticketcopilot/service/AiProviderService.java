@@ -8,7 +8,9 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.enterpriseai.ticketcopilot.entity.RetrievalHit;
 import com.enterpriseai.ticketcopilot.entity.SupportTicket;
@@ -23,6 +25,11 @@ public class AiProviderService {
 
     private static final String PROVIDER_LOCAL_RULE = "local-rule";
     private static final String PROVIDER_OPENAI_COMPATIBLE = "openai-compatible";
+    private static final Set<String> OPENAI_COMPATIBLE_PROVIDERS = Set.of(
+        "openai",
+        "deepseek",
+        PROVIDER_OPENAI_COMPATIBLE
+    );
     private static final String PROTOCOL_CHAT_COMPLETIONS = "chat-completions";
     private static final String PROTOCOL_BOTH = "both";
     private static final String PROTOCOL_RESPONSES = "responses";
@@ -51,7 +58,7 @@ public class AiProviderService {
         if (PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName())) {
             return localRuleSuccess(settings, started, promptSummary, localResponseSummary);
         }
-        if (!PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName())) {
+        if (!isOpenAiCompatibleProvider(settings.providerName())) {
             return providerFailure(settings, started, promptSummary, localResponseSummary, "UNSUPPORTED_PROVIDER_CONFIGURATION", null);
         }
         if (PROTOCOL_RESPONSES.equalsIgnoreCase(settings.protocol())) {
@@ -133,7 +140,7 @@ public class AiProviderService {
             summarize(promptSummary),
             "structured-output-unavailable",
             null,
-            PROVIDER_OPENAI_COMPATIBLE.equalsIgnoreCase(settings.providerName()) ? "OPENAI_COMPATIBLE" : "LOCAL_RULE_FALLBACK"
+            isOpenAiCompatibleProvider(settings.providerName()) ? "OPENAI_COMPATIBLE" : "LOCAL_RULE_FALLBACK"
         );
     }
 
@@ -195,7 +202,9 @@ public class AiProviderService {
     ) throws IOException, InterruptedException {
         Map<String, Object> body = Map.of(
             "model", settings.modelName(),
-            "temperature", 0.2,
+            // Structured output and citation membership are security gates, not creative generation.
+            // Keep provider variance low so a valid evidence-backed answer is reproducible.
+            "temperature", 0.0,
             "messages", List.of(
                 Map.of(
                     "role", "system",
@@ -263,6 +272,10 @@ public class AiProviderService {
 
     private String providerModelName(ProviderSettings settings) {
         return PROVIDER_LOCAL_RULE.equalsIgnoreCase(settings.providerName()) ? MODEL_NONE : settings.modelName();
+    }
+
+    private boolean isOpenAiCompatibleProvider(String providerName) {
+        return providerName != null && OPENAI_COMPATIBLE_PROVIDERS.contains(providerName.trim().toLowerCase(Locale.ROOT));
     }
 
     private String actualProviderForFailure(ProviderSettings settings, String fallbackReason) {

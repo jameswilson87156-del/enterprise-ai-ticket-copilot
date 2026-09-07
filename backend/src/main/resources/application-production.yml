@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: production
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # Production must receive an explicit private RDS URL from the deployment
+    # environment; a missing value must fail fast instead of using localhost.
+    url: ${TICKET_DB_URL:}
+    username: ${TICKET_DB_USERNAME:}
+    password: ${TICKET_DB_PASSWORD:}
+  sql:
+    init:
+      mode: never
+
+ticket:
+  ai:
+    fallback-to-local: false
+    rate-limit:
+      enabled: true
+  auth:
+    mode: OIDC
+    issuer-uri: ${TICKET_AUTH_ISSUER_URI:}
+    audience: ${TICKET_AUTH_AUDIENCE:}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

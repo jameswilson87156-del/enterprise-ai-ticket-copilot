@@ -16,19 +16,24 @@
 ## Design Tokens
 
 ```text
-Canvas: #f5f7f8
+Canvas: #f7f7f4
+Sidebar: #f0f1ee
 Surface: #ffffff
-Soft Surface: #f9fbfc
-Primary Text: #17212b
-Secondary Text: #657284
-Border: #dfe6ed
-Accent: #2d6f68
-Warm State: #96662a
-Success State: #3d765f
-Risk State: #a14d43
-Knowledge State: #4b6f96
-Radius: 8px / 12px / 16px / 20px
-Shadow: 0 14px 36px rgba(23, 33, 43, 0.07)
+Soft Surface: #fbfbf9
+Primary Text: #1f2630
+Secondary Text: #596572
+Muted Text: #858d95
+Border: #e4e6e0
+Strong Border: #d1d5ce
+Accent: #315bb2
+Warm State: #a66a1d
+Success State: #2c7657
+Risk State: #b9575e
+Knowledge State: #2c7884
+Review State: #725fa0
+Brand Detail: #bd7158
+Radius: 6px / 9px / 14px
+Shadow: 0 1px 2px rgba(28, 38, 47, 0.045), 0 9px 24px rgba(28, 38, 47, 0.032)
 ```
 
 避免：

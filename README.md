@@ -1,8 +1,12 @@
 # Enterprise Ticket RAG Copilot
 
+> 2026-09-05 第一阶段部署审计：当前总状态 **BLOCKED**。最新后端289/289（0失败/错误/跳过）、前端类型检查及生产构建、npm生产依赖审计、配置守卫、空库 schema-only 初始化、Compose普通/TLS静态校验为 **LOCAL_PASS**。Demo SQL挂载、本地 MySQL 接线、缺版本化迁移、Secret 构建上下文和 staging/production localhost 回落问题已完成本地整改；Docker registry、云资源、真实 Secret/OIDC、DNS/ICP/TLS 及公网验收仍 **STAGING_PENDING** 或 **BLOCKED**。详见 [本项目审计与部署计划](docs/release/STAGING_AUDIT_PLAN_20260905.md)。
+
 面向企业工单、客服支持和运维知识库场景的 AI RAG Copilot 作品集项目，用来展示工单分析、知识库检索、引用证据、Trace 运行链路、Human Review 门禁和本地 Evaluation / Metrics。
 
 这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成对外运行服务、公司内部数据效果或稳定模型接入能力。
+
+当前工程化状态：后端已实现可选 OIDC/JWT Resource Server、前端已实现 Authorization Code + PKCE 登录适配，并新增了 MySQL + API + Nginx + 可选 Caddy TLS 的 staging 部署骨架；默认 Showcase 仍保持 Demo 模式。真实 IdP、真实模型账号和公网服务器尚未在本工作区完成连接，执行边界见 [真实认证、Provider 与部署说明](docs/REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
 
 ## 项目定位
 
@@ -19,7 +23,11 @@ Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手 demo，
 
 ## Showcase
 
-以下截图均来自本项目 `docs/images/*.png`，由仓库内 Vue Showcase 页面生成；不引用临时目录图片、外部产品截图或参考目标图。`docs/images/large/` 保存对应 `1920x1200` 大图，适合作品集展示或本地预览。
+以下截图均来自本项目 `docs/images/*.png`，由仓库内 Vue Showcase 页面生成；不引用临时目录图片、外部产品截图或参考目标图。`docs/images/large/` 保存对应 `1920x1200` 大图，`docs/images/mobile/` 保存对应 `390x844` 移动端截图，适合作品集展示或本地预览。
+
+### 当前视觉方向（2026-09-03）
+
+根据前端验收反馈，Showcase 已从上一版深色科技风调整为浅色中性客服工作台，并完成一轮品牌细修：温润中性色画布、白色业务面板、克制靛蓝操作、自绘票据 / 证据节点 Logo、统一线性图标和本地优先的产品字体层级，以及“队列 → 工单上下文 → 处理建议 / 证据 / 人工复核”的信息层级。结构参考 [Intercom Inbox](https://www.intercom.com/helpdesk/inbox)、[Zendesk Agent Workspace](https://support.zendesk.com/hc/en-us/articles/4408821259930-About-the-Zendesk-Agent-Workspace)、[Jira Service Management](https://www.atlassian.com/software/helpdesk-software)、[ServiceNow CSM Workspace](https://www.servicenow.com/docs/r/xanadu/customer-service-management/csm-workspaces-configure.html) 和 [Linear Search](https://linear.app/docs/search) 的公开工作流语义；没有复制第三方品牌资产、图片、字体或代码。后端 API、Demo / Real / Fallback 边界和工单业务链路保持不变。
 
 ### 1. Dashboard — 系统总览
 
@@ -32,10 +40,10 @@ Enterprise Ticket RAG Copilot 是一个企业工单知识库智能助手 demo，
 ### 2. Ticket Workbench — 企业工单处理工作台
 
 <a href="docs/images/large/ticket-workbench.png">
-  <img src="docs/images/ticket-workbench.png" alt="Ticket Workbench：工单队列、分析结果、AI Draft、Citation Evidence、Trace 入口和 Human Review" width="100%" />
+  <img src="docs/images/ticket-workbench.png" alt="Ticket Workbench：工单队列、分析结果、处理建议、Citation Evidence、Trace 入口和 Human Review" width="100%" />
 </a>
 
-三栏工作台展示工单队列、工单详情、规则分析、AI Draft、Citation Evidence、Trace 入口和 Human Review 状态。
+三栏工作台展示工单队列、工单详情、规则分析、处理建议、Citation Evidence、Trace 入口和 Human Review 状态。
 
 ### 3. Evaluation / Metrics — 本地评测指标中心
 
@@ -61,7 +69,15 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 
 知识库页面展示知识来源、keyword retrieval、citation source、source / chunk / reference 管理和知识沉淀边界。
 
-### 6. Human Review — 人工复核门禁
+### 6. Retrieval Evidence — 检索证据分层
+
+<a href="docs/images/large/trace-evidence.png">
+  <img src="docs/images/trace-evidence.png" alt="Retrieval Evidence：Retrieval Reference、Validated Model Citation、Citation 校验结果和证据边界" width="100%" />
+</a>
+
+检索证据页把 Retrieval Reference 与 Validated Model Citation 分成两层，展示 score、引用校验状态和证据边界，不把命中结果包装成事实蕴含验证。
+
+### 7. Human Review — 人工复核门禁
 
 <a href="docs/images/large/human-review.png">
   <img src="docs/images/human-review.png" alt="Human Review：人工复核门禁、风险原因、修改草稿、approve / request changes / reject" width="100%" />
@@ -69,7 +85,7 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 
 人工复核页展示风险原因、修改草稿、Approve / Request Changes / Reject 的审核动作和 demo 状态流转。
 
-兼容截图：`docs/images/trace-evidence.png` 仍保留，用于旧 Trace Evidence 链接；当前内容与 Trace Timeline 页面一致。
+兼容说明：`docs/images/trace-evidence.png` 仍保留，用于旧 Trace Evidence 链接；当前内容对应 Retrieval Evidence 页面。
 
 ## Core Features
 
@@ -94,6 +110,10 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 | AI / RAG / Evaluation | keyword retrieval、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic demo evaluation dataset、RAG metrics script |
 
 后端接口覆盖工单流转、知识匹配、Trace Evidence、Provider / fallback、JWT + RBAC demo 和 Human Review。完整接口以 [docs/API.md](docs/API.md) 和本地 Swagger UI 为准。
+
+前端达到验收门槛后，下一阶段后端的接口版本、身份与 RBAC、知识检索、Provider、运行可靠性和 staging 部署路线见 [后端下一阶段设计](docs/design/BACKEND_NEXT_PHASE_DESIGN.md)。该文档是基于当前源码的规划，不代表目标能力已经实现。
+
+真实认证、Provider 参数、OIDC 回调地址、服务器端密钥和 staging 启动验收见 [真实认证、Provider 与部署说明](docs/REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
 
 ## Architecture / Workflow
 
@@ -186,7 +206,12 @@ Provider / fallback 边界不作为核心质量指标展示：
 
 ### 前端 Showcase
 
-无需后端或 MySQL，直接使用本地 demo 数据：
+前端有两个明确的运行模式，数据边界不同：
+
+- `npm run dev:demo`：本地 Showcase 模式。工单、Trace、Copilot 运行和 Human Review 使用浏览器内存中的合成 fixture，适合无后端时查看页面和截图，不代表后端持久化或真实 Provider 结果。
+- `npm run dev`：真实 API 模式。页面通过 Vite `/api` 代理调用 Spring Boot 后端；后端不可用时只显示错误/空状态，不会静默替换为 Demo 数据。
+
+#### 本地 Showcase / Demo 模式
 
 ```bash
 cd frontend
@@ -199,9 +224,38 @@ npm run dev:demo
 - `#dashboard`
 - `#ticket-detail`
 - `#evaluation-metrics`
+- `#retrieval-evidence`
 - `#trace-timeline`
 - `#knowledge-base`
 - `#human-review`
+
+#### 真实后端 API 模式
+
+先启动后端和本地 MySQL，再启动前端：
+
+```bash
+cd backend
+mvn spring-boot:run
+
+cd ../frontend
+npm run dev
+```
+
+默认 Vite 代理目标是 `http://localhost:8080`，对应后端 API 根路径 `http://localhost:8080/api`。如果后端运行在其他地址，可设置不含密钥的临时代理变量：
+
+```powershell
+$env:TICKET_BACKEND_PROXY_TARGET="http://localhost:18080"
+npm run dev
+```
+
+也可以直接设置包含 `/api` 的前端 API Base URL：
+
+```powershell
+$env:VITE_TICKET_API_BASE_URL="http://localhost:8080/api"
+npm run dev
+```
+
+真实模式的验收路径是：创建合成工单 → 运行 `/api/tickets/{id}/run-copilot` → 查看结构化输出、检索/Citation/Trace → 通过 `/review/approve`、`/review/request-changes` 或 `/review/reject` 提交人工复核。前端不会直接请求 Provider，也不会在后端失败时回退到静态 Demo。
 
 前端验证与截图：
 
@@ -211,7 +265,7 @@ npm run build
 npm run screenshots
 ```
 
-`npm run screenshots` 会重新生成 `docs/images/` 中的已跟踪图片；只查看项目时不必执行。
+`npm run screenshots` 会以 `dev:demo` 启动本地 Demo，并重新生成 `docs/images/`、`docs/images/large/` 和 `docs/images/mobile/` 中的标准、大屏与 `390x844` 移动端真实截图，同时检查 `1366x900` 与移动宽度的横向溢出；只查看项目时不必执行。如果默认 5173 被其他本地服务占用，可先在空闲端口启动 `npm run dev:demo -- --host 127.0.0.1 --port 5180 --strictPort`，再使用 `SCREENSHOT_URL=http://127.0.0.1:5180 npm run screenshots`（PowerShell 使用 `$env:SCREENSHOT_URL=...`）。截图可证明 Showcase 页面可复现，不等同于真实 API 联调或部署证据。
 
 ### 后端测试与启动
 
@@ -265,11 +319,12 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 | 验证项 | 最近记录 |
 | --- | --- |
 | `cd frontend && npm run build` | 通过：Vue 类型检查与 Vite 生产构建完成 |
-| `cd frontend && npm run screenshots` | 通过：覆盖 Showcase 路由及 1366 / 390 宽度溢出检查 |
-| `cd backend && mvn test` | 通过：`Tests run: 24, Failures: 0, Errors: 0, Skipped: 0` |
+| `cd frontend && npm run screenshots` | 通过：覆盖 8 个 Showcase 路由，生成标准 / 1920x1200 / 390x844 截图，并通过 1366 / 390 宽度溢出检查 |
+| `cd backend && mvn test` | 通过：`Tests run: 84, Failures: 0, Errors: 0, Skipped: 0` |
 | `py .\scripts\evaluate_rag_demo.py` | 通过：16 cases，Top-K 100.00%，Context Recall@K 90.00%，Citation Coverage 100.00%，Citation Precision 81.11% |
+| 前端浏览器 smoke | 通过：Demo 与隔离 H2 真实 API 均完成创建 → Copilot → Human Review |
 
-测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。本轮 README 整合只修改文档，没有重新运行构建、测试或截图脚本。
+测试记录见 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)；本轮前端真实链路与 Demo 边界的复验结果已追加到报告和 [docs/frontend-real-flow-implementation.md](docs/frontend-real-flow-implementation.md)。
 
 ## Resume Bullets
 

@@ -1,10 +1,18 @@
-import type {
+﻿import type {
   AiAnalysis,
+  CopilotRunEvidence,
   CreateTicketRequest,
   KnowledgeDraft,
+  RagReference,
+  ReviewDecisionRequest,
+  ReviewRecordEvidence,
+  StructuredCitation,
+  StructuredOutputEvidence,
   TicketDetail,
   TicketStatus,
   TicketSummary,
+  TraceEvidence,
+  ValidatedCitationEvidence,
   WorkbenchMetrics
 } from '../types/ticket'
 
@@ -19,7 +27,12 @@ const statusLabel: Record<TicketStatus, string> = {
   PENDING_PROCESS: '待人工确认',
   IN_PROGRESS: '处理中',
   RESOLVED: '已解决',
-  KNOWLEDGE_BASED: '已沉淀'
+  KNOWLEDGE_BASED: '已沉淀',
+  AI_DRAFTED: 'AI 已生成',
+  REVIEW_REQUIRED: '待人工复核',
+  APPROVED: '已批准',
+  REJECTED: '已驳回',
+  CHANGES_REQUESTED: '要求修改'
 }
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -154,7 +167,7 @@ const seeds: DemoTicketSeed[] = [
       title: 'Spring Boot 启动时报 BeanCreationException',
       requester: '周冉',
       team: 'payment-service',
-      status: 'PENDING_PROCESS',
+      status: 'REVIEW_REQUIRED',
       priority: 'P1',
       category: '系统故障',
       aiConfidence: 88,
@@ -165,7 +178,7 @@ const seeds: DemoTicketSeed[] = [
       title: 'Spring Boot 启动时报 BeanCreationException',
       requester: '周冉',
       department: '支付研发',
-      status: 'PENDING_PROCESS',
+      status: 'REVIEW_REQUIRED',
       priority: 'P1',
       category: '系统故障',
       description: 'payment-service 发布后启动失败，怀疑新增结算策略 bean 缺少配置。',
@@ -180,7 +193,8 @@ const seeds: DemoTicketSeed[] = [
       businessContext: ['发布验证阻塞，需要研发确认配置差异。', '回滚或补配置均需人工确认。'],
       timeline: [
         { time: '09:14', state: 'PENDING_CLASSIFICATION', actor: '系统', note: '工单提交，进入本地规则分类。' },
-        { time: '09:19', state: 'PENDING_PROCESS', actor: '规则引擎', note: '生成启动失败排查草稿，等待人工确认。' }
+        { time: '09:19', state: 'PENDING_PROCESS', actor: '规则引擎', note: '生成启动失败排查草稿，等待人工确认。' },
+        { time: '09:22', state: 'REVIEW_REQUIRED', actor: 'Local Demo Copilot', note: '合成建议已进入人工复核队列。' }
       ],
       knowledgeDraft: null
     },
@@ -463,6 +477,8 @@ const seeds: DemoTicketSeed[] = [
 let tickets = seeds.map((seed) => clone(seed.summary))
 let ticketDetails = Object.fromEntries(seeds.map((seed) => [seed.detail.id, clone(seed.detail)])) as Record<string, TicketDetail>
 let analyses = Object.fromEntries(seeds.map((seed) => [seed.analysis.ticketId, clone(seed.analysis)])) as Record<string, AiAnalysis>
+const demoRuns: Record<string, CopilotRunEvidence | undefined> = {}
+const demoReviewRecords: Record<string, ReviewRecordEvidence[]> = {}
 
 function ensureTicket(id: string) {
   const detail = ticketDetails[id]
@@ -521,6 +537,317 @@ export function demoFetchTicket(id: string) {
 
 export function demoFetchAiAnalysis(id: string) {
   return wait(analyses[id])
+}
+
+function demoRiskLevel(priority: TicketDetail['priority']) {
+  if (priority === 'P1') {
+    return 'HIGH'
+  }
+  return priority === 'P2' ? 'MEDIUM' : 'LOW'
+}
+
+function demoCurrentStep(status: TicketStatus) {
+  if (status === 'RESOLVED' || status === 'KNOWLEDGE_BASED') {
+    return status
+  }
+  if (status === 'REVIEW_REQUIRED' || status === 'AI_DRAFTED') {
+    return 'HUMAN_REVIEW'
+  }
+  if (status === 'PENDING_PROCESS' || status === 'IN_PROGRESS') {
+    return 'PROCESSING'
+  }
+  return 'CLASSIFICATION'
+}
+
+function demoReferences(ticket: TicketDetail, analysis: AiAnalysis, runId: string | null): RagReference[] {
+  return analysis.knowledgeHits.map((hit, index) => ({
+    articleNo: hit.id,
+    knowledgeTitle: hit.title,
+    sourcePath: `demo-knowledge/${hit.id.toLowerCase()}.md`,
+    matchedKeyword: index === 0 ? `本地规则命中「${ticket.category}」` : '本地规则关键词命中',
+    relevanceScore: hit.relevance,
+    snippet: `Demo 知识条目：${hit.title}。该条目仅用于展示检索证据链，不能替代人工确认。`,
+    usedInDraft: true,
+    linkedTicketId: ticket.id,
+    linkedRunId: runId
+  }))
+}
+
+function demoStructuredOutput(ticket: TicketDetail, analysis: AiAnalysis): StructuredOutputEvidence {
+  const citations: StructuredCitation[] = analysis.knowledgeHits.slice(0, 2).map((hit) => ({
+    knowledgeArticleId: hit.id,
+    supportedClaim: analysis.troubleshootingSteps[0] ?? analysis.replySuggestion,
+    reason: '本地 Demo 规则将知识条目与工单关键词关联，仅作为人工复核依据。',
+    evidenceExcerpt: `Demo 证据摘录：${hit.title}（相关度 ${hit.relevance}%）。`
+  }))
+
+  if (citations.length === 0) {
+    return {
+      answer: '当前没有可核验的知识检索证据，系统暂不生成可直接执行的处理方案。请补充相关日志、影响范围或知识库依据后再继续。',
+      citations: [],
+      riskLevel: demoRiskLevel(ticket.priority),
+      modelHumanReviewRequired: true,
+      finalHumanReviewRequired: true,
+      missingInformation: ['可引用的知识库证据', '已确认的影响范围与处理动作'],
+      abstained: true,
+      abstentionReasonCode: 'NO_RETRIEVAL_EVIDENCE',
+      outputValidationStatus: 'VALID',
+      citationValidationStatus: 'NOT_APPLICABLE',
+      validCitationCount: 0,
+      rejectedCitationCount: 0
+    }
+  }
+
+  return {
+    answer: analysis.replySuggestion,
+    citations,
+    riskLevel: demoRiskLevel(ticket.priority),
+    modelHumanReviewRequired: true,
+    finalHumanReviewRequired: true,
+    missingInformation: [],
+    abstained: false,
+    abstentionReasonCode: null,
+    outputValidationStatus: 'VALID',
+    citationValidationStatus: 'VALID',
+    validCitationCount: citations.length,
+    rejectedCitationCount: 0
+  }
+}
+
+function demoValidatedCitations(output: StructuredOutputEvidence, analysis: AiAnalysis): ValidatedCitationEvidence[] {
+  return output.citations.map((citation) => {
+    const hit = analysis.knowledgeHits.find((candidate) => candidate.id === citation.knowledgeArticleId)
+    return {
+      resultCitationId: null,
+      retrievalHitId: null,
+      citationType: 'DEMO_LOCAL_VALIDATED',
+      knowledgeArticleId: citation.knowledgeArticleId,
+      knowledgeTitle: hit?.title ?? citation.knowledgeArticleId,
+      evidenceExcerpt: citation.evidenceExcerpt,
+      supportedClaim: citation.supportedClaim
+    }
+  })
+}
+
+function buildDemoTrace(id: string): TraceEvidence {
+  const ticket = ensureTicket(id)
+  const analysis = analyses[id]
+  const run = demoRuns[id] ?? null
+  const reviewRecords = demoReviewRecords[id] ?? []
+  const structuredOutput = analysis?.structuredOutput ?? null
+  const validatedCitations = analysis?.validatedCitations ?? []
+  const statusHistory: TraceEvidence['statusHistory'] = ticket.timeline.map((event, index) => ({
+    historyId: null,
+    fromStatus: index === 0 ? null : ticket.timeline[index - 1].state,
+    toStatus: event.state,
+    actor: event.actor,
+    note: event.note,
+    occurredAt: event.time
+  }))
+  const stepTimeline: TraceEvidence['stepTimeline'] = ticket.timeline.map((event) => ({
+    stepName: event.state,
+    recordId: null,
+    sourceType: 'DEMO_LOCAL_RULE',
+    status: 'COMPLETED',
+    latencyMs: 0,
+    createdAt: event.time,
+    summary: event.note
+  }))
+
+  if (run) {
+    stepTimeline.push(
+      {
+        stepName: 'RETRIEVAL',
+        recordId: null,
+        sourceType: 'DEMO_LOCAL_RULE',
+        status: 'COMPLETED',
+        latencyMs: 4,
+        createdAt: run.completedAt,
+        summary: `本地规则检索完成，命中 ${run.retrievalHitCount ?? 0} 条知识证据。`
+      },
+      {
+        stepName: 'STRUCTURED_OUTPUT',
+        recordId: null,
+        sourceType: 'DEMO_LOCAL_RULE',
+        status: 'COMPLETED',
+        latencyMs: 8,
+        createdAt: run.completedAt,
+        summary: structuredOutput?.abstained ? '结构化输出安全拒答，等待人工补充信息。' : '结构化答复与引用已生成，等待人工复核。'
+      },
+      {
+        stepName: 'HUMAN_REVIEW_GATE',
+        recordId: null,
+        sourceType: 'DEMO_LOCAL_RULE',
+        status: reviewRecords.length > 0 ? 'COMPLETED' : 'PENDING',
+        latencyMs: null,
+        createdAt: reviewRecords.at(-1)?.createdAt ?? null,
+        summary: reviewRecords.length > 0 ? '人工复核已完成。' : '高风险或无证据结果必须经过人工复核。'
+      }
+    )
+  }
+
+  const latestReview = reviewRecords.at(-1) ?? null
+  const reviewRequired = ['AI_DRAFTED', 'REVIEW_REQUIRED'].includes(ticket.status)
+  const humanReview = run || latestReview
+    ? {
+        reviewStatus: latestReview?.decision ?? (reviewRequired ? 'PENDING' : null),
+        reviewer: latestReview?.reviewer ?? null,
+        decision: latestReview?.decision ?? null,
+        comment: latestReview?.comment ?? null,
+        reviewedAt: latestReview?.createdAt ?? null,
+        nextAction: reviewRequired ? '等待人工复核后再执行处理动作。' : '可按当前工单状态继续处理。'
+      }
+    : null
+
+  return {
+    ticketId: ticket.id,
+    runId: run?.runId ?? null,
+    traceId: run?.traceId ?? null,
+    traceMode: run ? 'demo-local-run' : 'demo-local-derived',
+    currentStep: demoCurrentStep(ticket.status),
+    stepTimeline,
+    statusHistory,
+    totalLatency: run?.totalLatencyMs ?? 0,
+    reviewRequired,
+    aiAnalysis: analysis
+      ? {
+          analysisId: null,
+          recordId: null,
+          providerName: 'LOCAL_RULE',
+          modelName: 'demo-fixture',
+          fallbackUsed: true,
+          fallbackReason: 'DEMO_MODE_LOCAL_RULE',
+          provider: 'local-rule',
+          model: 'demo-fixture',
+          fallbackStrategy: 'demo-local',
+          latencyMs: run?.totalLatencyMs ?? null,
+          status: run ? 'COMPLETED' : 'DERIVED',
+          createdAt: run?.completedAt ?? null,
+          errorMessage: null,
+          promptSummary: `Demo 本地规则分析：${ticket.title}`,
+          responseSummary: analysis.replySuggestion,
+          requestedProvider: 'LOCAL_RULE',
+          requestedProtocol: 'LOCAL',
+          actualProvider: 'LOCAL_RULE',
+          actualProtocol: 'LOCAL',
+          errorCategory: null,
+          structuredOutput,
+          validatedCitations
+        }
+      : null,
+    generationRecords: [],
+    ragReferences: analysis ? demoReferences(ticket, analysis, run?.runId ?? null) : [],
+    humanReview,
+    copilotRun: run,
+    reviewRecords: clone(reviewRecords),
+    structuredOutput,
+    validatedCitations: clone(validatedCitations),
+    evidenceSource: 'DEMO_LOCAL'
+  }
+}
+
+export function demoFetchTraceEvidence(id: string) {
+  return wait(buildDemoTrace(id))
+}
+
+export function demoRunCopilot(id: string) {
+  const ticket = ensureTicket(id)
+  const analysis = clone(analyses[id])
+  const structuredOutput = demoStructuredOutput(ticket, analysis)
+  const validatedCitations = demoValidatedCitations(structuredOutput, analysis)
+  const now = new Date().toISOString()
+  const runId = `DEMO-RUN-${id}-${Date.now()}`
+  const traceId = `DEMO-TRACE-${id}-${Date.now()}`
+  const run: CopilotRunEvidence = {
+    runId,
+    traceId,
+    requestedProvider: 'LOCAL_RULE',
+    requestedProtocol: 'LOCAL',
+    actualProvider: 'LOCAL_RULE',
+    actualProtocol: 'LOCAL',
+    runStatus: 'COMPLETED',
+    fallbackUsed: true,
+    fallbackReasonCode: 'DEMO_MODE_LOCAL_RULE',
+    errorCategory: null,
+    sanitizedErrorSummary: null,
+    startedAt: now,
+    completedAt: now,
+    totalLatencyMs: 12,
+    retrievalHitCount: analysis.knowledgeHits.length,
+    outputProduced: true,
+    humanReviewRequired: true,
+    analysisId: null,
+    generationRecordId: null,
+    structuredResultId: null,
+    riskLevel: structuredOutput.riskLevel,
+    abstained: structuredOutput.abstained,
+    abstentionReasonCode: structuredOutput.abstentionReasonCode,
+    citationValidationStatus: structuredOutput.citationValidationStatus,
+    outputValidationStatus: structuredOutput.outputValidationStatus
+  }
+
+  analysis.structuredOutput = structuredOutput
+  analysis.validatedCitations = validatedCitations
+  analysis.abstained = structuredOutput.abstained
+  analysis.abstentionReasonCode = structuredOutput.abstentionReasonCode
+  analysis.riskLevel = structuredOutput.riskLevel
+  analysis.modelHumanReviewRequired = structuredOutput.modelHumanReviewRequired ?? undefined
+  analysis.finalHumanReviewRequired = structuredOutput.finalHumanReviewRequired
+  analysis.citationValidationStatus = structuredOutput.citationValidationStatus
+  analysis.missingInformation = structuredOutput.missingInformation
+  analysis.outputValidationStatus = structuredOutput.outputValidationStatus
+  analyses[id] = analysis
+  demoRuns[id] = run
+
+  ticket.status = 'REVIEW_REQUIRED'
+  ticket.timeline.push({
+    time: '刚刚',
+    state: 'REVIEW_REQUIRED',
+    actor: 'Local Demo Copilot',
+    note: structuredOutput.abstained ? '本地规则未找到可核验检索证据，安全拒答并转人工复核。' : '本地规则生成结构化答复和引用，转人工复核。'
+  })
+  syncSummary(ticket)
+  return wait(ticket)
+}
+
+function demoReview(id: string, payload: ReviewDecisionRequest, decision: string, nextStatus: TicketStatus) {
+  const ticket = ensureTicket(id)
+  if (!['AI_DRAFTED', 'REVIEW_REQUIRED'].includes(ticket.status)) {
+    throw new Error(`当前 Demo 工单状态不允许人工复核：${ticket.status}`)
+  }
+  const previousStatus = ticket.status
+  const record: ReviewRecordEvidence = {
+    reviewRecordId: null,
+    runId: demoRuns[id]?.runId ?? null,
+    decision,
+    reviewer: 'Demo Reviewer',
+    comment: payload.comment?.trim() || 'Demo 模式人工复核记录。',
+    previousStatus,
+    newStatus: nextStatus,
+    createdAt: new Date().toISOString()
+  }
+  demoReviewRecords[id] = [...(demoReviewRecords[id] ?? []), record]
+  ticket.status = nextStatus
+  ticket.timeline.push({
+    time: '刚刚',
+    state: nextStatus,
+    actor: 'Demo Reviewer',
+    note: `${decision}：${record.comment}`
+  })
+  syncSummary(ticket)
+  return wait(ticket)
+}
+
+export function demoApproveReview(id: string, payload: ReviewDecisionRequest) {
+  return demoReview(id, payload, 'APPROVED_RESOLUTION', 'RESOLVED')
+}
+
+export function demoRequestReviewChanges(id: string, payload: ReviewDecisionRequest) {
+  return demoReview(id, payload, 'REQUEST_CHANGES', 'REVIEW_REQUIRED')
+}
+
+export function demoRejectReview(id: string, payload: ReviewDecisionRequest) {
+  return demoReview(id, payload, 'REJECTED', 'REJECTED')
 }
 
 export function demoFetchMetrics(): Promise<WorkbenchMetrics> {

@@ -1,0 +1,22 @@
+.git
+.gitignore
+.codex
+.chrome-cli-test
+.chrome-shot-profile
+.local
+backend/target
+frontend/node_modules
+frontend/dist
+docs/images
+*.log
+
+# Runtime secrets must never enter a Docker build context.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties

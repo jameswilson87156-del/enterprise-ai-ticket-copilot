@@ -23,6 +23,7 @@ import com.enterpriseai.ticketcopilot.mapper.TicketAiAnalysisMapper;
 import com.enterpriseai.ticketcopilot.mapper.TicketStatusHistoryMapper;
 import com.enterpriseai.ticketcopilot.model.KnowledgeDraft;
 import com.enterpriseai.ticketcopilot.model.TicketDetail;
+import com.enterpriseai.ticketcopilot.ticket.application.policy.TicketStatusTransitionPolicy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,6 +86,7 @@ class TicketWorkflowServiceTest {
             new AbstentionPolicy(),
             new LocalRuleStructuredOutputFactory(new AbstentionPolicy()),
             new ReviewGate(),
+            new TicketStatusTransitionPolicy(),
             new ObjectMapper()
         );
     }
@@ -172,6 +174,24 @@ class TicketWorkflowServiceTest {
     }
 
     @Test
+    void reportsConflictWhenConditionalStatusUpdateLosesRace() {
+        when(supportTicketMapper.selectOne(any())).thenReturn(ticket(10L, TicketWorkflowService.STATUS_PENDING_PROCESS));
+        when(copilotRunMapper.selectOne(any())).thenReturn(null);
+        when(supportTicketMapper.update(any(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> service.updateStatus(
+            "TCK-1",
+            new UpdateTicketStatusRequest("IN_PROGRESS", "支持专员", "开始处理", "")
+        )).isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+            assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(exception.getReason()).contains("status changed");
+        });
+
+        verify(supportTicketMapper, never()).updateById(any(SupportTicket.class));
+        verifyNoInteractions(statusHistoryMapper, reviewRecordMapper);
+    }
+
+    @Test
     void onlyResolvedTicketsCanGenerateKnowledgeDrafts() {
         when(supportTicketMapper.selectOne(any())).thenReturn(ticket(10L, TicketWorkflowService.STATUS_IN_PROGRESS));
 
@@ -179,7 +199,7 @@ class TicketWorkflowServiceTest {
             "TCK-1",
             new CreateKnowledgeDraftRequest(null, null, "知识审核人", false)
         )).isInstanceOfSatisfying(ResponseStatusException.class, exception ->
-            assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST)
+            assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT)
         );
 
         verify(knowledgeArticleMapper, never()).insert(any(KnowledgeArticle.class));
@@ -191,6 +211,7 @@ class TicketWorkflowServiceTest {
         SupportTicket ticket = ticket(10L, TicketWorkflowService.STATUS_RESOLVED);
         when(knowledgeArticleMapper.selectOne(any())).thenReturn(draft);
         when(supportTicketMapper.selectById(10L)).thenReturn(ticket);
+        when(supportTicketMapper.update(any(), any())).thenReturn(1);
 
         KnowledgeDraft result = service.confirmKnowledgeDraft(draft.getArticleNo());
 
@@ -198,7 +219,7 @@ class TicketWorkflowServiceTest {
         assertThat(draft.getLastVerifiedAt()).isNotNull();
         assertThat(ticket.getStatus()).isEqualTo(TicketWorkflowService.STATUS_KNOWLEDGE_BASED);
         verify(knowledgeArticleMapper).updateById(draft);
-        verify(supportTicketMapper).updateById(ticket);
+        verify(supportTicketMapper).update(any(), any());
         verify(statusHistoryMapper).insert(any(TicketStatusHistory.class));
     }
 
