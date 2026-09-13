@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-09-13T23:14:44+08:00",
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "baseUrl": "http://127.0.0.1:18083",
+    "processModel": "single uvicorn process"
+  },
+  "scenario": {
+    "endpoint": "/api/retrieval/preview",
+    "requests": 1000,
+    "concurrency": 20,
+    "warmupRequests": 20,
+    "timeoutSeconds": 5.0,
+    "expectedTop1": "KB-JAVA-PORT"
+  },
+  "result": {
+    "successes": 1000,
+    "errors": 0,
+    "successRate": 100.0,
+    "durationSeconds": 1.8336,
+    "throughputRps": 545.37,
+    "latencyMs": {
+      "min": 16.3026,
+      "avg": 36.3829,
+      "p50": 33.9436,
+      "p95": 51.3784,
+      "p99": 57.9002,
+      "max": 65.458
+    },
+    "errorSamples": []
+  },
+  "boundary": "Local Windows host, localhost HTTP, single Uvicorn process, synthetic keyword retrieval. This benchmark is reproducible portfolio evidence, not a production SLA or cloud capacity claim."
+}

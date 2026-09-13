@@ -1,5 +1,22 @@
 # Claude / Codex 交接记录
 
+## 2026-09-13 — PYTHON_AI_SIDECAR_OBSERVABILITY_LOAD_TEST
+
+- 在不改 Java/Vue 主链路的前提下，Python FastAPI sidecar 新增 readiness、`X-Request-ID`、本地 bounded-window request metrics 和 Prometheus text endpoint。
+- 新增真实 HTTP 并发压测脚本，固定检索正确性门禁：Java 8080/BindException 样例 Top-1 必须是 `KB-JAVA-PORT`，否则 200 也算错误。
+- 实测 `1000 requests / concurrency 20 / 0 errors / 545.37 req/s / p50 33.94 ms / p95 51.38 ms / p99 57.90 ms / max 65.46 ms`，证据保存在 `docs/performance/python_sidecar_load_latest.*`。
+- pytest 最终 `6 passed`；`/ready`、`/internal/metrics`、`/metrics` 已通过真实 HTTP 200 验收。
+- 边界：localhost 单进程 synthetic keyword retrieval，不是生产 SLA、云容量或真实 LLM 推理性能。
+
+
+## 2026-09-13 — PYTHON_FASTAPI_AI_SIDECAR
+
+- 本轮只新增一个可选 Python AI 应用 sidecar，不改 Java/Spring Boot 主业务链路、数据库 schema、前端、真实 Provider、认证或部署。
+- `python-ai-service/app/main.py` 使用 Python 3.12 + FastAPI + Pydantic，复用 `scripts/evaluate_rag_demo.py` 的 keyword retrieval baseline，新增 `/health`、`/api/retrieval/preview`、`/api/evaluation/summary`。
+- `python-ai-service/tests/test_api.py` 覆盖本地 artifact 健康检查、Java 端口占用检索样例、Top-K 参数校验和 16 条 synthetic 评测摘要读取。
+- 验证：`cd python-ai-service && py -3 -m pytest -q` 实际结果为 `4 passed`。第一次执行因仓库根目录未进入 `sys.path` 导致导入失败，修复后重新执行通过。
+- 能力边界保持明确：不调用真实 LLM、不读取 API Key、不连接 MySQL、不实现 embedding / Vector DB / Hybrid / Rerank；该模块用于本地 AI 应用工程和评测接口展示。
+
 ## 2026-09-08 — GITHUB_MAIN_MERGE
 
 - 已按授权将 `release/ticket-copilot-local-20260907` 以非快进合并提交 `731380e` 推送到本项目自己的 `origin/main`；远端 `main` 已从 `6c1a8ae` 更新到 `731380e`。

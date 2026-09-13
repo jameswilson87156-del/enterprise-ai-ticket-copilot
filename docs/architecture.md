@@ -100,6 +100,14 @@ flowchart TD
 | `ticket_status_history` | 记录人工确认后的状态变化 | `fromStatus`、`toStatus`、`actor`、`note`、`occurredAt` |
 | `knowledge_article` | 提供关键词知识引用 | `knowledgeTitle`、`sourcePath`、`snippet`、`sourceTicketId` |
 
+## Python AI Sidecar
+
+`python-ai-service/` 是与 Java 主业务后端解耦的可选 Python 3.12 sidecar。它使用 FastAPI + Pydantic，把现有 synthetic keyword retrieval baseline 和评测快照暴露为小型 HTTP API：`GET /health`、`GET /ready`、`POST /api/retrieval/preview`、`GET /api/evaluation/summary`、`GET /internal/metrics` 与 `GET /metrics`。
+
+HTTP middleware 为响应增加 `X-Request-ID`，记录 method/path/status/duration，并在进程内维护 bounded latency window，输出请求数、5xx 错误数、in-flight 与 p50/p95/p99/max；`/metrics` 使用 Prometheus text format，当前未引入 Prometheus server、OpenTelemetry Collector 或分布式 Trace backend。`scripts/load_test.py` 用线程池执行真实 localhost HTTP 并发请求，并把正确性门禁、吞吐和延迟分位数固化到 `docs/performance/`。
+
+该 sidecar 直接复用 `scripts/evaluate_rag_demo.py` 的 `retrieve(...)` 逻辑，因此不会形成第二套不同口径的检索算法；它不访问 MySQL、不读取 Provider Key、不调用真实 LLM，也不改变 Spring Boot 工单状态机、Provider、Citation 或 Human Review 主链路。2026-09-13 单 Uvicorn 进程本机压测为 1000 请求 / 并发 20 / 0 错误 / 545.37 req/s / HTTP p95 51.38 ms / p99 57.90 ms；该结果只是本地 synthetic baseline 的可复现证据，不是生产 SLA。
+
 ## Evaluation Artifacts
 
 本项目新增本地 RAG / Citation / Trace Evaluation 最小闭环，用于验证 demo keyword retrieval、citation gating 和 Human Review gate 的可解释性。它不属于线上运行链路，不连接真实 Provider，不读写 MySQL，也不代表生产级模型效果。

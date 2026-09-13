@@ -104,12 +104,15 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 | 层级 | 技术 |
 | --- | --- |
 | 后端 | Java 17、Spring Boot 3、MyBatis-Plus、Bean Validation、SpringDoc OpenAPI |
+| Python AI sidecar | Python 3.12、FastAPI、Pydantic、pytest；retrieval/evaluation API、readiness、request-id、Prometheus-format metrics、并发压测 |
 | 数据 | MySQL-compatible schema；H2 用于自动化测试 |
 | 前端 | Vue 3、TypeScript、Vite、原生 CSS Design Tokens |
-| 工程 | Maven、JUnit / Spring Boot Test、Playwright screenshot pipeline、GitHub Actions CI |
-| AI / RAG / Evaluation | keyword retrieval、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic demo evaluation dataset、RAG metrics script |
+| 工程 | Maven、JUnit / Spring Boot Test、pytest、Playwright screenshot pipeline、GitHub Actions CI |
+| AI / RAG / Evaluation | keyword retrieval、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic demo evaluation dataset、Python RAG metrics / retrieval API |
 
 后端接口覆盖工单流转、知识匹配、Trace Evidence、Provider / fallback、JWT + RBAC demo 和 Human Review。完整接口以 [docs/API.md](docs/API.md) 和本地 Swagger UI 为准。
+
+可选的 [`python-ai-service/`](python-ai-service/) 将同一套 synthetic keyword retrieval baseline 暴露为 FastAPI/Pydantic 接口，提供 health/readiness、retrieval/evaluation API、`X-Request-ID`、进程内延迟/错误指标和 Prometheus text endpoint。2026-09-13 本地单进程实测 1000 请求、并发 20、0 错误、约 545.37 req/s，HTTP p95 51.38 ms、p99 57.90 ms；结果保存在 [`docs/performance/python_sidecar_load_latest.md`](docs/performance/python_sidecar_load_latest.md)。这些数字只代表 localhost synthetic keyword retrieval，不是生产 SLA。
 
 前端达到验收门槛后，下一阶段后端的接口版本、身份与 RBAC、知识检索、Provider、运行可靠性和 staging 部署路线见 [后端下一阶段设计](docs/design/BACKEND_NEXT_PHASE_DESIGN.md)。该文档是基于当前源码的规划，不代表目标能力已经实现。
 

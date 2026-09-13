@@ -1,5 +1,20 @@
 # Enterprise AI Ticket Copilot TODO 路线图
 
+## 2026-09-13 — PYTHON_AI_SIDECAR_OBSERVABILITY_LOAD_TEST
+
+- [x] Python sidecar 增加 `/ready`、`X-Request-ID`、进程内请求/错误/延迟指标、Prometheus text `/metrics`。
+- [x] 新增 `python-ai-service/scripts/load_test.py`，真实 localhost HTTP 并发压测同时校验 Top-1 检索正确性。
+- [x] 2026-09-13 本机结果：1000 请求、并发 20、1000 成功、0 错误、545.37 req/s，p50 33.94 ms、p95 51.38 ms、p99 57.90 ms、max 65.46 ms。
+- [x] Python sidecar pytest 6/6 通过。
+- [ ] 以上仅是 Windows localhost、单 Uvicorn 进程、synthetic keyword retrieval 证据；生产多副本、真实 Provider、云环境与生产 SLA 未验证。
+
+
+## 2026-09-13 — PYTHON_FASTAPI_AI_SIDECAR
+
+- [x] 新增可选 `python-ai-service/`：Python 3.12 + FastAPI + Pydantic，复用现有 keyword retrieval baseline，提供 health、retrieval preview 与 evaluation summary API。
+- [x] 新增 pytest / FastAPI TestClient 自动化覆盖；不接真实 LLM、不读 API Key、不连 MySQL、不引入 Vector DB/Hybrid/Rerank。
+- [ ] 该 sidecar 当前只用于本地作品集和校招 AI 应用工程展示；如未来接入 Java 主链路或部署为独立服务，必须另立任务并重新定义可靠性、鉴权、超时和部署边界。
+
 ## 2026-09-08 — GITHUB_MAIN_MERGE
 
 - [x] `LOCAL_PASS`：`release/ticket-copilot-local-20260907` 已按授权以合并提交 `731380e` 推送到本项目自己的 `origin/main`；远端 `main` 已确认指向该提交。

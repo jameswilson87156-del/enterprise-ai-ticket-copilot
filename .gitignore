@@ -18,3 +18,6 @@ node-types/
 .DS_Store
 .agents/
 .local/
+__pycache__/
+.pytest_cache/
+*.pyc
