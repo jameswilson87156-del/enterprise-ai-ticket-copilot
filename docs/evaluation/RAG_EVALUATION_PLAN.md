@@ -106,7 +106,7 @@ scripts/evaluate_rag_demo.py
 
 ## 7. Baseline 设计
 
-当前版本没有 BM25、embedding、Vector DB、Hybrid、Rerank。因此本轮 baseline 只覆盖本地 demo keyword retrieval 与 citation gating：
+第一阶段 baseline 仍保留本地 demo keyword retrieval 与 citation gating；2026-09-14 另增加一个 dependency-free Retrieval V2 实验，用同一固定数据集做可复现对比：
 
 | Baseline | 说明 |
 | --- | --- |
@@ -114,8 +114,9 @@ scripts/evaluate_rag_demo.py
 | `naive_keyword_score` | 只按关键词计分，不使用分类加权 |
 | `with_citation_required` | 分类感知关键词检索，并在模拟答案中附 citation IDs |
 | `with_human_review_gate` | citation required + 高风险或低证据样本进入 Human Review |
+| `retrieval_v2` | 字段权重 + corpus IDF + category/anchor rerank + no-answer threshold；不依赖第三方检索库 |
 
-BM25 / Vector / Hybrid / Rerank 只作为下一阶段实验，不在当前结果中声称。
+当前 V2 不是 BM25、embedding、Vector DB、dense / Hybrid retrieval 或外部 reranker。V2 对比结果单独保存在 `docs/metrics/retrieval_v2_comparison_latest.*`：Citation Precision 81.11% -> 97.78%，failed cases 6 -> 1，Top-K Hit Rate 100% 与 Context Recall@3 90% 保持不变。因为同一固定数据集参与设计与评测，不把该提升写成生产效果。
 
 ## 8. 本地评测命令
 
@@ -131,6 +132,12 @@ python .\scripts\evaluate_rag_demo.py
 python .\scripts\evaluate_rag_demo.py --top-k 3
 ```
 
+Retrieval V2 对比：
+
+```powershell
+py -3 -B .\scripts\evaluate_retrieval_v2.py
+```
+
 脚本输出：
 
 ```text
@@ -143,7 +150,7 @@ docs/metrics/rag_metrics_snapshot.md
 ## 9. 当前版本边界
 
 - 当前评测集是 synthetic demo dataset，不是真实企业线上数据。
-- 当前检索是关键词评分，不是 BM25，也不是 embedding / Vector DB。
+- Java 主链路仍是现有关键词知识匹配；Python sidecar 额外提供 dependency-free Retrieval V2 实验。V2 不是 BM25、embedding / Vector DB、dense / Hybrid retrieval 或外部 reranker。
 - 当前答案是 simulated local-rule answer，只用于 citation gating 检查。
 - Provider fallback 在本地 no-key 运行中预期为 100%，不能解释为模型质量指标。
 - Human Review 是 demo gate，不是生产级审核任务平台。
@@ -158,13 +165,13 @@ docs/metrics/rag_metrics_snapshot.md
 3. 保存 provider 输入摘要、输出摘要、citation IDs 和人工判定。
 4. 加入 Answer Relevance、Faithfulness、Hallucination Case Count。
 5. 比较 prompt v1 / prompt v2，但只写有来源的实验结果。
-6. 如果新增 BM25 / Vector / Hybrid / Rerank，再增加同一评测集上的 baseline 对比。
+6. 后续如新增 BM25、embedding / Vector、Hybrid 或外部 reranker，使用独立 holdout 样本做新的 baseline 对比，避免继续对同一 16 条设计集过拟合。
 
 ## 11. 简历和面试解释口径
 
 推荐表达：
 
-> 基于 16 条自建企业工单 demo 评测集，完成 keyword retrieval + citation gating 的本地评测，统计 Top-K Hit Rate、Context Recall@K、Citation Coverage、Citation Precision、Retrieval Latency 与 Human Review gate，用于验证 RAG Reference 和 Trace Evidence 的可解释性。
+> 基于 16 条自建企业工单 demo 评测集，建立 keyword retrieval baseline，并实现 dependency-free Retrieval V2（字段权重、corpus IDF、category/anchor rerank、no-answer threshold）。固定数据集对比中 Citation Precision 从 81.11% 提升到 97.78%，failed cases 从 6 降到 1，同时 Top-K Hit Rate 保持 100%、Context Recall@3 保持 90%；主动说明该数据集同时参与设计与评测，不代表生产效果。
 
 面试中应主动说明：
 

@@ -1,4 +1,13 @@
-# Enterprise AI Ticket Copilot TODO 路线图
+﻿# Enterprise AI Ticket Copilot TODO 路线图
+
+## 2026-09-14 — RETRIEVAL_V2_DEPENDENCY_FREE
+
+- [x] 新增 `scripts/evaluate_retrieval_v2.py`：字段权重、corpus IDF、分类不一致惩罚、技术锚点和 no-answer threshold；不新增第三方生产依赖。
+- [x] 同一 16 条 synthetic cases 对比：Top-K Hit Rate 100% -> 100%，Context Recall@3 90% -> 90%，Citation Precision 81.11% -> 97.78%，failed cases 6 -> 1。
+- [x] FastAPI `/api/retrieval/preview` 新增 `retrievalMode=keyword|v2`，保留旧 keyword 默认行为；V2 对 Java 端口样例只返回 `KB-JAVA-PORT`，缺知识设备样例返回 0 hit。
+- [x] Python sidecar pytest 8/8 通过；对比证据写入 `docs/metrics/retrieval_v2_comparison_latest.*`。
+- [ ] `EVAL-016` 仍存在相似词误召回；下一阶段若引入 BM25 / embedding / Hybrid / 外部 reranker，必须独立任务、独立依赖审批，并优先增加 holdout 样本，避免对固定 16 条数据过拟合。
+
 
 ## 2026-09-13 — PYTHON_AI_SIDECAR_OBSERVABILITY_LOAD_TEST
 

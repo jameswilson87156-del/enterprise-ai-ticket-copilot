@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.evaluate_rag_demo import DEMO_BOUNDARY, retrieve
+from scripts.evaluate_retrieval_v2 import RETRIEVAL_V2_BOUNDARY, retrieve_v2
 from app.observability import request_metrics, request_observability_middleware
 
 METRICS_PATH = REPO_ROOT / "docs" / "metrics" / "rag_metrics_latest.json"
@@ -52,6 +53,7 @@ class RetrievalPreviewRequest(BaseModel):
     question: str = Field(min_length=3, max_length=2000)
     category: str | None = Field(default=None, max_length=100)
     top_k: int = Field(default=3, alias="topK", ge=1, le=5)
+    retrieval_mode: Literal["keyword", "v2"] = Field(default="keyword", alias="retrievalMode")
 
     model_config = {"populate_by_name": True}
 
@@ -60,7 +62,7 @@ class RetrievalHit(BaseModel):
     knowledge_id: str = Field(alias="knowledgeId")
     title: str
     category: str
-    score: int
+    score: float
     owner: str
     excerpt: str
 
@@ -68,7 +70,7 @@ class RetrievalHit(BaseModel):
 
 
 class RetrievalPreviewResponse(BaseModel):
-    mode: Literal["keyword-retrieval-demo"]
+    mode: Literal["keyword-retrieval-demo", "retrieval-v2-demo"]
     top_k: int = Field(alias="topK")
     hit_count: int = Field(alias="hitCount")
     latency_ms: float = Field(alias="latencyMs")
@@ -167,9 +169,16 @@ def retrieval_preview(payload: RetrievalPreviewRequest) -> RetrievalPreviewRespo
         "category": payload.category,
         "ticket_context": {},
     }
-    hits, latency_ms = retrieve(case, payload.top_k, "keyword")
+    if payload.retrieval_mode == "v2":
+        hits, latency_ms = retrieve_v2(case, payload.top_k)
+        mode = "retrieval-v2-demo"
+        boundary = RETRIEVAL_V2_BOUNDARY
+    else:
+        hits, latency_ms = retrieve(case, payload.top_k, "keyword")
+        mode = "keyword-retrieval-demo"
+        boundary = DEMO_BOUNDARY
     return RetrievalPreviewResponse(
-        mode="keyword-retrieval-demo",
+        mode=mode,
         topK=payload.top_k,
         hitCount=len(hits),
         latencyMs=round(latency_ms, 4),
@@ -184,7 +193,7 @@ def retrieval_preview(payload: RetrievalPreviewRequest) -> RetrievalPreviewRespo
             )
             for hit in hits
         ],
-        boundary=DEMO_BOUNDARY,
+        boundary=boundary,
     )
 
 

@@ -47,6 +47,42 @@ def test_retrieval_preview_returns_expected_java_port_evidence() -> None:
     assert "No embedding" in body["boundary"]
 
 
+def test_retrieval_v2_keeps_java_port_precise() -> None:
+    response = client.post(
+        "/api/retrieval/preview",
+        json={
+            "question": "Java 服务启动失败，8080 端口被占用，BindException 怎么排查？",
+            "category": "系统故障",
+            "topK": 3,
+            "retrievalMode": "v2",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "retrieval-v2-demo"
+    assert [hit["knowledgeId"] for hit in body["hits"]] == ["KB-JAVA-PORT"]
+    assert "field-aware IDF" in body["boundary"]
+
+
+def test_retrieval_v2_abstains_for_missing_device_knowledge() -> None:
+    response = client.post(
+        "/api/retrieval/preview",
+        json={
+            "question": "会议室投影仪遥控器失灵，应该联系谁处理？",
+            "category": "流程咨询",
+            "topK": 3,
+            "retrievalMode": "v2",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "retrieval-v2-demo"
+    assert body["hitCount"] == 0
+    assert body["hits"] == []
+
+
 def test_metrics_expose_request_counts_and_latency() -> None:
     metrics = client.get("/internal/metrics")
     assert metrics.status_code == 200

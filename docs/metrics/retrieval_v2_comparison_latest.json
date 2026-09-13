@@ -1,0 +1,325 @@
+﻿{
+  "generated_at": "2026-09-14T01:20:04+08:00",
+  "dataset": {
+    "path": "data\\eval\\ticket_rag_eval_cases.jsonl",
+    "sample_count": 16,
+    "type": "synthetic enterprise ticket demo dataset"
+  },
+  "top_k": 3,
+  "baseline": {
+    "name": "category-aware keyword retrieval",
+    "metrics": {
+      "sample_count": 16,
+      "retrieval_case_count": 15,
+      "top_k": 3,
+      "top_k_hit_rate": 100.0,
+      "context_recall_at_k": 90.0,
+      "citation_coverage": 100.0,
+      "citation_precision": 81.11,
+      "mrr": 1.0,
+      "ndcg_at_k": 0.9742,
+      "retrieval_latency_ms": {
+        "avg": 0.0445,
+        "median": 0.0425,
+        "max": 0.0653
+      },
+      "fallback_rate": 100.0,
+      "knowledge_miss_fallback_rate": 6.25,
+      "provider_fallback_rate": 100.0,
+      "failed_case_count": 6,
+      "human_review_required_count": 15,
+      "failed_cases": [
+        {
+          "case_id": "EVAL-007",
+          "expected_knowledge_ids": [
+            "KB-JAVA-PORT"
+          ],
+          "retrieved_ids": [
+            "KB-JAVA-PORT",
+            "KB-OPS-003",
+            "KB-SPRING-BEAN"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "端口占用知识未命中会导致启动失败排查缺少明确方向。"
+        },
+        {
+          "case_id": "EVAL-008",
+          "expected_knowledge_ids": [
+            "KB-SPRING-BEAN"
+          ],
+          "retrieved_ids": [
+            "KB-SPRING-BEAN",
+            "KB-API-500",
+            "KB-DEPLOY-ENV"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "Spring 启动失败未命中特定知识会弱化排查价值。"
+        },
+        {
+          "case_id": "EVAL-011",
+          "expected_knowledge_ids": [
+            "KB-DEPLOY-ENV"
+          ],
+          "retrieved_ids": [
+            "KB-DEPLOY-ENV",
+            "KB-API-500",
+            "KB-OPS-003"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "部署配置知识未命中会造成不安全的环境变量建议。"
+        },
+        {
+          "case_id": "EVAL-013",
+          "expected_knowledge_ids": [
+            "KB-OPS-003"
+          ],
+          "retrieved_ids": [
+            "KB-OPS-003",
+            "KB-REDIS-CONN"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "SLA/P1 故障未命中系统故障知识会导致优先级和人工门禁不足。"
+        },
+        {
+          "case_id": "EVAL-015",
+          "expected_knowledge_ids": [],
+          "retrieved_ids": [
+            "KB-FAQ-KNOWLEDGE"
+          ],
+          "failure_reasons": [
+            "unexpected_retrieval_for_fallback_case"
+          ],
+          "failure_reason_if_miss": "缺知识场景如果仍引用无关知识，说明 citation gating 不足。"
+        },
+        {
+          "case_id": "EVAL-016",
+          "expected_knowledge_ids": [
+            "KB-API-500",
+            "KB-OPS-003"
+          ],
+          "retrieved_ids": [
+            "KB-API-500",
+            "KB-OPS-003",
+            "KB-ACCOUNT-001"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "相似登录词导致误命中账号知识，说明需要更好的分类或 rerank。"
+        }
+      ],
+      "human_review_cases": [
+        "EVAL-001",
+        "EVAL-002",
+        "EVAL-003",
+        "EVAL-004",
+        "EVAL-006",
+        "EVAL-007",
+        "EVAL-008",
+        "EVAL-009",
+        "EVAL-010",
+        "EVAL-011",
+        "EVAL-012",
+        "EVAL-013",
+        "EVAL-014",
+        "EVAL-015",
+        "EVAL-016"
+      ]
+    }
+  },
+  "retrieval_v2": {
+    "name": "field-aware IDF keyword retrieval + rerank + no-answer threshold",
+    "min_score": 18.0,
+    "metrics": {
+      "sample_count": 16,
+      "retrieval_case_count": 15,
+      "top_k": 3,
+      "top_k_hit_rate": 100.0,
+      "context_recall_at_k": 90.0,
+      "citation_coverage": 100.0,
+      "citation_precision": 97.78,
+      "mrr": 1.0,
+      "ndcg_at_k": 0.9742,
+      "retrieval_latency_ms": {
+        "avg": 0.1509,
+        "median": 0.1395,
+        "max": 0.2474
+      },
+      "fallback_rate": 100.0,
+      "knowledge_miss_fallback_rate": 6.25,
+      "provider_fallback_rate": 100.0,
+      "failed_case_count": 1,
+      "human_review_required_count": 15,
+      "failed_cases": [
+        {
+          "case_id": "EVAL-016",
+          "expected_knowledge_ids": [
+            "KB-API-500",
+            "KB-OPS-003"
+          ],
+          "retrieved_ids": [
+            "KB-API-500",
+            "KB-OPS-003",
+            "KB-ACCOUNT-001"
+          ],
+          "failure_reasons": [
+            "citation_contains_unexpected_source"
+          ],
+          "failure_reason_if_miss": "相似登录词导致误命中账号知识，说明需要更好的分类或 rerank。"
+        }
+      ],
+      "human_review_cases": [
+        "EVAL-001",
+        "EVAL-002",
+        "EVAL-003",
+        "EVAL-004",
+        "EVAL-006",
+        "EVAL-007",
+        "EVAL-008",
+        "EVAL-009",
+        "EVAL-010",
+        "EVAL-011",
+        "EVAL-012",
+        "EVAL-013",
+        "EVAL-014",
+        "EVAL-015",
+        "EVAL-016"
+      ]
+    }
+  },
+  "changed_cases": [
+    {
+      "case_id": "EVAL-003",
+      "expected_knowledge_ids": [
+        "KB-IAM-ROLE",
+        "KB-IAM-002"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-IAM-002",
+        "KB-IAM-ROLE"
+      ],
+      "v2_retrieved_ids": [
+        "KB-IAM-ROLE",
+        "KB-IAM-002"
+      ],
+      "baseline_failures": [],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-007",
+      "expected_knowledge_ids": [
+        "KB-JAVA-PORT"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-JAVA-PORT",
+        "KB-OPS-003",
+        "KB-SPRING-BEAN"
+      ],
+      "v2_retrieved_ids": [
+        "KB-JAVA-PORT"
+      ],
+      "baseline_failures": [
+        "citation_contains_unexpected_source"
+      ],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-008",
+      "expected_knowledge_ids": [
+        "KB-SPRING-BEAN"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-SPRING-BEAN",
+        "KB-API-500",
+        "KB-DEPLOY-ENV"
+      ],
+      "v2_retrieved_ids": [
+        "KB-SPRING-BEAN"
+      ],
+      "baseline_failures": [
+        "citation_contains_unexpected_source"
+      ],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-011",
+      "expected_knowledge_ids": [
+        "KB-DEPLOY-ENV"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-DEPLOY-ENV",
+        "KB-API-500",
+        "KB-OPS-003"
+      ],
+      "v2_retrieved_ids": [
+        "KB-DEPLOY-ENV"
+      ],
+      "baseline_failures": [
+        "citation_contains_unexpected_source"
+      ],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-012",
+      "expected_knowledge_ids": [
+        "KB-FAQ-KNOWLEDGE",
+        "KB-PROCESS-005",
+        "KB-DRAFT-DEMO-0008"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-DRAFT-DEMO-0008",
+        "KB-FAQ-KNOWLEDGE",
+        "KB-PROCESS-005"
+      ],
+      "v2_retrieved_ids": [
+        "KB-FAQ-KNOWLEDGE",
+        "KB-DRAFT-DEMO-0008",
+        "KB-PROCESS-005"
+      ],
+      "baseline_failures": [],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-013",
+      "expected_knowledge_ids": [
+        "KB-OPS-003"
+      ],
+      "baseline_retrieved_ids": [
+        "KB-OPS-003",
+        "KB-REDIS-CONN"
+      ],
+      "v2_retrieved_ids": [
+        "KB-OPS-003"
+      ],
+      "baseline_failures": [
+        "citation_contains_unexpected_source"
+      ],
+      "v2_failures": []
+    },
+    {
+      "case_id": "EVAL-015",
+      "expected_knowledge_ids": [],
+      "baseline_retrieved_ids": [
+        "KB-FAQ-KNOWLEDGE"
+      ],
+      "v2_retrieved_ids": [],
+      "baseline_failures": [
+        "unexpected_retrieval_for_fallback_case"
+      ],
+      "v2_failures": []
+    }
+  ],
+  "boundaries": [
+    "Dependency-free local experiment on 16 synthetic demo cases.",
+    "No embedding model, vector database, dense retrieval, external reranker, or real provider call.",
+    "The same fixed dataset is used for design and evaluation, so these numbers are portfolio experiment evidence, not an unbiased production benchmark."
+  ]
+}

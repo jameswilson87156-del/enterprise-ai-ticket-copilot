@@ -104,15 +104,15 @@ Trace Timeline 展示 Ticket Input、Query Rewrite、Retrieval、Citation Attach
 | 层级 | 技术 |
 | --- | --- |
 | 后端 | Java 17、Spring Boot 3、MyBatis-Plus、Bean Validation、SpringDoc OpenAPI |
-| Python AI sidecar | Python 3.12、FastAPI、Pydantic、pytest；retrieval/evaluation API、readiness、request-id、Prometheus-format metrics、并发压测 |
+| Python AI sidecar | Python 3.12、FastAPI、Pydantic、pytest；keyword / Retrieval V2 API、evaluation、readiness、request-id、Prometheus-format metrics、并发压测 |
 | 数据 | MySQL-compatible schema；H2 用于自动化测试 |
 | 前端 | Vue 3、TypeScript、Vite、原生 CSS Design Tokens |
 | 工程 | Maven、JUnit / Spring Boot Test、pytest、Playwright screenshot pipeline、GitHub Actions CI |
-| AI / RAG / Evaluation | keyword retrieval、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic demo evaluation dataset、Python RAG metrics / retrieval API |
+| AI / RAG / Evaluation | keyword baseline、dependency-free field-aware IDF Retrieval V2、citation gating、local-rule fallback、OpenAI-compatible provider optional path、synthetic evaluation、failed-case analysis |
 
 后端接口覆盖工单流转、知识匹配、Trace Evidence、Provider / fallback、JWT + RBAC demo 和 Human Review。完整接口以 [docs/API.md](docs/API.md) 和本地 Swagger UI 为准。
 
-可选的 [`python-ai-service/`](python-ai-service/) 将同一套 synthetic keyword retrieval baseline 暴露为 FastAPI/Pydantic 接口，提供 health/readiness、retrieval/evaluation API、`X-Request-ID`、进程内延迟/错误指标和 Prometheus text endpoint。2026-09-13 本地单进程实测 1000 请求、并发 20、0 错误、约 545.37 req/s，HTTP p95 51.38 ms、p99 57.90 ms；结果保存在 [`docs/performance/python_sidecar_load_latest.md`](docs/performance/python_sidecar_load_latest.md)。这些数字只代表 localhost synthetic keyword retrieval，不是生产 SLA。
+可选的 [`python-ai-service/`](python-ai-service/) 暴露 FastAPI/Pydantic retrieval/evaluation API，支持 `retrievalMode=keyword|v2`，并提供 health/readiness、`X-Request-ID`、进程内延迟/错误指标和 Prometheus text endpoint。2026-09-13 对旧 keyword 模式的本地单进程压测为 1000 请求、并发 20、0 错误、约 545.37 req/s，HTTP p95 51.38 ms、p99 57.90 ms；结果保存在 [`docs/performance/python_sidecar_load_latest.md`](docs/performance/python_sidecar_load_latest.md)，不代表 V2 或生产 SLA。
 
 前端达到验收门槛后，下一阶段后端的接口版本、身份与 RBAC、知识检索、Provider、运行可靠性和 staging 部署路线见 [后端下一阶段设计](docs/design/BACKEND_NEXT_PHASE_DESIGN.md)。该文档是基于当前源码的规划，不代表目标能力已经实现。
 
@@ -171,6 +171,19 @@ py .\scripts\evaluate_rag_demo.py
 | Failed Case Count | 6 | 引用包含非期望来源或缺知识时误召回的 demo 失败样本数 |
 | Human Review Required Count | 15 | 高风险、低证据或需要人工门禁的样本数 |
 
+### Retrieval V2 Experiment
+
+同一套 16 条 synthetic cases 上，新增不依赖第三方检索库的 V2：字段权重 + corpus IDF + category rerank + 技术锚点 + no-answer threshold。对比证据见 [`retrieval_v2_comparison_latest.md`](docs/metrics/retrieval_v2_comparison_latest.md)：
+
+| Metric | Keyword Baseline | Retrieval V2 |
+| --- | ---: | ---: |
+| Top-K Hit Rate | 100.00% | 100.00% |
+| Context Recall@3 | 90.00% | 90.00% |
+| Citation Precision | 81.11% | 97.78% |
+| Failed Case Count | 6 | 1 |
+
+V2 仍保留 `EVAL-016` 的相似词误召回失败；同一固定数据集参与了设计与评测，因此这些数字是作品集实验，不是无偏 benchmark。V2 不是 BM25、embedding、Vector DB、dense retrieval、Hybrid Retrieval 或外部 reranker。
+
 Provider / fallback 边界不作为核心质量指标展示：
 
 | 路径 | 当前说明 |
@@ -186,26 +199,27 @@ Provider / fallback 边界不作为核心质量指标展示：
 
 ### Baseline / Scope
 
-当前已实现 baseline：
+当前已实现：
 
 - `keyword_only`
 - `naive_keyword_score`
 - `with_citation_required`
 - `with_human_review_gate`
+- dependency-free `Retrieval V2`（field-aware IDF + category/anchor rerank + no-answer threshold）
 - `local-rule fallback`
 
 下一阶段可以独立比较：
 
 - BM25
-- Vector DB
+- embedding / Vector DB
 - Hybrid retrieval
-- Rerank
+- external / model-based Rerank
 - real provider evaluation
 - Answer Relevance
 - Faithfulness
 - Token Cost
 
-当前版本没有实现 Vector DB、Hybrid、Rerank 或真实模型质量评测；只有实际跑通并保存证据后，才能把新指标写入 `docs/metrics/`。
+当前版本没有实现 embedding / Vector DB、dense / Hybrid retrieval、外部 reranker 或真实模型质量评测；只有实际跑通并保存证据后，才能把新指标写入 `docs/metrics/`。
 
 ## Local Run
 

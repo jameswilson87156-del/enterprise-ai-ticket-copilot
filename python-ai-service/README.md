@@ -2,27 +2,35 @@
 
 这是 Enterprise Ticket RAG Copilot 的可选 Python AI 应用 sidecar，用于展示真实可运行的 Python 3.12 + FastAPI + Pydantic 工程能力。
 
-它复用仓库现有 `scripts/evaluate_rag_demo.py` 的 keyword retrieval baseline 和 `docs/metrics/rag_metrics_latest.json` 的可复现评测快照，不改变 Java/Spring Boot 主业务链路。
+它复用仓库现有 keyword retrieval baseline，并新增一个不引入第三方检索依赖的 Retrieval V2 实验：字段权重、语料 IDF、分类惩罚、技术锚点和 no-answer threshold。两种模式都不改变 Java/Spring Boot 主业务链路。
 
 ## 能力
 
 - `GET /health`：进程级健康检查。
 - `GET /ready`：校验评测快照与 16 条 synthetic dataset 是否可读。
-- `POST /api/retrieval/preview`：输入工单问题、可选分类和 Top-K，返回 keyword retrieval 证据。
+- `POST /api/retrieval/preview`：输入工单问题、可选分类、Top-K 与 `retrievalMode=keyword|v2`，返回对应检索证据。
 - `GET /api/evaluation/summary`：返回当前 synthetic demo 评测摘要。
 - `GET /internal/metrics`：查看进程内请求计数、错误数、in-flight 和 bounded-window p50/p95/p99/max 延迟。
 - `GET /metrics`：暴露 Prometheus text format 的本地指标出口，不依赖额外 prometheus client 包。
 - 每个 HTTP 响应返回 `X-Request-ID`，服务日志记录 method/path/status/duration。
 - Pydantic 请求/响应契约和 FastAPI 自动 OpenAPI 文档。
-- pytest + FastAPI TestClient 覆盖健康/就绪、检索、参数校验、评测摘要和 metrics。
+- pytest + FastAPI TestClient 覆盖健康/就绪、keyword/V2 检索、no-answer、参数校验、评测摘要和 metrics。
 
 ## 边界
 
 - 不调用真实 LLM Provider。
 - 不读取 API Key。
 - 不连接 MySQL。
-- 不使用 embedding、Vector DB、Hybrid Retrieval 或 Rerank。
-- 评测指标只代表 synthetic demo dataset + local keyword retrieval baseline。
+- Retrieval V2 是 dependency-free 的字段/IDF/规则 rerank 实验，不是 embedding、Vector DB、Hybrid Retrieval、dense retrieval 或外部 reranker。
+- 16 条固定 synthetic cases 上，V2 与旧 keyword baseline 对比：Top-K Hit Rate 保持 100%、Context Recall@3 保持 90%、Citation Precision 由 81.11% 提升到 97.78%、failed cases 由 6 降到 1。该数据集同时参与设计与评测，因此不是无偏生产 benchmark。
+
+## Retrieval V2 对比
+
+```powershell
+py -3 -B scripts/evaluate_retrieval_v2.py
+```
+
+证据：`docs/metrics/retrieval_v2_comparison_latest.json` 与 `docs/metrics/retrieval_v2_comparison_latest.md`。V2 保留 `EVAL-016` 这一条相似词误召回失败，用于明确词面检索仍有意图理解边界，不为了固定数据集把指标硬调成 100%。
 
 ## 本地运行
 

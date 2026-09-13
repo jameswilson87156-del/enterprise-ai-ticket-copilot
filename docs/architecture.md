@@ -102,11 +102,11 @@ flowchart TD
 
 ## Python AI Sidecar
 
-`python-ai-service/` 是与 Java 主业务后端解耦的可选 Python 3.12 sidecar。它使用 FastAPI + Pydantic，把现有 synthetic keyword retrieval baseline 和评测快照暴露为小型 HTTP API：`GET /health`、`GET /ready`、`POST /api/retrieval/preview`、`GET /api/evaluation/summary`、`GET /internal/metrics` 与 `GET /metrics`。
+`python-ai-service/` 是与 Java 主业务后端解耦的可选 Python 3.12 sidecar。它使用 FastAPI + Pydantic，把现有 synthetic keyword retrieval baseline、Retrieval V2 实验和评测快照暴露为小型 HTTP API：`GET /health`、`GET /ready`、`POST /api/retrieval/preview`、`GET /api/evaluation/summary`、`GET /internal/metrics` 与 `GET /metrics`。`/api/retrieval/preview` 通过 `retrievalMode=keyword|v2` 显式选择模式，默认保留旧 keyword 行为。
 
 HTTP middleware 为响应增加 `X-Request-ID`，记录 method/path/status/duration，并在进程内维护 bounded latency window，输出请求数、5xx 错误数、in-flight 与 p50/p95/p99/max；`/metrics` 使用 Prometheus text format，当前未引入 Prometheus server、OpenTelemetry Collector 或分布式 Trace backend。`scripts/load_test.py` 用线程池执行真实 localhost HTTP 并发请求，并把正确性门禁、吞吐和延迟分位数固化到 `docs/performance/`。
 
-该 sidecar 直接复用 `scripts/evaluate_rag_demo.py` 的 `retrieve(...)` 逻辑，因此不会形成第二套不同口径的检索算法；它不访问 MySQL、不读取 Provider Key、不调用真实 LLM，也不改变 Spring Boot 工单状态机、Provider、Citation 或 Human Review 主链路。2026-09-13 单 Uvicorn 进程本机压测为 1000 请求 / 并发 20 / 0 错误 / 545.37 req/s / HTTP p95 51.38 ms / p99 57.90 ms；该结果只是本地 synthetic baseline 的可复现证据，不是生产 SLA。
+keyword 模式继续直接复用 `scripts/evaluate_rag_demo.py` 的 `retrieve(...)`；V2 位于 `scripts/evaluate_retrieval_v2.py`，只使用 Python 标准库实现字段权重、语料 IDF、分类不一致惩罚、技术锚点与 no-answer threshold。V2 不等于 BM25、embedding、Vector DB、dense retrieval、Hybrid Retrieval 或外部 reranker。固定 16 条 synthetic cases 对比中，Citation Precision `81.11% -> 97.78%`、failed cases `6 -> 1`，同时 Top-K Hit Rate 保持 100%、Context Recall@3 保持 90%；因为同一固定数据集参与设计与评测，该结果只作为可复现实验证据。sidecar 仍不访问 MySQL、不读取 Provider Key、不调用真实 LLM，也不改变 Spring Boot 工单状态机、Provider、Citation 或 Human Review 主链路。2026-09-13 单 Uvicorn 进程旧 keyword 模式本机压测为 1000 请求 / 并发 20 / 0 错误 / 545.37 req/s / HTTP p95 51.38 ms / p99 57.90 ms；该压测不是 V2 的生产 SLA。
 
 ## Evaluation Artifacts
 
@@ -119,6 +119,8 @@ HTTP middleware 为响应增加 `X-Request-ID`，记录 method/path/status/durat
 | `docs/evaluation/RAG_EVALUATION_PLAN.md` | 评测目标、样本字段、指标、baseline 和下一阶段计划 |
 | `docs/metrics/rag_metrics_latest.json` | 最新一次本地评测 JSON 结果 |
 | `docs/metrics/rag_metrics_snapshot.md` | 适合 README / 面试说明引用的指标快照 |
+| `scripts/evaluate_retrieval_v2.py` | dependency-free Retrieval V2 与旧 keyword baseline 对比脚本 |
+| `docs/metrics/retrieval_v2_comparison_latest.*` | V2 指标、changed cases 与边界证据 |
 
 ## 真实字段与安全派生字段
 

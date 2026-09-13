@@ -1,4 +1,13 @@
-# Claude / Codex 交接记录
+﻿# Claude / Codex 交接记录
+
+## 2026-09-14 — RETRIEVAL_V2_DEPENDENCY_FREE
+
+- 在不新增第三方生产依赖、不改 Java/Vue 主链路的前提下，新增 `scripts/evaluate_retrieval_v2.py`，实现字段权重、corpus IDF、category mismatch penalty、技术锚点与 no-answer threshold。
+- 与原 keyword baseline 使用同一 16 条 synthetic cases 对比：Top-K Hit Rate 100% 保持不变、Context Recall@3 90% 保持不变、Citation Precision `81.11% -> 97.78%`、failed cases `6 -> 1`；保留 `EVAL-016` 相似词误召回，不把固定设计集硬调成 100%。
+- FastAPI sidecar 的 `/api/retrieval/preview` 新增 `retrievalMode=keyword|v2`，默认仍是 keyword；V2 实际接口契约由 Pydantic 暴露，score 支持浮点。
+- 新增 V2 精确检索与 no-answer pytest；当前 Python sidecar `8 passed`。对比证据：`docs/metrics/retrieval_v2_comparison_latest.json/.md`。
+- 边界：V2 不是 BM25、embedding、Vector DB、dense / Hybrid retrieval 或外部 reranker；同一固定数据集参与设计和评测，因此结果是作品集实验，不是无偏 benchmark、生产 SLA 或真实企业效果。
+
 
 ## 2026-09-13 — PYTHON_AI_SIDECAR_OBSERVABILITY_LOAD_TEST
 
