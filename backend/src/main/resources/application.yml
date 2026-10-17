@@ -1,6 +1,18 @@
 spring:
   application:
     name: enterprise-ai-ticket-copilot
+  ai:
+    openai:
+      # 阿里 DashScope 的 OpenAI 兼容端点；未配置 AI_DASHSCOPE_API_KEY 时使用占位符保证应用可启动，AI 能力自动降级为规则引擎
+      base-url: ${AI_DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      api-key: ${AI_DASHSCOPE_API_KEY:placeholder-not-configured}
+      chat:
+        options:
+          model: ${AI_DASHSCOPE_CHAT_MODEL:qwen-plus}
+          temperature: 0.2
+      embedding:
+        options:
+          model: ${AI_DASHSCOPE_EMBEDDING_MODEL:text-embedding-v3}
 
 server:
   port: 8080

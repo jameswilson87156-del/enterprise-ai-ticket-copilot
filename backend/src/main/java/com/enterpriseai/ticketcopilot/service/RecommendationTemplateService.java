@@ -10,6 +10,38 @@ import org.springframework.stereotype.Service;
 public class RecommendationTemplateService {
 
     public RecommendationDraft generate(SupportTicket ticket, String category, List<KnowledgeMatch> matches) {
+        return generate(ticket, category, matches, List.of());
+    }
+
+    /** LLM 给出建议步骤时直接采用，并保留人工确认边界提示 */
+    public RecommendationDraft generate(SupportTicket ticket, String category, List<KnowledgeMatch> matches, List<String> llmSteps) {
+        List<String> steps = new ArrayList<>();
+        if (llmSteps != null && !llmSteps.isEmpty()) {
+            steps.addAll(llmSteps);
+        } else {
+            steps.addAll(templateSteps(category));
+        }
+        if (!matches.isEmpty()) {
+            steps.add("参考命中的知识库条目：" + matches.stream().map(match -> match.article().getArticleNo()).toList());
+        }
+        steps.add("以上建议为 AI/规则生成的草案，处理动作必须由人工确认。");
+
+        String reply = "已将该工单识别为「" + category + "」，并匹配到 "
+            + matches.size() + " 条知识库候选。支持人员将先进行人工确认，再执行后续处理动作。";
+
+        List<String> risks = new ArrayList<>();
+        risks.add("规则建议不等同于最终处理结论，必须由人工确认。");
+        risks.add("涉及权限、生产配置、数据修复或客户影响的动作不得自动执行。");
+        if ("系统故障".equals(category)) {
+            risks.add("可能影响线上服务稳定性，需检查发布窗口和回滚风险。");
+        }
+        if ("权限问题".equals(category) || "账号问题".equals(category)) {
+            risks.add("涉及身份与访问控制，需保留审批和审计记录。");
+        }
+        return new RecommendationDraft(steps, reply, risks);
+    }
+
+    private List<String> templateSteps(String category) {
         List<String> steps = new ArrayList<>();
         steps.add("复核工单描述、系统名称、错误日志与影响范围，确认是否需要升级处理。");
         switch (category) {
@@ -34,23 +66,6 @@ public class RecommendationTemplateService {
                 steps.add("确认用户诉求是否需要审批、补充材料或跨团队协作。");
             }
         }
-        if (!matches.isEmpty()) {
-            steps.add("参考命中的知识库条目：" + matches.stream().map(match -> match.article().getArticleNo()).toList());
-        }
-        steps.add("以上建议为规则生成草案，处理动作必须由人工确认。");
-
-        String reply = "已根据本地规则将该工单识别为「" + category + "」，并匹配到 "
-            + matches.size() + " 条知识库候选。支持人员将先进行人工确认，再执行后续处理动作。";
-
-        List<String> risks = new ArrayList<>();
-        risks.add("规则建议不等同于最终处理结论，必须由人工确认。");
-        risks.add("涉及权限、生产配置、数据修复或客户影响的动作不得自动执行。");
-        if ("系统故障".equals(category)) {
-            risks.add("可能影响线上服务稳定性，需检查发布窗口和回滚风险。");
-        }
-        if ("权限问题".equals(category) || "账号问题".equals(category)) {
-            risks.add("涉及身份与访问控制，需保留审批和审计记录。");
-        }
-        return new RecommendationDraft(steps, reply, risks);
+        return steps;
     }
 }

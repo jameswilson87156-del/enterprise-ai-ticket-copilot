@@ -3,6 +3,7 @@ package com.enterpriseai.ticketcopilot.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -56,7 +57,7 @@ public class TicketWorkflowService {
     private final TicketAiAnalysisMapper analysisMapper;
     private final TicketStatusHistoryMapper statusHistoryMapper;
     private final GenerationRecordMapper generationRecordMapper;
-    private final RuleClassificationService classificationService;
+    private final AiClassificationFacade classificationFacade;
     private final KnowledgeMatchingService knowledgeMatchingService;
     private final RecommendationTemplateService recommendationTemplateService;
     private final ObjectMapper objectMapper;
@@ -67,7 +68,7 @@ public class TicketWorkflowService {
         TicketAiAnalysisMapper analysisMapper,
         TicketStatusHistoryMapper statusHistoryMapper,
         GenerationRecordMapper generationRecordMapper,
-        RuleClassificationService classificationService,
+        AiClassificationFacade classificationFacade,
         KnowledgeMatchingService knowledgeMatchingService,
         RecommendationTemplateService recommendationTemplateService,
         ObjectMapper objectMapper
@@ -77,7 +78,7 @@ public class TicketWorkflowService {
         this.analysisMapper = analysisMapper;
         this.statusHistoryMapper = statusHistoryMapper;
         this.generationRecordMapper = generationRecordMapper;
-        this.classificationService = classificationService;
+        this.classificationFacade = classificationFacade;
         this.knowledgeMatchingService = knowledgeMatchingService;
         this.recommendationTemplateService = recommendationTemplateService;
         this.objectMapper = objectMapper;
@@ -139,15 +140,21 @@ public class TicketWorkflowService {
         appendHistory(ticket.getId(), null, STATUS_PENDING_CLASSIFICATION, "System", "工单已提交，进入本地规则分类。");
 
         long started = System.currentTimeMillis();
-        RuleClassificationResult classification = classificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
-        saveGeneration(ticket.getId(), "CLASSIFICATION", "RULE_ENGINE", summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
+        RuleClassificationResult classification = classificationFacade.classify(ticket);
+        String classificationSource = engineName(classification);
+        saveGeneration(ticket.getId(), "CLASSIFICATION", classificationSource, summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
 
         started = System.currentTimeMillis();
         List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
-        saveGeneration(ticket.getId(), "KNOWLEDGE_MATCH", "KEYWORD_MATCHER", classification.category(), "matched=" + matches.size(), started, "SUCCESS");
+        saveGeneration(ticket.getId(), "KNOWLEDGE_MATCH", "HYBRID_MATCHER", classification.category(), "matched=" + matches.size(), started, "SUCCESS");
 
         started = System.currentTimeMillis();
-        RecommendationDraft draft = recommendationTemplateService.generate(ticket, classification.category(), matches);
+        RecommendationDraft draft = recommendationTemplateService.generate(ticket, classification.category(), matches, classification.suggestedSteps());
+        List<String> riskNotes = new ArrayList<>();
+        if (!classification.riskHint().isBlank()) {
+            riskNotes.add("LLM 风险提示：" + classification.riskHint());
+        }
+        riskNotes.addAll(draft.riskNotes());
         TicketAiAnalysisEntity analysis = new TicketAiAnalysisEntity();
         analysis.setTicketId(ticket.getId());
         analysis.setClassification(classification.category());
@@ -157,8 +164,8 @@ public class TicketWorkflowService {
         analysis.setMatchedKnowledgeNos(toJson(matches.stream().map(match -> match.article().getArticleNo()).toList()));
         analysis.setTroubleshootingSteps(toJson(draft.troubleshootingSteps()));
         analysis.setReplySuggestion(draft.replySuggestion());
-        analysis.setRiskNotes(toJson(draft.riskNotes()));
-        analysis.setSourceType("RULE_TEMPLATE");
+        analysis.setRiskNotes(toJson(riskNotes));
+        analysis.setSourceType(classificationSource);
         analysis.setCreatedAt(LocalDateTime.now());
         analysis.setUpdatedAt(LocalDateTime.now());
         analysisMapper.insert(analysis);
@@ -169,7 +176,8 @@ public class TicketWorkflowService {
         ticket.setStatus(STATUS_PENDING_PROCESS);
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
-        appendHistory(ticket.getId(), STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, "Rule Engine", "完成规则分类、知识库匹配和建议草案生成，等待人工确认。");
+        appendHistory(ticket.getId(), STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, "AI Copilot (" + classificationSource + ")",
+            "完成 " + (RuleClassificationResult.SOURCE_LLM.equals(classification.source()) ? "LLM 智能分类" : "规则分类") + "、知识库匹配和建议草案生成，等待人工确认。");
         return toDetail(ticket);
     }
 
@@ -272,7 +280,12 @@ public class TicketWorkflowService {
             ticket.getDescription(),
             new SystemContext(ticket.getSystemName(), "internal", "corp", "-", affectedUsers(ticket.getUrgency())),
             lines(ticket.getErrorLog()),
-            List.of("本阶段使用本地规则分类与模板建议，不调用真实 LLM。", "所有处理建议均等待人工确认后执行。"),
+            List.of(
+                classificationFacade.llmEnabled()
+                    ? "已接入真实 LLM（qwen-plus）辅助分类与建议，输出仍需人工确认。"
+                    : "未配置 AI_DASHSCOPE_API_KEY，当前使用本地规则分类与模板建议。",
+                "所有处理建议均等待人工确认后执行。"
+            ),
             statusHistoryMapper.selectList(new LambdaQueryWrapper<TicketStatusHistory>()
                     .eq(TicketStatusHistory::getTicketId, ticket.getId())
                     .orderByAsc(TicketStatusHistory::getOccurredAt))
@@ -392,9 +405,19 @@ public class TicketWorkflowService {
 
     private String classificationReason(SupportTicket ticket, RuleClassificationResult classification, List<KnowledgeMatch> matches) {
         String knowledge = matches.isEmpty() ? "未命中已发布知识库条目" : "命中 " + matches.size() + " 条知识库条目";
+        if (RuleClassificationResult.SOURCE_LLM.equals(classification.source()) && !classification.reason().isBlank()) {
+            return "LLM 判定：" + classification.reason()
+                + "；置信度 " + classification.confidence()
+                + "%；" + knowledge + "。该结论仅作为人工确认前的建议。";
+        }
         return "本地规则在标题、描述、系统名和错误日志中识别到与「" + classification.category()
             + "」相关的关键词，置信度 " + classification.confidence()
             + "%；" + knowledge + "。该结论仅作为人工确认前的建议。";
+    }
+
+    /** 分类引擎标识：LLM 结果记为 LLM_QWEN_PLUS，规则结果记为 RULE_ENGINE */
+    private String engineName(RuleClassificationResult classification) {
+        return RuleClassificationResult.SOURCE_LLM.equals(classification.source()) ? "LLM_QWEN_PLUS" : "RULE_ENGINE";
     }
 
     private String toJson(List<String> values) {
