@@ -1,9 +1,9 @@
 package com.enterpriseai.ticketcopilot.service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
@@ -11,13 +11,19 @@ import com.enterpriseai.ticketcopilot.entity.SupportTicket;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
 import org.springframework.stereotype.Service;
 
+/**
+ * 知识匹配：关键词 + 向量余弦相似度混合打分（各占 50%）。
+ * 未配置 API Key 时向量通道不可用，自动退化为纯关键词模式（行为与升级前一致）。
+ */
 @Service
 public class KnowledgeMatchingService {
 
     private final KnowledgeArticleMapper knowledgeArticleMapper;
+    private final KnowledgeIndexService knowledgeIndexService;
 
-    public KnowledgeMatchingService(KnowledgeArticleMapper knowledgeArticleMapper) {
+    public KnowledgeMatchingService(KnowledgeArticleMapper knowledgeArticleMapper, KnowledgeIndexService knowledgeIndexService) {
         this.knowledgeArticleMapper = knowledgeArticleMapper;
+        this.knowledgeIndexService = knowledgeIndexService;
     }
 
     public List<KnowledgeMatch> match(SupportTicket ticket, String category) {
@@ -26,27 +32,25 @@ public class KnowledgeMatchingService {
                 .eq(KnowledgeArticle::getStatus, "PUBLISHED")
         );
         String ticketText = normalize(ticket.getTitle() + " " + ticket.getDescription() + " " + ticket.getErrorLog() + " " + ticket.getSystemName());
+        Map<String, Double> vectorHits = knowledgeIndexService.vectorAvailable()
+            ? knowledgeIndexService.similaritySearch(ticketText, articles.size())
+            : Map.of();
         return articles.stream()
-            .map(article -> new KnowledgeMatch(article, relevance(article, category, ticketText)))
-            .filter(match -> match.relevance() >= 35)
+            .map(article -> new KnowledgeMatch(article, relevance(article, category, ticketText, vectorHits)))
+            .filter(match -> match.relevance() >= HybridKnowledgeScorer.RELEVANCE_CUTOFF)
             .sorted(Comparator.comparingInt(KnowledgeMatch::relevance).reversed())
             .limit(3)
             .toList();
     }
 
-    private int relevance(KnowledgeArticle article, String category, String ticketText) {
-        int score = category.equals(article.getCategory()) ? 25 : 0;
-        String keywords = article.getKeywords() == null ? "" : article.getKeywords();
-        for (String keyword : Arrays.stream(keywords.split("[,，;；\\s]+")).filter(item -> !item.isBlank()).toList()) {
-            if (ticketText.contains(keyword.toLowerCase(Locale.ROOT))) {
-                score += 18;
-            }
+    /** 向量通道可用时走混合打分，否则纯关键词打分 */
+    private int relevance(KnowledgeArticle article, String category, String ticketText, Map<String, Double> vectorHits) {
+        int keywordScore = HybridKnowledgeScorer.keywordScore(article.getCategory(), article.getKeywords(), article.getTitle(), category, ticketText);
+        if (vectorHits.isEmpty()) {
+            return keywordScore;
         }
-        String title = normalize(article.getTitle());
-        if (!title.isBlank() && ticketText.contains(title.substring(0, Math.min(title.length(), 4)))) {
-            score += 10;
-        }
-        return Math.min(96, score);
+        double cosine = vectorHits.getOrDefault(article.getArticleNo(), 0.0);
+        return HybridKnowledgeScorer.hybridRelevance(keywordScore, cosine);
     }
 
     private String normalize(String value) {
