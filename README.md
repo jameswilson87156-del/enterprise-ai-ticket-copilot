@@ -1,12 +1,22 @@
 # Enterprise Ticket RAG Copilot
 
-> 2026-09-05 第一阶段部署审计：当前总状态 **BLOCKED**。最新后端289/289（0失败/错误/跳过）、前端类型检查及生产构建、npm生产依赖审计、配置守卫、空库 schema-only 初始化、Compose普通/TLS静态校验为 **LOCAL_PASS**。Demo SQL挂载、本地 MySQL 接线、缺版本化迁移、Secret 构建上下文和 staging/production localhost 回落问题已完成本地整改；Docker registry、云资源、真实 Secret/OIDC、DNS/ICP/TLS 及公网验收仍 **STAGING_PENDING** 或 **BLOCKED**。详见 [本项目审计与部署计划](docs/release/STAGING_AUDIT_PLAN_20260905.md)。
-
 面向企业工单、客服支持和运维知识库场景的 AI RAG Copilot 作品集项目，用来展示工单分析、知识库检索、引用证据、Trace 运行链路、Human Review 门禁和本地 Evaluation / Metrics。
 
 这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成对外运行服务、公司内部数据效果或稳定模型接入能力。
 
 当前工程化状态：后端已实现可选 OIDC/JWT Resource Server、前端已实现 Authorization Code + PKCE 登录适配，并新增了 MySQL + API + Nginx + 可选 Caddy TLS 的 staging 部署骨架；默认 Showcase 仍保持 Demo 模式。真实 IdP、真实模型账号和公网服务器尚未在本工作区完成连接，执行边界见 [真实认证、Provider 与部署说明](docs/REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
+
+## 2026-10 · Spring AI 1.1.8 升级（`java-ai-upgrade` 分支）
+
+在保留本主干（Workbench / Citation / Trace / Human Review / Evaluation 全量工程）的同时，[`java-ai-upgrade` 分支](https://github.com/jameswilson87156-del/enterprise-ai-ticket-copilot/tree/java-ai-upgrade)完成了 Spring AI 技术栈升级：
+
+- **Spring Boot 3.5.16 + Spring AI 1.1.8**：LLM 智能分类接入 DashScope `qwen-plus`（OpenAI 兼容端点），未配置 Key / 异常 / 15s 超时自动降级规则引擎，`AiClassificationFacade` 统一门面并标注每次结果来源（LLM / RULE）。
+- **知识库混合检索 RAG-lite**：`SimpleVectorStore` 全量向量化（`text-embedding-v3`），关键词 + 向量余弦混合打分各占 50%（阈值 0.35），无 Key 自动退化为纯关键词检索。
+- **MCP Server（WebMVC + SSE）**：暴露 `searchTickets` / `searchKnowledge` 两个 `@Tool`，Cherry Studio 等 MCP 客户端可直连。
+- **分类效果评估闭环**：16 条标注工单评估集（含 4 条预埋规则盲区样本），`EvaluationTest` 输出规则引擎 accuracy 报告；LLM 对比在 `AI_DASHSCOPE_API_KEY` 存在时执行，否则 `assumeTrue` 跳过。
+- 分支上 24 项测试全绿（混合打分纯函数单测 + MCP 无 Key 启动 H2 冒烟）。
+
+> 本主干与升级分支是两条独立演进线：主干是带 Vue 前端与完整评估面板的工程完整版；升级分支是围绕 Spring AI 官方技术栈的精简重构。两者的评估口径分别见各自 README 与 `docs/`。
 
 ## 项目定位
 
@@ -383,6 +393,9 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 - **为什么不继续扩检索平台**：当前收口只维护 keyword retrieval、citation gating、immutable run 和 synthetic Provider smoke，不在本项目继续新增 BM25、Vector、Hybrid、Rerank 或多 Agent 调度。
 
 ## Honest Boundaries
+
+> 2026-09-05 第一阶段部署审计：当前总状态 **BLOCKED**。最新后端289/289（0失败/错误/跳过）、前端类型检查及生产构建、npm生产依赖审计、配置守卫、空库 schema-only 初始化、Compose普通/TLS静态校验为 **LOCAL_PASS**。Demo SQL挂载、本地 MySQL 接线、缺版本化迁移、Secret 构建上下文和 staging/production localhost 回落问题已完成本地整改；Docker registry、云资源、真实 Secret/OIDC、DNS/ICP/TLS 及公网验收仍 **STAGING_PENDING** 或 **BLOCKED**。详见 [本项目审计与部署计划](docs/release/STAGING_AUDIT_PLAN_20260905.md)。
+
 
 - 当前项目使用 synthetic demo tickets 和本地 showcase 常量。
 - 默认生成路径是 local-rule fallback，不是外部模型稳定响应。
