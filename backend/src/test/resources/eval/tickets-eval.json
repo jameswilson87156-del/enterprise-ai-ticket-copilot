@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {"id": "T01", "title": "无法登录 OA 系统", "description": "输入密码后提示认证失败，重置密码后仍未解决，多人都反馈同样问题。", "systemName": "oa-portal", "errorLog": "auth failure: invalid credentials", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T02", "title": "MFA 验证码收不到", "description": "登录时 MFA 动态码一直收不到，短信和 App 都试过，无法完成登录。", "systemName": "iam", "errorLog": "", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T03", "title": "账号被锁定", "description": "密码连续输错多次后账号被锁定，需要走解锁流程。", "systemName": "iam", "errorLog": "account locked", "urgency": "P3", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T04", "title": "SSO 跳转后白屏", "description": "从门户点击 SSO 跳转到业务系统后白屏，怀疑单点登录会话异常。", "systemName": "sso-gateway", "errorLog": "sso redirect loop detected", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T05", "title": "订单接口大量超时", "description": "高峰期订单查询接口超时严重，网关返回 502，影响下单主流程。", "systemName": "order-service", "errorLog": "upstream timeout, 502 Bad Gateway", "urgency": "P1", "expected": "系统故障", "ruleMissExpected": false},
+    {"id": "T06", "title": "页面加载超过 30 秒", "description": "工作台首页高峰期加载要 30 秒以上，基本不可用，非高峰正常。", "systemName": "portal-web", "errorLog": "", "urgency": "P2", "expected": "系统故障", "ruleMissExpected": false},
+    {"id": "T07", "title": "支付服务疑似宕机", "description": "支付服务健康检查连续失败，实例疑似宕机，需要值班介入。", "systemName": "payment-service", "errorLog": "health check failed 5/5", "urgency": "P1", "expected": "系统故障", "ruleMissExpected": false},
+    {"id": "T08", "title": "导出报表时后端报错 500", "description": "点击导出按钮后后端直接报错 500，所有报表都无法导出。", "systemName": "report-service", "errorLog": "NullPointerException at ExportController", "urgency": "P2", "expected": "系统故障", "ruleMissExpected": false},
+    {"id": "T09", "title": "两张报表的营收数字不一致", "description": "经营日报和月报同一指标口径对不上，怀疑夜间同步任务有问题。", "systemName": "data-platform", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T10", "title": "导入 Excel 后部分字段缺失", "description": "批量导入客户资料后，联系电话和地址字段大面积缺失。", "systemName": "crm", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T11", "title": "申请共享盘目录权限被拒", "description": "按流程申请了共享盘目录权限，访问时仍提示 403 Forbidden。", "systemName": "file-hub", "errorLog": "403 Forbidden", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": false},
+    {"id": "T12", "title": "咨询报销流程怎么走", "description": "新员工想了解差旅报销的申请流程和需要的材料。", "systemName": "faq", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T13", "title": "新入职同事打不开报表平台", "description": "新同事说报表平台一直转圈进不去，他使用其他系统都正常，帮忙看看是不是哪里没给他配置好。", "systemName": "report-platform", "errorLog": "", "urgency": "P3", "expected": "权限问题", "ruleMissExpected": true},
+    {"id": "T14", "title": "导出按钮不见了", "description": "要把上季度经营数据导出来给审计，但我界面上没有导出按钮，旁边工位同事的账号都有这个按钮。", "systemName": "report-platform", "errorLog": "", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": true},
+    {"id": "T15", "title": "会议室预定提交后白屏", "description": "点了提交按钮页面直接白屏，刷新后预定记录还在，但确认邮件没有发出来。", "systemName": "meeting-booking", "errorLog": "", "urgency": "P3", "expected": "系统故障", "ruleMissExpected": true},
+    {"id": "T16", "title": "分公司访问 SaaS 偶发 connection reset", "description": "分公司到 SaaS 的访问时好时坏，抓包看到丢包和连接被重置，总部正常。", "systemName": "saas-office", "errorLog": "connection reset by peer", "urgency": "P2", "expected": "系统故障", "ruleMissExpected": true}
+  ]
+}
