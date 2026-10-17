@@ -98,6 +98,37 @@ npm run dev
 - `npm run screenshots` 会启动 Demo 页面，通过真实浏览器自动生成 README 截图。
 - Demo 中出现的团队、系统、日志和工单均为演示内容，不对应真实企业客户。
 
+## MCP Server 接入（AI 客户端工具）
+
+后端内置一个基于 Spring AI 的 MCP Server（WebMVC + SSE 传输），把工单检索与知识检索作为工具暴露给任意 MCP 客户端（Cherry Studio、Claude Desktop、Cursor 等）：
+
+- SSE 连接端点：`http://localhost:8080/sse`（消息回传 `POST /mcp/message`，由客户端自动协商）
+- 暴露工具：
+  - `searchTickets(status, keyword)`：按状态与关键词检索工单列表
+  - `searchKnowledge(query)`：知识库混合检索（关键词 + 向量语义，各占 50%）
+
+在 Cherry Studio 中连接步骤：
+
+1. 打开「设置 -> MCP 服务器 -> 添加服务器」。
+2. 类型选择 **SSE**，URL 填写 `http://localhost:8080/sse`。
+3. 保存后启用，在对话中即可让模型调用 `searchTickets` / `searchKnowledge`。
+
+说明：MCP 工具只读查询，不提供写入与状态变更能力；未配置 `AI_DASHSCOPE_API_KEY` 时 `searchKnowledge` 自动退化为纯关键词检索，服务本身照常可用。
+
+## AI 能力配置（可选）
+
+后端默认可在无任何 AI Key 的情况下启动（分类走规则引擎，检索走关键词）。配置真实模型后自动启用 LLM 能力：
+
+```bash
+export AI_DASHSCOPE_API_KEY=sk-xxxx   # 阿里云 DashScope API Key
+# 可选覆盖：
+# AI_DASHSCOPE_BASE_URL（默认 https://dashscope.aliyuncs.com/compatible-mode/v1）
+# AI_DASHSCOPE_CHAT_MODEL（默认 qwen-plus）
+# AI_DASHSCOPE_EMBEDDING_MODEL（默认 text-embedding-v3）
+```
+
+配置后：工单分类优先调用 qwen-plus（15s 超时，失败自动降级规则引擎，结果标注 `LLM` / `RULE` 来源）；知识库启动时全量向量化（text-embedding-v3）并参与混合召回。
+
 ## 测试与验收结果
 
 2026-06-20 本地验收结果：
@@ -114,9 +145,10 @@ npm run dev
 
 - 这是个人作品集 / 实习简历项目，不是已上线的生产系统。
 - 仓库与截图不包含真实客户数据，演示数据均为本地构造。
-- 当前 AI 分析主要由规则和模板驱动，不承诺真实大模型稳定接入。
-- 当前知识匹配与沉淀用于展示业务闭环，不宣称为完整 RAG 知识库系统。
+- 已接入 DashScope qwen-plus 与 text-embedding-v3（可选配置），未配置 Key 时自动降级为规则引擎与关键词检索；不承诺生产级 SLA。
+- 知识检索为 RAG-lite（SimpleVectorStore 内存向量 + 混合打分），不宣称为完整 RAG 平台。
 - AI 只生成建议；工单状态变更、对外回复和知识发布需要人工确认。
+- MCP Server 仅暴露只读检索工具，不含写入能力。
 - Stitch Design Taste 仅作为本轮界面视觉设计参考，不属于项目业务功能或商业 UI 资产。
 
 ## 简历亮点

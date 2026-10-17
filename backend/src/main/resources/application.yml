@@ -13,6 +13,14 @@ spring:
       embedding:
         options:
           model: ${AI_DASHSCOPE_EMBEDDING_MODEL:text-embedding-v3}
+    mcp:
+      server:
+        name: ticket-copilot-mcp
+        version: 0.0.1
+        # SSE 传输：客户端连接 /sse，消息回传 POST /mcp/message
+        protocol: SSE
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
 
 server:
   port: 8080

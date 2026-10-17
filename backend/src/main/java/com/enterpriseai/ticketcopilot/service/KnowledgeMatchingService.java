@@ -43,6 +43,24 @@ public class KnowledgeMatchingService {
             .toList();
     }
 
+    /** 任意查询文本的知识检索（MCP searchKnowledge 使用）：类别通道不参与，仅关键词 + 向量 */
+    public List<KnowledgeMatch> searchByQuery(String query, int limit) {
+        List<KnowledgeArticle> articles = knowledgeArticleMapper.selectList(
+            new LambdaQueryWrapper<KnowledgeArticle>()
+                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+        );
+        String text = normalize(query);
+        Map<String, Double> vectorHits = knowledgeIndexService.vectorAvailable()
+            ? knowledgeIndexService.similaritySearch(text, articles.size())
+            : Map.of();
+        return articles.stream()
+            .map(article -> new KnowledgeMatch(article, relevance(article, null, text, vectorHits)))
+            .filter(match -> match.relevance() >= HybridKnowledgeScorer.RELEVANCE_CUTOFF)
+            .sorted(Comparator.comparingInt(KnowledgeMatch::relevance).reversed())
+            .limit(Math.max(1, limit))
+            .toList();
+    }
+
     /** 向量通道可用时走混合打分，否则纯关键词打分 */
     private int relevance(KnowledgeArticle article, String category, String ticketText, Map<String, Double> vectorHits) {
         int keywordScore = HybridKnowledgeScorer.keywordScore(article.getCategory(), article.getKeywords(), article.getTitle(), category, ticketText);
