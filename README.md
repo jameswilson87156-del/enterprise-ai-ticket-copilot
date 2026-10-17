@@ -1,0 +1,137 @@
+﻿# Enterprise AI Ticket Copilot
+
+企业 AI 工单处理与知识库助手，是一个面向内部支持团队的个人作品集 / 实习简历项目。它围绕“工单进入 -> AI 分类 -> 知识库匹配 -> 处理建议 -> 人工确认 -> 状态流转 -> 知识沉淀”组织可演示闭环，强调 AI 辅助判断与人工决策边界。
+
+当前仓库用于本地开发和作品展示，不是生产系统，不包含真实客户数据，也不承诺真实大模型的稳定接入。AI 只提供分类与处理建议，状态变更和知识发布仍由人工最终确认。
+
+## 项目简介
+
+项目将工单队列、工单详情、规则分析、知识命中、处理建议、人工确认和状态历史整合到同一个企业 AI Copilot 控制台。前端提供可独立运行的 Demo 模式；后端提供基于 Spring Boot、MyBatis-Plus 和 MySQL 的本地数据闭环。
+
+## 技术栈
+
+- 前端：Vue 3、TypeScript、Vite、原生 CSS Design Tokens
+- 后端：Java 17、Spring Boot 3、MyBatis-Plus、Maven
+- 数据库：MySQL 8
+- 演示与验收：本地 Demo/Mock 数据、Playwright Core 截图脚本
+
+## 核心功能
+
+- 工单录入与队列：提交问题描述、系统信息、错误日志和优先级，并按关键词与状态筛选。
+- AI 辅助分类：使用当前规则引擎生成问题分类、置信度、原因和风险提示。
+- 知识匹配：根据工单内容、分类和关键词返回已有知识条目命中结果。
+- 处理建议：整理排查步骤、回复建议和下一步动作，明确标记为待人工确认。
+- 状态流转：记录待分类、待处理、处理中、已解决、已沉淀等状态变化。
+- 知识沉淀：从已解决工单生成知识草稿，经人工确认后再进入知识库记录。
+- 过程留痕：展示状态历史与建议生成记录，便于演示人机协作边界。
+
+> 当前实现是规则驱动的本地演示闭环，不等同于完整 RAG 平台，也不代表 AI 可自动处理全部工单。
+
+## 页面截图
+
+以下截图由仓库内 Playwright 脚本从真实 Vue 前端页面生成，页面内容使用本地 Demo/Mock 数据，不包含真实企业或客户信息。
+
+### 企业 AI 工单工作台
+
+![企业 AI 工单工作台](docs/images/dashboard.png)
+
+### 工单详情与处理上下文
+
+![工单详情](docs/images/ticket-detail.png)
+
+### AI 分析与人工确认
+
+![AI 分析](docs/images/ai-analysis.png)
+
+### 知识匹配与知识沉淀
+
+![知识库](docs/images/knowledge-base.png)
+
+`docs/images/large/` 保存对应的 `1920x1200` 大屏版本，适合演示或作品集排版。
+
+## 快速启动
+
+### 前端 Demo 模式
+
+无需启动后端或 MySQL，即可使用本地 Demo/Mock 数据体验完整界面：
+
+```bash
+cd frontend
+npm install
+npm run dev:demo
+```
+
+默认访问：`http://localhost:5173`
+
+### 本地 MySQL 闭环
+
+1. 初始化数据库和演示数据：
+
+```bash
+mysql -uroot -p < backend/src/main/resources/schema.sql
+mysql -uroot -p enterprise_ai_ticket_copilot < backend/src/main/resources/demo-data.sql
+```
+
+2. 参考 `backend/src/main/resources/application-example.yml` 创建本地配置并修改数据库账号。
+
+3. 启动后端：
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+4. 启动前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+后端默认地址为 `http://localhost:8080`，前端默认地址为 `http://localhost:5173`。
+
+## Demo 模式说明
+
+- `npm run dev:demo` 使用前端内置的本地 Demo/Mock 工单，不依赖后端和数据库。
+- Demo 数据仅用于展示分类、知识匹配、人工确认、状态流转和知识沉淀交互。
+- `npm run screenshots` 会启动 Demo 页面，通过真实浏览器自动生成 README 截图。
+- Demo 中出现的团队、系统、日志和工单均为演示内容，不对应真实企业客户。
+
+## 测试与验收结果
+
+2026-06-20 本地验收结果：
+
+| 检查项 | 结果 | 说明 |
+| --- | --- | --- |
+| `npm install` | 通过 | 依赖安装完成，审计结果为 0 个漏洞 |
+| `npm run build` | 通过 | Vue TypeScript 检查与 Vite 生产构建完成 |
+| `npm run screenshots` | 通过 | 生成 4 张标准截图和 4 张 `1920x1200` 截图 |
+| `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
+| `mvn test` | 通过 | Maven 生命周期与编译通过；当前没有后端测试源码，不能视为完整业务测试 |
+
+## 项目边界
+
+- 这是个人作品集 / 实习简历项目，不是已上线的生产系统。
+- 仓库与截图不包含真实客户数据，演示数据均为本地构造。
+- 当前 AI 分析主要由规则和模板驱动，不承诺真实大模型稳定接入。
+- 当前知识匹配与沉淀用于展示业务闭环，不宣称为完整 RAG 知识库系统。
+- AI 只生成建议；工单状态变更、对外回复和知识发布需要人工确认。
+- Stitch Design Taste 仅作为本轮界面视觉设计参考，不属于项目业务功能或商业 UI 资产。
+
+## 简历亮点
+
+- 从工单录入到知识沉淀，设计并实现了具备人工确认边界的企业 AI 工单闭环。
+- 使用 Vue 3 + TypeScript 构建轻量企业 Copilot 工作台，并用 Playwright 固化真实页面截图验收。
+- 使用 Spring Boot + MyBatis-Plus + MySQL 组织工单、状态历史、建议记录与知识草稿的数据关系。
+- 在 README 中明确区分 Demo、规则能力、真实大模型与生产边界，避免将演示能力包装为生产能力。
+
+## 项目文档
+
+- [产品设计](docs/product-design.md)
+- [前端风格规范](docs/frontend-style.md)
+- [架构说明](docs/architecture.md)
+- [演示脚本](docs/demo-script.md)
+- [面试讲解指南](docs/interview-guide.md)
+- [验收清单](docs/acceptance-checklist.md)
+
