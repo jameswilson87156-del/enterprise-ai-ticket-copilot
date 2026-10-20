@@ -11,7 +11,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
- * Spring AI 定制配置：DashScope 兼容端点 + 15s 只读超时（覆盖默认无超时的 RestClient）。
+ * Spring AI 定制配置：OpenAI 兼容端点 + 15s 只读超时（覆盖默认无超时的 RestClient）。
  */
 @Configuration
 public class SpringAiConfig {

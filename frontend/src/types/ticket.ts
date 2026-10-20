@@ -88,3 +88,38 @@ export interface WorkbenchMetrics {
   knowledgeCoverage: number
   todayKnowledgeDrafts: number
 }
+
+export interface RetrievalEvaluationArticle {
+  articleNo: string
+  title: string
+  relevance: number
+}
+
+export interface RetrievalEvaluationCase {
+  id: string
+  query: string
+  queryType: 'direct' | 'paraphrase' | string
+  expectedArticleNo: string
+  expectedRank: number
+  hitAt1: boolean
+  hitAt3: boolean
+  failureType: string
+  retrieved: RetrievalEvaluationArticle[]
+}
+
+export interface RetrievalEvaluationReport {
+  generatedAt: string
+  datasetVersion: string
+  dataSource: string
+  retrievalMode: string
+  topK: number
+  metrics: {
+    total: number
+    hitAt1: number
+    hitAt3: number
+    recallAt1: number
+    recallAt3: number
+    meanReciprocalRank: number
+  }
+  cases: RetrievalEvaluationCase[]
+}

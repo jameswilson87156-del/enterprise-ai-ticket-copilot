@@ -27,7 +27,7 @@ class KnowledgeMatchingServiceTest {
     void degradesToPureKeywordWhenKeyMissing() {
         KnowledgeArticleMapper mapper = mock(KnowledgeArticleMapper.class);
         when(mapper.selectList(any())).thenReturn(List.of(article("KB-ACCOUNT-001", "账号登录失败与 MFA 重置处理流程", "账号问题", "账号,登录,密码,MFA,SSO,认证,锁定")));
-        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("placeholder-not-configured"));
+        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("placeholder-not-configured"), true);
         indexService.reindex();
         KnowledgeMatchingService service = new KnowledgeMatchingService(mapper, indexService);
 
@@ -46,7 +46,7 @@ class KnowledgeMatchingServiceTest {
             article("KB-ACCOUNT-001", "账号登录失败与 MFA 重置处理流程", "账号问题", "账号,登录,密码,MFA,SSO,认证,锁定"),
             article("KB-DATA-004", "数据同步异常与报表口径排查", "数据问题", "数据,同步,报表,不一致,缺失,导入,导出,指标")
         ));
-        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("sk-test"));
+        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("sk-test"), true);
         indexService.reindex();
         KnowledgeMatchingService service = new KnowledgeMatchingService(mapper, indexService);
 
@@ -64,7 +64,7 @@ class KnowledgeMatchingServiceTest {
         when(mapper.selectList(any())).thenReturn(List.of(
             article("KB-ACCOUNT-001", "账号登录失败与 MFA 重置处理流程", "账号问题", "账号,登录,密码,MFA,SSO,认证,锁定")
         ));
-        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("sk-test"));
+        KnowledgeIndexService indexService = new KnowledgeIndexService(mapper, fakeEmbeddingModel(), new AiAvailability("sk-test"), true);
         indexService.reindex();
         KnowledgeMatchingService service = new KnowledgeMatchingService(mapper, indexService);
 
@@ -74,6 +74,17 @@ class KnowledgeMatchingServiceTest {
         // 关键词 0 + 向量 1.0 -> 50，仍高于 35 的截断线
         assertThat(matches.get(0).article().getArticleNo()).isEqualTo("KB-ACCOUNT-001");
         assertThat(matches.get(0).relevance()).isEqualTo(50);
+    }
+
+    @Test
+    void skipsVectorIndexWhenEmbeddingIsDisabledForChatOnlyProvider() {
+        KnowledgeArticleMapper mapper = mock(KnowledgeArticleMapper.class);
+        KnowledgeIndexService indexService = new KnowledgeIndexService(
+            mapper, fakeEmbeddingModel(), new AiAvailability("sk-test"), false);
+
+        indexService.reindex();
+
+        assertThat(indexService.vectorAvailable()).isFalse();
     }
 
     private static SupportTicket ticket(String title, String category) {

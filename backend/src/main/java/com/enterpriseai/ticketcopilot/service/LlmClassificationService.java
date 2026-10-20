@@ -14,7 +14,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 
 /**
- * LLM 智能分类：把工单上下文发给 qwen-plus，要求只输出约定 JSON，再解析为与规则引擎同构的结果。
+ * LLM 智能分类：把工单上下文发给配置的 ChatModel，要求只输出约定 JSON，再解析为与规则引擎同构的结果。
  */
 @Service
 public class LlmClassificationService {

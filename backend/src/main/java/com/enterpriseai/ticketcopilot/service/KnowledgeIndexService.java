@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enterpriseai.ticketcopilot.config.AiAvailability;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
 import com.enterpriseai.ticketcopilot.mapper.KnowledgeArticleMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
@@ -32,13 +33,20 @@ public class KnowledgeIndexService {
     private final KnowledgeArticleMapper knowledgeArticleMapper;
     private final EmbeddingModel embeddingModel;
     private final AiAvailability aiAvailability;
+    private final boolean embeddingEnabled;
 
     private volatile SimpleVectorStore vectorStore;
 
-    public KnowledgeIndexService(KnowledgeArticleMapper knowledgeArticleMapper, EmbeddingModel embeddingModel, AiAvailability aiAvailability) {
+    public KnowledgeIndexService(
+        KnowledgeArticleMapper knowledgeArticleMapper,
+        EmbeddingModel embeddingModel,
+        AiAvailability aiAvailability,
+        @Value("${ticket-copilot.ai.embedding-enabled:true}") boolean embeddingEnabled
+    ) {
         this.knowledgeArticleMapper = knowledgeArticleMapper;
         this.embeddingModel = embeddingModel;
         this.aiAvailability = aiAvailability;
+        this.embeddingEnabled = embeddingEnabled;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -53,8 +61,13 @@ public class KnowledgeIndexService {
 
     /** 全量重建向量索引；未配置 Key 或知识为空时只清空索引 */
     public synchronized void reindex() {
+        if (!embeddingEnabled) {
+            log.info("知识库向量索引已关闭（关键词检索不受影响）");
+            this.vectorStore = null;
+            return;
+        }
         if (!aiAvailability.llmConfigured()) {
-            log.info("AI_DASHSCOPE_API_KEY 未配置，跳过知识库向量索引（关键词检索不受影响）");
+            log.info("模型 API Key 未配置，跳过知识库向量索引（关键词检索不受影响）");
             this.vectorStore = null;
             return;
         }
@@ -73,7 +86,7 @@ public class KnowledgeIndexService {
 
     /** 向量通道是否可用（已配置 Key 且索引非空） */
     public boolean vectorAvailable() {
-        return vectorStore != null && aiAvailability.llmConfigured();
+        return embeddingEnabled && vectorStore != null && aiAvailability.llmConfigured();
     }
 
     /** 余弦相似度检索：返回 articleNo -> 相似度（仅保留达到 0.35 阈值的结果） */

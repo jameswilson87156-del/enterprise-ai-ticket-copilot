@@ -1,4 +1,6 @@
 {
+  "version": "v2-balanced-40",
+  "source": "synthetic-curated; no customer or production ticket data",
   "cases": [
     {"id": "T01", "title": "无法登录 OA 系统", "description": "输入密码后提示认证失败，重置密码后仍未解决，多人都反馈同样问题。", "systemName": "oa-portal", "errorLog": "auth failure: invalid credentials", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
     {"id": "T02", "title": "MFA 验证码收不到", "description": "登录时 MFA 动态码一直收不到，短信和 App 都试过，无法完成登录。", "systemName": "iam", "errorLog": "", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
@@ -15,6 +17,30 @@
     {"id": "T13", "title": "新入职同事打不开报表平台", "description": "新同事说报表平台一直转圈进不去，他使用其他系统都正常，帮忙看看是不是哪里没给他配置好。", "systemName": "report-platform", "errorLog": "", "urgency": "P3", "expected": "权限问题", "ruleMissExpected": true},
     {"id": "T14", "title": "导出按钮不见了", "description": "要把上季度经营数据导出来给审计，但我界面上没有导出按钮，旁边工位同事的账号都有这个按钮。", "systemName": "report-platform", "errorLog": "", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": true},
     {"id": "T15", "title": "会议室预定提交后白屏", "description": "点了提交按钮页面直接白屏，刷新后预定记录还在，但确认邮件没有发出来。", "systemName": "meeting-booking", "errorLog": "", "urgency": "P3", "expected": "系统故障", "ruleMissExpected": true},
-    {"id": "T16", "title": "分公司访问 SaaS 偶发 connection reset", "description": "分公司到 SaaS 的访问时好时坏，抓包看到丢包和连接被重置，总部正常。", "systemName": "saas-office", "errorLog": "connection reset by peer", "urgency": "P2", "expected": "系统故障", "ruleMissExpected": true}
+    {"id": "T16", "title": "分公司访问 SaaS 偶发 connection reset", "description": "分公司到 SaaS 的访问时好时坏，抓包看到丢包和连接被重置，总部正常。", "systemName": "saas-office", "errorLog": "connection reset by peer", "urgency": "P2", "expected": "系统故障", "ruleMissExpected": true},
+    {"id": "T17", "title": "云桌面认证后反复跳回登录页", "description": "输入正确凭据后仍回到登录页面，重新打开浏览器也一样。", "systemName": "virtual-desktop", "errorLog": "", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T18", "title": "新员工首次登录提示账号不存在", "description": "入职流程显示账号已开通，但首次进入办公门户时提示用户不存在。", "systemName": "iam", "errorLog": "user not found", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T19", "title": "统一认证凭据更新后会话无法续期", "description": "更新登录凭据后访问业务系统仍不断返回认证页面。", "systemName": "sso-gateway", "errorLog": "token refresh rejected", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": false},
+    {"id": "T20", "title": "身份票据续期后访问被拒", "description": "所有业务页面都跳回起始页，没有明确提示账号或密码错误。", "systemName": "workspace", "errorLog": "session renewal declined", "urgency": "P2", "expected": "账号问题", "ruleMissExpected": true},
+    {"id": "T21", "title": "后台任务队列停止推进", "description": "待处理任务持续堆积，调度心跳没有继续更新，多个业务入口都受影响。", "systemName": "job-platform", "errorLog": "scheduler heartbeat stale", "urgency": "P1", "expected": "系统故障", "ruleMissExpected": true},
+    {"id": "T22", "title": "网关间歇返回 Service Unavailable", "description": "多个实例健康检查连续失败，用户请求偶发无法完成。", "systemName": "api-gateway", "errorLog": "503 Service Unavailable", "urgency": "P1", "expected": "系统故障", "ruleMissExpected": false},
+    {"id": "T23", "title": "批量导入后出现重复客户记录", "description": "同一份客户清单重复提交后产生了多条内容相同的记录。", "systemName": "crm", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T24", "title": "看板和月报的同一指标不一致", "description": "两处页面筛选条件相同，但显示的订单总数不同，怀疑统计口径或同步过程异常。", "systemName": "analytics", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T25", "title": "已保存的记录没有出现在导出文件中", "description": "页面能查到记录，但生成的 CSV 缺少这条数据，其他记录可以正常导出。", "systemName": "report-service", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T26", "title": "导入表格后日期字段被截短", "description": "源文件中的完整日期进入系统后只保留了部分内容，其他字段正常。", "systemName": "asset-registry", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T27", "title": "同一客户在两个页面显示不同联系电话", "description": "核对后确认两处记录指向同一客户，但联系电话内容不一致。", "systemName": "crm", "errorLog": "", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": true},
+    {"id": "T28", "title": "夜间同步后计费明细仍缺一天", "description": "上游记录已经生成，计费明细没有跟上，业务人员无法核对当天账单。", "systemName": "billing-data", "errorLog": "sync watermark unchanged", "urgency": "P2", "expected": "数据问题", "ruleMissExpected": false},
+    {"id": "T29", "title": "新员工看不到同组使用的功能入口", "description": "同组同事可以从工作台进入该功能，我的页面没有对应入口且没有错误提示。", "systemName": "workspace", "errorLog": "", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": true},
+    {"id": "T30", "title": "角色调整后报表接口仍返回 403", "description": "管理员已调整岗位角色，重新登录后报表 API 仍提示 Forbidden。", "systemName": "report-platform", "errorLog": "403 Forbidden", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": false},
+    {"id": "T31", "title": "审批中心中的申请对经办人不可见", "description": "审批记录显示已提交，但经办人进入页面后看不到这条申请。", "systemName": "approval-center", "errorLog": "", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": false},
+    {"id": "T32", "title": "共享盘目录拒绝访问", "description": "通过公司文件平台打开已分配的共享目录时提示访问被拒绝。", "systemName": "file-hub", "errorLog": "permission denied", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": false},
+    {"id": "T33", "title": "只有部分成员能看到导出入口", "description": "同一部门的其他成员可以导出报表，我的页面没有这个操作入口。", "systemName": "report-platform", "errorLog": "", "urgency": "P2", "expected": "权限问题", "ruleMissExpected": true},
+    {"id": "T34", "title": "第一次出差报销需要准备哪些材料", "description": "新员工想了解提交差旅费用时需要准备的附件。", "systemName": "expense-portal", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T35", "title": "采购申请通常按什么顺序审批", "description": "想了解提交采购申请后会经过哪些审批环节。", "systemName": "procurement", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": true},
+    {"id": "T36", "title": "调岗后差旅报销应该在哪个系统填写", "description": "工作岗位变更后不清楚差旅费用从哪里提交。", "systemName": "expense-portal", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T37", "title": "采购申请要附哪些材料", "description": "新人想了解申请需要的附件以及完整提交步骤。", "systemName": "procurement", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T38", "title": "费用单被退回后如何补交", "description": "想按要求修正后重新提交，不确定下一步应该怎么操作。", "systemName": "expense-portal", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T39", "title": "第一次使用排班平台需要办理什么", "description": "新同事想了解开始使用排班系统前需要完成的准备事项。", "systemName": "staff-scheduling", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": false},
+    {"id": "T40", "title": "出差审批规范在哪里查看", "description": "想确认差旅申请的审批要求和查询相关指引的位置。", "systemName": "travel-portal", "errorLog": "", "urgency": "P3", "expected": "流程咨询", "ruleMissExpected": true}
   ]
 }

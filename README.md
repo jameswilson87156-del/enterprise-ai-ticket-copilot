@@ -113,7 +113,7 @@ npm run dev
 2. 类型选择 **SSE**，URL 填写 `http://localhost:8080/sse`。
 3. 保存后启用，在对话中即可让模型调用 `searchTickets` / `searchKnowledge`。
 
-说明：MCP 工具只读查询，不提供写入与状态变更能力；未配置 `AI_DASHSCOPE_API_KEY` 时 `searchKnowledge` 自动退化为纯关键词检索，服务本身照常可用。
+说明：MCP 工具只读查询，不提供写入与状态变更能力；未配置模型 API Key 时 `searchKnowledge` 自动退化为纯关键词检索，服务本身照常可用。
 
 ## AI 能力配置（可选）
 
@@ -129,9 +129,48 @@ export AI_DASHSCOPE_API_KEY=sk-xxxx   # 阿里云 DashScope API Key
 
 配置后：工单分类优先调用 qwen-plus（15s 超时，失败自动降级规则引擎，结果标注 `LLM` / `RULE` 来源）；知识库启动时全量向量化（text-embedding-v3）并参与混合召回。
 
+### DeepSeek 配置
+
+运行时可通过 OpenAI-compatible 接口将 ChatModel 切换为 DeepSeek。DeepSeek 官方文档当前给出的 API 地址是 `https://api.deepseek.com`，模型名使用 `deepseek-flash`。将本机已配置的 `DEEPSEEK_API_KEY` 传给应用通用变量：
+
+```powershell
+$env:AI_CHAT_API_KEY = $env:DEEPSEEK_API_KEY
+$env:AI_CHAT_BASE_URL = 'https://api.deepseek.com'
+$env:AI_CHAT_MODEL = 'deepseek-flash'
+$env:AI_EMBEDDING_ENABLED = 'false'
+```
+
+当前共用的 `OpenAiApi` 负责 Chat 和 Embedding；DeepSeek Chat-only 配置需要关闭向量索引，知识检索走关键词路径。DashScope 配置仍保留 Chat 与 text-embedding-v3 混合检索。Key 只由本地环境变量提供，不要写入配置文件或 Git。
+
+### 分类评估数据集
+
+`backend/src/test/resources/eval/tickets-eval.json` 是 40 条均衡的合成工单，五类各 8 条，包含规则盲区样本；不含客户或生产工单。评估输出 accuracy、macro precision/recall/F1、分类别结果、混淆矩阵与盲区样本结果，机器可读报告写入 `backend/target/evaluation/`。
+
+```powershell
+cd backend
+mvn -Dtest=EvaluationTest test
+```
+
+规则基线可离线运行。外部模型对比默认关闭；确认要发送合成样本并已在本地设置 `DEEPSEEK_API_KEY` 后，再显式设置 `AI_LLM_EVAL_PROVIDER=deepseek` 与 `AI_LLM_EVAL_ENABLED=true` 并运行同一命令。完整评测默认逐条调用模型 40 次，可能产生 API 费用；可用 `AI_LLM_EVAL_LIMIT` 做小样本联通检查，报告会标记样本数，不把部分运行当作完整评估。当前 DeepSeek 默认模型名为 `deepseek-flash`，可通过 `AI_DEEPSEEK_CHAT_MODEL` 覆盖。
+
+本机规则基线结果：Accuracy **32/40（80.00%）**，Macro-F1 **79.21%**；挑战样本命中 **3/11（27.27%）**，暴露了权限与语义表达的规则盲区。结果只描述这批合成样本，不代表生产工单表现。完整类别指标和混淆矩阵见[分类评估证据](docs/evidence/classification-eval-v2/README.md)。DeepSeek 对比尚未运行，因此没有该模型的工单分类成绩。
+
+### RAG 检索评估基线
+
+backend/src/main/resources/eval/knowledge-retrieval-v1.json 提供 16 条合成检索问题，覆盖仓库演示知识库的 8 条知识，每条有期望知识编号。评估只在数据集列出的目标知识条目中检索，可用于检查知识召回和排序；数据集不含客户或生产资料。
+
+评测固定走关键词基线，不调用 DeepSeek 或 Embedding API。使用本地 MySQL 并导入 schema.sql 与 demo-data.sql 后，启动后端和普通 API 模式的前端，在「RAG 检索评测」页点击「运行检索评测」；接口 `POST /api/evaluations/retrieval/run` 返回逐条结果，并把报告写入 `backend/target/evaluation/knowledge-retrieval-v1.json`。前端 `npm run dev:demo` 是静态演示模式，会禁用运行按钮。
+
+也可以用命令行入口运行同一评测。启动时自动评测默认关闭，需要显式开启：
+
+<pre>cd backend
+mvn spring-boot:run "-Dspring-boot.run.arguments=--ticket-copilot.evaluation.retrieval.enabled=true --ticket-copilot.evaluation.retrieval.top-k=5 --ticket-copilot.ai.embedding-enabled=false"</pre>
+
+报告包含 Recall@1、Recall@3、MRR、逐条命中排名和未命中原因。网页只在接口成功返回后显示真实计算结果，不预填或推测检索成绩。评测语料是仓库中的合成问句和演示知识条目；分数只能说明这个固定小样本上的关键词基线表现，不能代表 DeepSeek 效果或生产效果。
+
 ## 测试与验收结果
 
-2026-06-20 本地验收结果：
+前端验收结果记录于项目截图与验收文档；当前 Spring AI 分支的后端测试与评测以本机运行结果为准：
 
 | 检查项 | 结果 | 说明 |
 | --- | --- | --- |
@@ -139,13 +178,14 @@ export AI_DASHSCOPE_API_KEY=sk-xxxx   # 阿里云 DashScope API Key
 | `npm run build` | 通过 | Vue TypeScript 检查与 Vite 生产构建完成 |
 | `npm run screenshots` | 通过 | 生成 4 张标准截图和 4 张 `1920x1200` 截图 |
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
-| `mvn test` | 通过 | Maven 生命周期与编译通过；当前没有后端测试源码，不能视为完整业务测试 |
+| `mvn -Dtest=EvaluationTest test` | 2 项，1 项跳过 | 规则基线通过；外部模型对比因默认关闭而跳过 |
+| `mvn test` | 25 项，0 失败，1 项跳过 | 默认不调用外部模型；测试记录见分类评估证据 |
 
 ## 项目边界
 
 - 这是个人作品集 / 实习简历项目，不是已上线的生产系统。
 - 仓库与截图不包含真实客户数据，演示数据均为本地构造。
-- 已接入 DashScope qwen-plus 与 text-embedding-v3（可选配置），未配置 Key 时自动降级为规则引擎与关键词检索；不承诺生产级 SLA。
+- 已接入 Spring AI OpenAI-compatible Chat/Embedding；DashScope qwen-plus 与 text-embedding-v3 为默认配置，Chat 可配置为 DeepSeek；未配置 Key 时自动降级为规则引擎与关键词检索；不承诺生产级 SLA。
 - 知识检索为 RAG-lite（SimpleVectorStore 内存向量 + 混合打分），不宣称为完整 RAG 平台。
 - AI 只生成建议；工单状态变更、对外回复和知识发布需要人工确认。
 - MCP Server 仅暴露只读检索工具，不含写入能力。
@@ -165,5 +205,6 @@ export AI_DASHSCOPE_API_KEY=sk-xxxx   # 阿里云 DashScope API Key
 - [架构说明](docs/architecture.md)
 - [演示脚本](docs/demo-script.md)
 - [面试讲解指南](docs/interview-guide.md)
+- [检索评测演示说明](docs/retrieval-evaluation-demo.md)
 - [验收清单](docs/acceptance-checklist.md)
 

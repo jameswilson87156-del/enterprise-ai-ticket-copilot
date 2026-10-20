@@ -30,7 +30,7 @@ public class AiClassificationFacade {
 
     public RuleClassificationResult classify(SupportTicket ticket) {
         if (!aiAvailability.llmConfigured()) {
-            log.warn("AI_DASHSCOPE_API_KEY 未配置，工单 {} 使用规则引擎分类", ticket.getTicketNo());
+            log.warn("模型 API Key 未配置，工单 {} 使用规则引擎分类", ticket.getTicketNo());
             return ruleClassificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
         }
         try {

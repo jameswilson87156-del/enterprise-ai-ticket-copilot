@@ -15,7 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import io.modelcontextprotocol.server.transport.WebMvcSseServerTransportProvider;
 
 /**
- * 冒烟测试：不配置 AI_DASHSCOPE_API_KEY（使用占位符）时应用必须能正常启动，
+ * 冒烟测试：不配置模型 API Key（使用占位符）时应用必须能正常启动，
  * 原有 REST 接口不回归，MCP SSE 端点完成注册。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

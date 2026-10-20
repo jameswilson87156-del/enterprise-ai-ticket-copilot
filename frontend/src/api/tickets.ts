@@ -1,4 +1,4 @@
-import type { AiAnalysis, CreateTicketRequest, KnowledgeDraft, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from '../types/ticket'
+import type { AiAnalysis, CreateTicketRequest, KnowledgeDraft, RetrievalEvaluationReport, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from '../types/ticket'
 import {
   demoConfirmKnowledgeDraft,
   demoCreateKnowledgeDraft,
@@ -98,6 +98,12 @@ export function confirmKnowledgeDraft(articleNo: string) {
     return demoConfirmKnowledgeDraft(articleNo)
   }
   return request<KnowledgeDraft>(`/api/tickets/knowledge/${encodeURIComponent(articleNo)}/confirm`, {
+    method: 'POST'
+  })
+}
+
+export function runRetrievalEvaluation() {
+  return request<RetrievalEvaluationReport>('/api/evaluations/retrieval/run', {
     method: 'POST'
   })
 }

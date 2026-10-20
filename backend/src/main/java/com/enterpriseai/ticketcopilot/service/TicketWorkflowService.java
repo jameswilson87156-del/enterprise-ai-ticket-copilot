@@ -282,8 +282,8 @@ public class TicketWorkflowService {
             lines(ticket.getErrorLog()),
             List.of(
                 classificationFacade.llmEnabled()
-                    ? "已接入真实 LLM（qwen-plus）辅助分类与建议，输出仍需人工确认。"
-                    : "未配置 AI_DASHSCOPE_API_KEY，当前使用本地规则分类与模板建议。",
+                    ? "已接入真实 LLM 辅助分类与建议，输出仍需人工确认。"
+                    : "未配置模型 API Key，当前使用本地规则分类与模板建议。",
                 "所有处理建议均等待人工确认后执行。"
             ),
             statusHistoryMapper.selectList(new LambdaQueryWrapper<TicketStatusHistory>()

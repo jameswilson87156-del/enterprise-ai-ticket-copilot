@@ -51,7 +51,7 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- Spring AI：DashScope OpenAI 兼容端点（qwen-plus / text-embedding-v3） -->
+        <!-- Spring AI：OpenAI 兼容 Chat/Embedding Provider（默认 DashScope） -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>

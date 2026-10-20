@@ -9,6 +9,7 @@ import {
   fetchTicket,
   fetchTickets,
   isDemoRuntime,
+  runRetrievalEvaluation,
   updateTicketStatus
 } from './api/tickets'
 import AiRecommendationPanel from './components/AiRecommendationPanel.vue'
@@ -18,7 +19,7 @@ import StatusTimeline from './components/StatusTimeline.vue'
 import TicketDetailPanel from './components/TicketDetailPanel.vue'
 import TicketIntakePanel from './components/TicketIntakePanel.vue'
 import TicketQueue from './components/TicketQueue.vue'
-import type { AiAnalysis, CreateTicketRequest, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from './types/ticket'
+import type { AiAnalysis, CreateTicketRequest, RetrievalEvaluationCase, RetrievalEvaluationReport, TicketDetail, TicketStatus, TicketSummary, WorkbenchMetrics } from './types/ticket'
 
 type TicketFilter = 'ALL' | 'PENDING' | 'REVIEW' | 'KNOWLEDGE'
 
@@ -32,6 +33,10 @@ const submitting = shallowRef(false)
 const error = shallowRef('')
 const searchKeyword = ref('')
 const activeFilter = ref<TicketFilter>('ALL')
+const activeView = ref<'tickets' | 'evaluation'>('tickets')
+const evaluationReport = shallowRef<RetrievalEvaluationReport | null>(null)
+const evaluationBusy = ref(false)
+const evaluationError = ref('')
 
 const pendingConfirmationCount = computed(() => tickets.value.filter((ticket) => ['PENDING_PROCESS', 'IN_PROGRESS'].includes(ticket.status)).length)
 const knowledgeBasedCount = computed(() => tickets.value.filter((ticket) => ticket.status === 'KNOWLEDGE_BASED').length)
@@ -106,6 +111,40 @@ const runtimeText = computed(() => {
   }
   return isDemoRuntime ? '本地 Demo 模式 / 演示数据' : 'MySQL 数据 / 人工确认闭环'
 })
+
+const runEvaluation = async () => {
+  if (isDemoRuntime) {
+    return
+  }
+  evaluationBusy.value = true
+  evaluationError.value = ''
+  try {
+    evaluationReport.value = await runRetrievalEvaluation()
+  } catch (err) {
+    evaluationError.value = err instanceof Error ? err.message : '评测运行失败'
+  } finally {
+    evaluationBusy.value = false
+  }
+}
+
+const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
+
+const evaluationOutcome = (testCase: RetrievalEvaluationCase) => {
+  if (testCase.expectedRank === 0) {
+    return '未召回'
+  }
+  return `第 ${testCase.expectedRank} 位`
+}
+
+const evaluationFailureText = (failureType: string) => {
+  if (failureType === 'EXPECTED_ARTICLE_NOT_RETRIEVED') {
+    return '目标知识未召回'
+  }
+  if (failureType === 'EXPECTED_ARTICLE_RANKED_BELOW_FIRST') {
+    return '目标知识未排首位'
+  }
+  return '命中首位'
+}
 
 const loadTickets = async () => {
   tickets.value = await fetchTickets()
@@ -207,10 +246,16 @@ onMounted(() => {
         <p class="eyebrow">企业 AI 工单 Copilot</p>
         <h1>企业 AI 工单作战台</h1>
         <p class="hero-lede">围绕工单分类、知识库匹配、处理建议和人工确认，构建可信的企业支持闭环。</p>
-        <p class="hero-note">AI 辅助分析，人工最终确认；当前页面使用本地演示数据进行预览。</p>
+        <p class="hero-note">AI 辅助分析，人工最终确认；{{ isDemoRuntime ? '当前使用本地演示数据。' : '工单数据来自后端服务。' }}</p>
       </div>
     </header>
 
+    <nav class="workbench-nav" aria-label="工作台功能">
+      <button class="workbench-nav__tab" :class="{ 'workbench-nav__tab--active': activeView === 'tickets' }" @click="activeView = 'tickets'">工单工作台</button>
+      <button class="workbench-nav__tab" :class="{ 'workbench-nav__tab--active': activeView === 'evaluation' }" @click="activeView = 'evaluation'">RAG 检索评测</button>
+    </nav>
+
+    <template v-if="activeView === 'tickets'">
     <SearchFilterBar v-model:keyword="searchKeyword" v-model:filter="activeFilter" />
 
     <MetricStrip :metrics="metricItems" />
@@ -291,5 +336,98 @@ onMounted(() => {
     </section>
 
     <StatusTimeline :events="selectedTicket?.timeline ?? []" />
+    </template>
+
+    <section v-else class="evaluation-workspace" aria-labelledby="evaluation-title">
+      <header class="evaluation-heading">
+        <div>
+          <p class="eyebrow">检索质量 / 离线评测</p>
+          <h2 id="evaluation-title">知识检索评测</h2>
+          <p>使用固定的合成问句和标注知识，检查当前关键词检索的召回与排序表现。</p>
+        </div>
+        <button class="primary-action" :disabled="isDemoRuntime || evaluationBusy" @click="runEvaluation">
+          {{ evaluationBusy ? '正在运行…' : evaluationReport ? '重新运行评测' : '运行检索评测' }}
+        </button>
+      </header>
+
+      <div class="evaluation-notice" :class="{ 'evaluation-notice--warning': isDemoRuntime }">
+        <strong>{{ isDemoRuntime ? '当前为前端 Demo 模式' : '关键词基线 / 合成样例 / 不调用大模型' }}</strong>
+        <span>{{ isDemoRuntime ? '切换到后端 API 模式并连接项目数据库后，可运行真实评测接口。' : '结果仅反映仓库内 16 条合成问句和对应知识条目，不代表生产数据效果。' }}</span>
+      </div>
+
+      <p v-if="evaluationError" class="evaluation-error" role="alert">运行失败：{{ evaluationError }}</p>
+
+      <template v-if="evaluationReport">
+        <div class="evaluation-metrics" aria-label="检索评测指标">
+          <article class="evaluation-metric">
+            <span>Recall@1</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.recallAt1) }}</strong>
+            <small>{{ evaluationReport.metrics.hitAt1 }} / {{ evaluationReport.metrics.total }} 条目标知识排首位</small>
+          </article>
+          <article class="evaluation-metric">
+            <span>Recall@3</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.recallAt3) }}</strong>
+            <small>{{ evaluationReport.metrics.hitAt3 }} / {{ evaluationReport.metrics.total }} 条目标知识进入前三</small>
+          </article>
+          <article class="evaluation-metric">
+            <span>MRR</span>
+            <strong>{{ evaluationReport.metrics.meanReciprocalRank.toFixed(3) }}</strong>
+            <small>按目标知识排名倒数取平均</small>
+          </article>
+          <article class="evaluation-metric evaluation-metric--meta">
+            <span>评测设置</span>
+            <strong>Top {{ evaluationReport.topK }}</strong>
+            <small>{{ evaluationReport.datasetVersion }} · {{ new Date(evaluationReport.generatedAt).toLocaleString('zh-CN') }}</small>
+          </article>
+        </div>
+
+        <div class="evaluation-results">
+          <div class="evaluation-results__heading">
+            <div>
+              <h3>逐条检索结果</h3>
+              <p>失败样例能定位“没召回”和“召回但排序靠后”两类问题。</p>
+            </div>
+            <span>{{ evaluationReport.retrievalMode }}</span>
+          </div>
+          <div class="evaluation-table-wrap">
+            <table class="evaluation-table">
+              <thead>
+                <tr>
+                  <th>用例 / 查询</th>
+                  <th>标注目标</th>
+                  <th>目标排名</th>
+                  <th>检索候选</th>
+                  <th>诊断</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="testCase in evaluationReport.cases" :key="testCase.id">
+                  <td>
+                    <span class="evaluation-case-id">{{ testCase.id }} · {{ testCase.queryType === 'paraphrase' ? '改写问句' : '直接问句' }}</span>
+                    <strong>{{ testCase.query }}</strong>
+                  </td>
+                  <td><code>{{ testCase.expectedArticleNo }}</code></td>
+                  <td><span class="evaluation-rank" :class="{ 'evaluation-rank--miss': testCase.expectedRank === 0 }">{{ evaluationOutcome(testCase) }}</span></td>
+                  <td>
+                    <ol v-if="testCase.retrieved.length" class="evaluation-candidates">
+                      <li v-for="article in testCase.retrieved" :key="article.articleNo">
+                        <span>{{ article.articleNo }} · {{ article.title }}</span>
+                        <b>{{ article.relevance }}</b>
+                      </li>
+                    </ol>
+                    <span v-else class="evaluation-empty">无候选结果</span>
+                  </td>
+                  <td><span class="evaluation-diagnosis" :class="{ 'evaluation-diagnosis--miss': !testCase.hitAt3 }">{{ evaluationFailureText(testCase.failureType) }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+      <div v-else class="evaluation-empty-state">
+        <strong>运行评测后查看真实结果</strong>
+        <span>第一次打开不会预填指标。点击上方按钮后，页面会展示后端计算出的指标和每条查询的命中排名。</span>
+      </div>
+    </section>
   </div>
 </template>

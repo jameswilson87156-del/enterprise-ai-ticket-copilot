@@ -1,5 +1,6 @@
 package com.enterpriseai.ticketcopilot.service;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -45,18 +46,38 @@ public class KnowledgeMatchingService {
 
     /** 任意查询文本的知识检索（MCP searchKnowledge 使用）：类别通道不参与，仅关键词 + 向量 */
     public List<KnowledgeMatch> searchByQuery(String query, int limit) {
-        List<KnowledgeArticle> articles = knowledgeArticleMapper.selectList(
-            new LambdaQueryWrapper<KnowledgeArticle>()
-                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
-        );
+        return searchByQuery(query, limit, null);
+    }
+
+    /** 在指定的已发布知识集合内检索，供固定语料的离线评估使用 */
+    public List<KnowledgeMatch> searchByQuery(String query, int limit, Collection<String> articleNos) {
+        return searchByQuery(query, limit, articleNos, true);
+    }
+
+    /** 固定使用关键词评分，作为评测混合检索前的可复现基线 */
+    public List<KnowledgeMatch> searchByQueryBaseline(String query, int limit, Collection<String> articleNos) {
+        return searchByQuery(query, limit, articleNos, false);
+    }
+
+    private List<KnowledgeMatch> searchByQuery(String query, int limit, Collection<String> articleNos, boolean useVector) {
+        if (articleNos != null && articleNos.isEmpty()) {
+            return List.of();
+        }
+        LambdaQueryWrapper<KnowledgeArticle> queryWrapper = new LambdaQueryWrapper<KnowledgeArticle>()
+            .eq(KnowledgeArticle::getStatus, "PUBLISHED");
+        if (articleNos != null) {
+            queryWrapper.in(KnowledgeArticle::getArticleNo, articleNos);
+        }
+        List<KnowledgeArticle> articles = knowledgeArticleMapper.selectList(queryWrapper);
         String text = normalize(query);
-        Map<String, Double> vectorHits = knowledgeIndexService.vectorAvailable()
+        Map<String, Double> vectorHits = useVector && knowledgeIndexService.vectorAvailable()
             ? knowledgeIndexService.similaritySearch(text, articles.size())
             : Map.of();
         return articles.stream()
             .map(article -> new KnowledgeMatch(article, relevance(article, null, text, vectorHits)))
             .filter(match -> match.relevance() >= HybridKnowledgeScorer.RELEVANCE_CUTOFF)
-            .sorted(Comparator.comparingInt(KnowledgeMatch::relevance).reversed())
+            .sorted(Comparator.comparingInt(KnowledgeMatch::relevance).reversed()
+                .thenComparing(match -> match.article().getArticleNo()))
             .limit(Math.max(1, limit))
             .toList();
     }

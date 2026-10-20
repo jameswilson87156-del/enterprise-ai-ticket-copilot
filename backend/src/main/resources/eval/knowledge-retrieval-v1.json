@@ -1,0 +1,22 @@
+{
+  "version": "v1-synthetic-16",
+  "source": "synthetic-curated from repository demo knowledge articles; no customer or production data",
+  "cases": [
+    {"id":"R01","query":"Java 服务启动提示 8080 端口已占用，应该怎么排查？","queryType":"direct","expectedArticleNo":"KB-JAVA-PORT"},
+    {"id":"R02","query":"Tomcat 无法绑定 8080，日志是 Address already in use","queryType":"paraphrase","expectedArticleNo":"KB-JAVA-PORT"},
+    {"id":"R03","query":"Spring Boot 启动失败，BeanCreationException，如何定位异常 bean？","queryType":"direct","expectedArticleNo":"KB-SPRING-BEAN"},
+    {"id":"R04","query":"settlementStrategy 创建 bean 时失败，先检查哪些配置和依赖？","queryType":"paraphrase","expectedArticleNo":"KB-SPRING-BEAN"},
+    {"id":"R05","query":"Redis timeout，Lettuce 连接失败和连接池耗尽怎么排查？","queryType":"direct","expectedArticleNo":"KB-REDIS-CONN"},
+    {"id":"R06","query":"员工门户频繁掉线，缓存连接超时，要检查哪些网络和池配置？","queryType":"paraphrase","expectedArticleNo":"KB-REDIS-CONN"},
+    {"id":"R07","query":"MySQL 慢查询如何结合执行计划、索引和锁等待定位？","queryType":"direct","expectedArticleNo":"KB-MYSQL-SLOW"},
+    {"id":"R08","query":"CRM 客户列表很慢，按续费状态筛选后还要按更新时间排序","queryType":"paraphrase","expectedArticleNo":"KB-MYSQL-SLOW"},
+    {"id":"R09","query":"接口返回 500，怎样用 traceId 关联网关和应用日志？","queryType":"direct","expectedArticleNo":"KB-API-500"},
+    {"id":"R10","query":"报价服务出现 NullPointerException，HTTP 500 应该从哪里开始查？","queryType":"paraphrase","expectedArticleNo":"KB-API-500"},
+    {"id":"R11","query":"403 Forbidden 权限问题，如何核验 RBAC 角色、资源策略和审计记录？","queryType":"direct","expectedArticleNo":"KB-IAM-ROLE"},
+    {"id":"R12","query":"共享盘审批已通过，但用户访问仍被拒绝，应该检查什么？","queryType":"paraphrase","expectedArticleNo":"KB-IAM-ROLE"},
+    {"id":"R13","query":"部署后提示缺少 PAYMENT_GATEWAY_URL 环境变量，怎么排查？","queryType":"direct","expectedArticleNo":"KB-DEPLOY-ENV"},
+    {"id":"R14","query":"UAT 容器启动配置不完整，要比对哪些环境配置项？","queryType":"paraphrase","expectedArticleNo":"KB-DEPLOY-ENV"},
+    {"id":"R15","query":"多个团队重复咨询采购审批流程，怎么整理成 FAQ？","queryType":"direct","expectedArticleNo":"KB-FAQ-KNOWLEDGE"},
+    {"id":"R16","query":"采购流程问题反复出现，知识负责人审核后如何发布沉淀？","queryType":"paraphrase","expectedArticleNo":"KB-FAQ-KNOWLEDGE"}
+  ]
+}

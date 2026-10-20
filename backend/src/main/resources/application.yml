@@ -3,16 +3,17 @@ spring:
     name: enterprise-ai-ticket-copilot
   ai:
     openai:
-      # 阿里 DashScope 的 OpenAI 兼容端点；未配置 AI_DASHSCOPE_API_KEY 时使用占位符保证应用可启动，AI 能力自动降级为规则引擎
-      base-url: ${AI_DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-      api-key: ${AI_DASHSCOPE_API_KEY:placeholder-not-configured}
+      # 默认使用 DashScope；也可通过通用变量切换到任意 OpenAI Chat Completions 兼容端点。
+      # 未配置 Key 时使用占位符保证应用可启动，AI 分类自动降级为规则引擎。
+      base-url: ${AI_CHAT_BASE_URL:${AI_DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}}
+      api-key: ${AI_CHAT_API_KEY:${AI_DASHSCOPE_API_KEY:placeholder-not-configured}}
       chat:
         options:
-          model: ${AI_DASHSCOPE_CHAT_MODEL:qwen-plus}
+          model: ${AI_CHAT_MODEL:${AI_DASHSCOPE_CHAT_MODEL:qwen-plus}}
           temperature: 0.2
       embedding:
         options:
-          model: ${AI_DASHSCOPE_EMBEDDING_MODEL:text-embedding-v3}
+          model: ${AI_EMBEDDING_MODEL:${AI_DASHSCOPE_EMBEDDING_MODEL:text-embedding-v3}}
     mcp:
       server:
         name: ticket-copilot-mcp
@@ -36,3 +37,8 @@ logging:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+ticket-copilot:
+  ai:
+    # DeepSeek Chat-only profile 可关闭向量索引，检索退化为关键词路径。
+    embedding-enabled: ${AI_EMBEDDING_ENABLED:true}

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 判断真实 LLM 是否可用：仅当 AI_DASHSCOPE_API_KEY 已配置且非占位符时为 true。
+ * 判断真实 LLM 是否可用：仅当模型 API Key 已配置且非占位符时为 true。
  */
 @Component
 public class AiAvailability {
