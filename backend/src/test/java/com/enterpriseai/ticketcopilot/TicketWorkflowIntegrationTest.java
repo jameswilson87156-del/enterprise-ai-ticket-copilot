@@ -152,6 +152,8 @@ class TicketWorkflowIntegrationTest {
             .andExpect(jsonPath("$.generationRecords.length()").value(3))
             .andExpect(jsonPath("$.generationRecords[0].businessType").value("CLASSIFICATION"))
             .andExpect(jsonPath("$.generationRecords[0].provider").value("local-rule"))
+            .andExpect(jsonPath("$.generationRecords[0].promptSummary").value("sanitizedTicketFields=true; rawTicketTextPersisted=false"))
+            .andExpect(jsonPath("$.generationRecords[0].fallbackUsed").value(false))
             .andExpect(jsonPath("$.ragReferences[0].knowledgeTitle").exists())
             .andExpect(jsonPath("$.ragReferences[0].sourcePath").value("knowledge_article/KB-OPS-003"))
             .andExpect(jsonPath("$.ragReferences[0].usedInDraft").value(true))

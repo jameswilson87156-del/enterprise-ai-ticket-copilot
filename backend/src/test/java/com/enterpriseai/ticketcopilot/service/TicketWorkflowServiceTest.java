@@ -57,7 +57,7 @@ class TicketWorkflowServiceTest {
     @Mock private CopilotResultCitationMapper copilotResultCitationMapper;
     @Mock private RetrievalHitMapper retrievalHitMapper;
     @Mock private ReviewRecordMapper reviewRecordMapper;
-    @Mock private RuleClassificationService classificationService;
+    @Mock private AiClassificationFacade classificationFacade;
     @Mock private KnowledgeMatchingService knowledgeMatchingService;
     @Mock private RecommendationTemplateService recommendationTemplateService;
     @Mock private AiProviderService aiProviderService;
@@ -77,7 +77,7 @@ class TicketWorkflowServiceTest {
             copilotResultCitationMapper,
             retrievalHitMapper,
             reviewRecordMapper,
-            classificationService,
+            classificationFacade,
             knowledgeMatchingService,
             recommendationTemplateService,
             aiProviderService,
@@ -127,7 +127,7 @@ class TicketWorkflowServiceTest {
             ticket.setId(1L);
             return 1;
         });
-        when(classificationService.classify(anyString(), anyString(), anyString()))
+        when(classificationFacade.classify(any(SupportTicket.class)))
             .thenReturn(new RuleClassificationResult("系统故障", 92));
         when(knowledgeMatchingService.match(any(SupportTicket.class), anyString())).thenReturn(List.of(match));
         when(recommendationTemplateService.generate(any(SupportTicket.class), anyString(), any()))
@@ -147,7 +147,7 @@ class TicketWorkflowServiceTest {
 
         assertThat(detail.status()).isEqualTo(TicketWorkflowService.STATUS_PENDING_PROCESS);
         assertThat(detail.category()).isEqualTo("系统故障");
-        assertThat(detail.businessContext()).anyMatch(item -> item.contains("不调用真实 LLM"));
+        assertThat(detail.businessContext()).anyMatch(item -> item.contains("默认使用本地规则"));
         verify(statusHistoryMapper, times(2)).insert(any(TicketStatusHistory.class));
         verify(generationRecordMapper, times(3)).insert(any(GenerationRecord.class));
         verify(supportTicketMapper).updateById(any(SupportTicket.class));

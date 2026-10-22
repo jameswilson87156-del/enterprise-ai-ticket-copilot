@@ -790,3 +790,13 @@
 - Real Provider business request count: 1; Responses API requests: 0; retries: 0; no raw prompt, Provider response, model answer, Base URL, model name, API Key, Authorization header, project data, logs, or screenshots recorded.
 - Ticket Copilot backend core is frozen: no more vector DB, multi-agent workflow, Responses Adapter, queue runtime, distributed Trace, or backend capability expansion for the portfolio branch.
 - Next phase: PHASE_5_PORTFOLIO_WEBSITE_ENTERPRISE_TICKET_DETAIL; frontend real API wiring is deferred and nonblocking.
+
+### 2026-10-22 - Codex - MAIN_OPTIONAL_LLM_CLASSIFICATION_INTEGRATION
+
+- Scope was explicitly reopened to port the compatible AI classification work into the complete `main` architecture while preserving its Vue Workbench, Citation, Trace, and Human Review paths.
+- Added the opt-in `AiClassificationFacade` / `LlmClassificationService` path using the existing OpenAI-compatible adapter. `TICKET_AI_CLASSIFICATION_ENABLED` defaults to `false`; the rule engine remains the default.
+- Added normalized ticket input handling, explicit instruction filtering, allowed-category and confidence validation, canary echo rejection, sanitized fallback logging, and local-rule fallback. Classification Trace metadata now distinguishes rules, LLM classification, and rule fallback without persisting raw ticket text or model output.
+- Updated the Trace source labels, API/architecture/interview docs, and refreshed vulnerable frontend lockfile patches within existing version ranges.
+- Local validation: backend `mvn -B test` passed with 328 tests, 0 failures/errors/skips; targeted classification and workflow tests passed with 72 tests; frontend tests 7/7, production dependency audit 0 vulnerabilities, typecheck/build passed; Python sidecar tests 8/8; offline RAG and Retrieval V2 evaluators completed.
+- Dedicated classification Provider tests each made one request to a localhost HTTP stub. No real DeepSeek or other external Provider request was sent, and no real-model classification metric was generated.
+- Spring AI `SimpleVectorStore` and MCP Server remain on `java-ai-upgrade`; they were not represented as main-branch runtime capability because those adapters need separate dependency, authentication, and data-boundary integration.

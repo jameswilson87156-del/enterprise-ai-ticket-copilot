@@ -206,7 +206,7 @@
   },
   "errorLogs": ["BeanCreationException: Error creating bean with name settlementStrategy"],
   "businessContext": [
-    "本阶段使用本地规则分类与模板建议，不调用真实 LLM。",
+    "分类默认使用本地规则；可按配置显式启用模型分类。",
     "所有处理建议均等待人工确认后执行。"
   ],
   "timeline": [
@@ -251,7 +251,7 @@
 | `ragReferences[].relevanceScore` | 通过现有关键词匹配服务重算；历史表未持久化每次 score |
 | `humanReview` | 从状态历史中的人工 actor 推导，不是独立审核任务表 |
 
-接口边界：默认 Provider 为 `local-rule`；配置 `TICKET_AI_PROVIDER=openai-compatible`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY` 后才会尝试真实 `/chat/completions` 调用。2026-09-05 已用合成数据完成一次真实 DeepSeek 隔离验收，结果见 [`docs/evidence/deepseek-synthetic-smoke-20260905.md`](evidence/deepseek-synthetic-smoke-20260905.md)；这不等于生产模型质量、真实认证或公网部署完成。当前没有向量数据库、Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
+接口边界：默认 Provider 为 `local-rule`；配置 `TICKET_AI_PROVIDER=openai-compatible`、`TICKET_AI_BASE_URL`、`TICKET_AI_MODEL`、`TICKET_AI_API_KEY` 后，答案生成链路才会尝试真实 `/chat/completions` 调用。分类模型调用另由 `TICKET_AI_CLASSIFICATION_ENABLED` 单独控制，默认 `false`；开启后只在 Provider、地址和 Key 完整时调用，错误会回退本地规则。2026-09-05 已用合成数据完成一次真实 DeepSeek 隔离验收，结果见 [`docs/evidence/deepseek-synthetic-smoke-20260905.md`](evidence/deepseek-synthetic-smoke-20260905.md)；这不等于生产模型质量、真实认证或公网部署完成。当前没有向量数据库、MCP/Tool Runtime、完整 Multi-Agent Runtime 或无人值守自动关闭。
 
 ### 5.4 人工确认状态流转
 

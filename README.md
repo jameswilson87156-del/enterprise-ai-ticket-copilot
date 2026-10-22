@@ -2,21 +2,20 @@
 
 面向企业工单、客服支持和运维知识库场景的 AI RAG Copilot 作品集项目，用来展示工单分析、知识库检索、引用证据、Trace 运行链路、Human Review 门禁和本地 Evaluation / Metrics。
 
-这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径，但本仓库不提交 API Key，也不把 demo 结果包装成对外运行服务、公司内部数据效果或稳定模型接入能力。
+这是一个本地 demo / showcase 项目。当前默认链路使用 `local-rule fallback`、`keyword retrieval`、`citation gating` 和 `synthetic demo dataset`；OpenAI-compatible Provider 是可选配置路径。模型分类默认关闭，必须显式设置 `TICKET_AI_CLASSIFICATION_ENABLED=true` 才会额外调用模型。本仓库不提交 API Key，也不把 demo 结果包装成对外运行服务、公司内部数据效果或稳定模型接入能力。
 
 当前工程化状态：后端已实现可选 OIDC/JWT Resource Server、前端已实现 Authorization Code + PKCE 登录适配，并新增了 MySQL + API + Nginx + 可选 Caddy TLS 的 staging 部署骨架；默认 Showcase 仍保持 Demo 模式。真实 IdP、真实模型账号和公网服务器尚未在本工作区完成连接，执行边界见 [真实认证、Provider 与部署说明](docs/REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
 
-## 2026-10 · Spring AI 1.1.8 升级（`java-ai-upgrade` 分支）
+## 2026-10 · 可选模型分类与输入安全
 
-在保留本主干（Workbench / Citation / Trace / Human Review / Evaluation 全量工程）的同时，[`java-ai-upgrade` 分支](https://github.com/jameswilson87156-del/enterprise-ai-ticket-copilot/tree/java-ai-upgrade)完成了 Spring AI 技术栈升级：
+主分支现已接入可选 LLM 工单分类，并保留原有完整工作台、引用校验、Trace 与 Human Review 链路：
 
-- **Spring Boot 3.5.16 + Spring AI 1.1.8**：LLM 智能分类接入 DashScope `qwen-plus`（OpenAI 兼容端点），未配置 Key / 异常 / 15s 超时自动降级规则引擎，`AiClassificationFacade` 统一门面并标注每次结果来源（LLM / RULE）。
-- **知识库混合检索 RAG-lite**：`SimpleVectorStore` 全量向量化（`text-embedding-v3`），关键词 + 向量余弦混合打分各占 50%（阈值 0.35），无 Key 自动退化为纯关键词检索。
-- **MCP Server（WebMVC + SSE）**：暴露 `searchTickets` / `searchKnowledge` 两个 `@Tool`，Cherry Studio 等 MCP 客户端可直连。
-- **分类效果评估闭环**：16 条标注工单评估集（含 4 条预埋规则盲区样本），`EvaluationTest` 输出规则引擎 accuracy 报告；LLM 对比在 `AI_DASHSCOPE_API_KEY` 存在时执行，否则 `assumeTrue` 跳过。
-- 分支上 24 项测试全绿（混合打分纯函数单测 + MCP 无 Key 启动 H2 冒烟）。
+- 默认仍使用本地规则，不会因只配置答案生成 Provider 而自动增加模型调用。只有 `TICKET_AI_CLASSIFICATION_ENABLED=true` 且 OpenAI-compatible Provider、地址和 Key 均有效时，分类请求才会发送。
+- 分类输出只接受五类白名单和 0–1 置信度；非法 JSON、未知类别、输出中的注入指令或工单 canary 回显会拒绝并回退本地规则。
+- 输入处理会规范化文本并移除识别到的显式注入句，保留标记的真实工单症状；这是一层确定性防护，不代表通用提示注入检测。
+- 回归使用本地 HTTP stub 与合成工单；此集成没有发送真实模型请求，也不提供新的线上模型效果指标。
 
-> 本主干与升级分支是两条独立演进线：主干是带 Vue 前端与完整评估面板的工程完整版；升级分支是围绕 Spring AI 官方技术栈的精简重构。两者的评估口径分别见各自 README 与 `docs/`。
+[`java-ai-upgrade` 分支](https://github.com/jameswilson87156-del/enterprise-ai-ticket-copilot/tree/java-ai-upgrade)仍保存 Spring AI `SimpleVectorStore` / MCP 的独立实验实现。主分支目前继续使用自有 OpenAI-compatible HTTP Provider、关键词检索与 Python Retrieval V2；不将其描述为 Spring AI、向量检索或 MCP 运行时。
 
 ## 项目定位
 
@@ -350,10 +349,12 @@ $env:TICKET_AI_FALLBACK_TO_LOCAL="true"
 
 | 验证项 | 最近记录 |
 | --- | --- |
-| `cd frontend && npm test` | 通过：6 tests，覆盖 IMMUTABLE_RUN、backend unavailable、无手动 Token 控件、错误正文不透传与 demo 标签边界 |
+| `cd frontend && npm test` | 通过：7 tests，覆盖 IMMUTABLE_RUN、backend unavailable、无手动 Token 控件、错误正文不透传、demo 标签边界和分类来源展示 |
 | `cd frontend && npm run build` | 通过：Vue 类型检查与 Vite 生产构建完成 |
 | `cd frontend && npm run screenshots` | 通过：覆盖 Showcase 路由及 1366 / 390 宽度溢出检查 |
-| `cd backend && mvn test` | 通过：`Tests run: 86, Failures: 0, Errors: 0, Skipped: 0` |
+| `cd backend && mvn test` | 通过：`Tests run: 328, Failures: 0, Errors: 0, Skipped: 0` |
+| `cd frontend && npm audit --omit=dev --audit-level=high` | 通过：0 vulnerabilities；锁定依赖已更新到可用安全补丁版本 |
+| `cd python-ai-service && py -3 -B -m pytest -q` | 通过：8 passed |
 
 | `cd frontend && npm run screenshots` | 通过：覆盖 8 个 Showcase 路由，生成标准 / 1920x1200 / 390x844 截图，并通过 1366 / 390 宽度溢出检查 |
 | `cd backend && mvn test` | 通过：`Tests run: 84, Failures: 0, Errors: 0, Skipped: 0` |

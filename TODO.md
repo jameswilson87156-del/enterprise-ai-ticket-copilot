@@ -1,5 +1,12 @@
 ﻿# Enterprise AI Ticket Copilot TODO 路线图
 
+## 2026-10-22 — MAIN_OPTIONAL_LLM_CLASSIFICATION_INTEGRATION
+
+- [x] 将升级线上的分类安全能力适配到完整主干：规则输入规范化、显式注入句过滤、模型类别白名单、置信度边界、canary 回显拒绝与规则回退。
+- [x] 复用主干 OpenAI-compatible Provider；分类调用由 `TICKET_AI_CLASSIFICATION_ENABLED` 独立显式开启，默认关闭，避免隐式增加模型费用。
+- [x] 为 Provider 本地 stub、LLM 解析、门面回退及工单工作流增加回归覆盖；不发起真实模型请求。
+- [ ] `java-ai-upgrade` 的 Spring AI 向量检索与 MCP Server 尚未接入主干运行链路；需先完成主干鉴权、数据边界和依赖兼容设计，再单独实施。
+
 ## 2026-09-14 — RETRIEVAL_V2_DEPENDENCY_FREE
 
 - [x] 新增 `scripts/evaluate_retrieval_v2.py`：字段权重、corpus IDF、分类不一致惩罚、技术锚点和 no-answer threshold；不新增第三方生产依赖。
