@@ -1,0 +1,66 @@
+{
+  "analysisVersion": "ticket-retrieval-ranking-diagnostics-v1",
+  "generatedAt": "2026-10-22T00:16:46+00:00",
+  "datasetVersion": "v2-full-corpus-qrels",
+  "sourceReport": "knowledge-retrieval-v2-h2.json",
+  "sourceSha256": "362B88424A81C97884B95AFBB7F24772A21E705BD47173696BA8EA653FDED2EB",
+  "externalRequests": 0,
+  "method": {
+    "topK": 3,
+    "relevance": "binary relevance from each frozen relevantArticleNos qrel list",
+    "binaryNdcgAt3": "DCG@3 / ideal DCG@3; gain is 1 for a qrel article and 0 otherwise",
+    "noMatchSpecificity": "true negatives / no-match query count"
+  },
+  "positiveQueries": {
+    "queryCount": 18,
+    "hitAt1": 14,
+    "hitRateAt1": 0.7777777777777778,
+    "hitAt3": 14,
+    "hitRateAt3": 0.7777777777777778,
+    "macroRecallAt3": 0.7222222222222222,
+    "meanReciprocalRank": 0.7777777777777778,
+    "binaryNdcgAt3": 0.7347941325294953
+  },
+  "byQueryType": {
+    "direct": {
+      "queryCount": 8,
+      "hitAt1": 8,
+      "hitRateAt1": 1.0,
+      "hitAt3": 8,
+      "hitRateAt3": 1.0,
+      "macroRecallAt3": 1.0,
+      "meanReciprocalRank": 1.0,
+      "binaryNdcgAt3": 1.0
+    },
+    "hard_negative": {
+      "queryCount": 2,
+      "hitAt1": 2,
+      "hitRateAt1": 1.0,
+      "hitAt3": 2,
+      "hitRateAt3": 1.0,
+      "macroRecallAt3": 1.0,
+      "meanReciprocalRank": 1.0,
+      "binaryNdcgAt3": 1.0
+    },
+    "paraphrase": {
+      "queryCount": 8,
+      "hitAt1": 4,
+      "hitRateAt1": 0.5,
+      "hitAt3": 4,
+      "hitRateAt3": 0.5,
+      "macroRecallAt3": 0.375,
+      "meanReciprocalRank": 0.5,
+      "binaryNdcgAt3": 0.4032867981913646
+    }
+  },
+  "noMatch": {
+    "queryCount": 4,
+    "trueNegative": 3,
+    "falsePositive": 1,
+    "specificity": 0.75,
+    "falsePositiveCaseIds": [
+      "N01"
+    ]
+  },
+  "scopeWarning": "Descriptive analysis of a small synthetic, already-reviewed dataset; not an independent holdout, LLM score, production estimate, or confidence interval."
+}

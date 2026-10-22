@@ -1,0 +1,27 @@
+{
+  "version": "v1-non-overlap-challenge-20",
+  "source": "synthetic-manually-authored; no customer or production ticket data; exact normalized inputs disjoint from tickets-eval and redteam-v1-v5",
+  "purpose": "Frozen, balanced challenge corpus for measuring the existing rule classifier on new issue descriptions. This is not a blind or production holdout.",
+  "cases": [
+    {"id":"HLD01","title":"登录时身份验证回跳","description":"从手机身份验证器批准后，网页又返回门户登录页；口令已重置，仍无法进入办公系统。","systemName":"employee-portal","errorLog":"authentication challenge loop","urgency":"P2","expected":"账号问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD02","title":"更换手机后的 MFA 动态码","description":"换新设备后没有收到动态码，我在登录页面等待仍无法完成身份校验。","systemName":"identity-service","errorLog":"","urgency":"P2","expected":"账号问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD03","title":"新员工首次登录被拒","description":"邀请链接已接收，但首次使用的初始密码提示失效，无法进入员工门户。","systemName":"onboarding-portal","errorLog":"credential expired","urgency":"P2","expected":"账号问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD04","title":"SSO 重定向循环","description":"从 HR 门户跳转后不断回到认证页，清理浏览器缓存仍然如此。","systemName":"sso-gateway","errorLog":"SSO redirect loop","urgency":"P2","expected":"账号问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD05","title":"同事可见的报表入口对我隐藏","description":"同一部门同事能访问经营报表，我的页面没有导出按钮；登录和其他菜单正常。","systemName":"analytics-portal","errorLog":"","urgency":"P2","expected":"权限问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD06","title":"角色同步后缺少共享盘访问权","description":"角色同步完成后我仍无法访问共享盘目录；其他成员可以打开同一路径。","systemName":"document-hub","errorLog":"403 Forbidden","urgency":"P2","expected":"权限问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD07","title":"财务操作入口被隐藏","description":"我的账号从观察员调整为财务经办后，仍看不到付款复核操作；同岗位同事拥有对应权限。","systemName":"finance-console","errorLog":"","urgency":"P2","expected":"权限问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD08","title":"服务主体访问审计 API 被拒","description":"只有当前服务主体访问审计 API 时返回 403 Forbidden；健康检查正常，其他服务主体可以读取。","systemName":"audit-api","errorLog":"403 Forbidden","urgency":"P1","expected":"权限问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD09","title":"调度队列停止推进","description":"待处理队列一直不变，调度器心跳也没有继续更新，重启任务后仍无进展。","systemName":"job-scheduler","errorLog":"scheduler heartbeat stale","urgency":"P1","expected":"系统故障","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD10","title":"网关间歇性返回 504","description":"多个业务页面的请求偶尔收到 504 Gateway Timeout，稍后重试才恢复。","systemName":"api-gateway","errorLog":"upstream timeout","urgency":"P1","expected":"系统故障","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD11","title":"门户首页加载为白屏","description":"今天打开门户首页只有白屏，刷新后仍然如此；浏览器控制台报告脚本加载失败。","systemName":"portal-web","errorLog":"frontend bundle load error","urgency":"P2","expected":"系统故障","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD12","title":"分支网络连接被重置","description":"分支办公室访问应用时频繁中断，抓包看到丢包，连接被对端重置。","systemName":"office-network","errorLog":"connection reset by peer","urgency":"P2","expected":"系统故障","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD13","title":"导入文件后客户编号为空","description":"源 CSV 的客户编号都有值，导入客户中心后却出现大量空字段。","systemName":"customer-center","errorLog":"field mapping produced null values","urgency":"P2","expected":"数据问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD14","title":"发票报表出现重复记录","description":"今天的发票汇总里，同一张发票被统计了两遍，明细行也有重复。","systemName":"invoice-report","errorLog":"duplicate invoice rows","urgency":"P2","expected":"数据问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD15","title":"夜间同步后新建用户记录缺失","description":"昨晚创建的几名用户没有进入下游人员清单，源系统里仍然能查到这些记录。","systemName":"directory-sync","errorLog":"nightly sync completed with missing records","urgency":"P2","expected":"数据问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD16","title":"导出后日期列错位","description":"导出的对账文件把日期放进了成本中心列，字段映射发生错位，导致汇总数字对不上。","systemName":"reconciliation","errorLog":"column mapping mismatch","urgency":"P2","expected":"数据问题","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD17","title":"差旅报销材料准备","description":"刚入职，想了解差旅报销需要准备哪些附件，以及先交给谁审核。","systemName":"employee-help","errorLog":"","urgency":"P3","expected":"流程咨询","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD18","title":"外部供应商开户步骤","description":"要为新供应商开通采购账户，需要先收集哪些资料，后续按什么步骤办理？","systemName":"procurement-help","errorLog":"","urgency":"P3","expected":"流程咨询","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD19","title":"项目空间归档前置要求","description":"准备归档已经结束的项目空间，想查一下需要填写哪些表单、遵循什么规范。","systemName":"project-help","errorLog":"","urgency":"P3","expected":"流程咨询","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]},
+    {"id":"HLD20","title":"新员工设备申领指引","description":"新同事需要领取办公电脑和安全令牌，请提供办理顺序和相关指引。","systemName":"employee-help","errorLog":"","urgency":"P3","expected":"流程咨询","ruleMissExpected":false,"attackType":null,"forbiddenOutputMarkers":[]}
+  ]
+}

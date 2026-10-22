@@ -30,7 +30,7 @@ VALUES
   ('KB-MYSQL-SLOW', 'MySQL 慢查询定位与索引评估流程', '数据问题', 'MySQL,慢查询,索引,SQL,执行计划,锁等待', '收集慢查询 SQL、执行计划、索引命中和锁等待。上线索引前需要评估写入影响。', 'DBA Team', 'PUBLISHED', NOW(), NOW(), NOW()),
   ('KB-API-500', '接口 500 错误分层排查手册', '系统故障', '接口,500,error,traceId,异常,网关', '使用 traceId 关联网关、应用日志和依赖调用。恢复动作和对外口径必须人工确认。', 'Service Desk', 'PUBLISHED', NOW(), NOW(), NOW()),
   ('KB-IAM-ROLE', '权限配置问题与 RBAC 核验流程', '权限问题', '权限,RBAC,角色,403,Forbidden,访问控制,审批', '核对审批、角色、资源策略和审计记录。授权动作不能自动执行。', 'IT Governance', 'PUBLISHED', NOW(), NOW(), NOW()),
-  ('KB-DEPLOY-ENV', '部署环境变量缺失排查清单', '系统故障', '部署,环境变量,配置,profile,container,Kubernetes', '比对环境变量、ConfigMap、Secret 和启动参数。修改部署配置必须人工确认。', 'Release Engineering', 'PUBLISHED', NOW(), NOW(), NOW()),
+  ('KB-DEPLOY-ENV', '部署环境变量缺失排查清单', '系统故障', '部署,环境变量,配置,profile,container,Kubernetes,ConfigMap,Secret,PAYMENT_GATEWAY_URL,启动参数', '比对环境变量、ConfigMap、Secret 和启动参数。修改部署配置必须人工确认。', 'Release Engineering', 'PUBLISHED', NOW(), NOW(), NOW()),
   ('KB-FAQ-KNOWLEDGE', '重复咨询转知识库沉淀规范', '流程咨询', '重复咨询,知识库,FAQ,流程,沉淀,审核', '识别重复问题后生成知识草稿，由知识负责人确认后发布。', 'Knowledge Ops', 'PUBLISHED', NOW(), NOW(), NOW());
 
 INSERT INTO support_ticket
@@ -104,7 +104,7 @@ FROM support_ticket WHERE ticket_no = 'DEMO-0008';
 
 INSERT INTO knowledge_article
   (article_no, title, category, keywords, content, owner, status, source_ticket_id, last_verified_at, created_at, updated_at)
-SELECT 'KB-DRAFT-DEMO-0008', '采购系统审批流程 FAQ', '流程咨询', '采购,审批,FAQ,流程,材料',
+SELECT 'KB-DRAFT-DEMO-0008', '采购系统审批流程 FAQ', '流程咨询', '采购,流程,FAQ,材料',
   '来源 DEMO-0008。该条目汇总采购审批材料、审批节点和常见退回原因，已由知识负责人人工确认。',
   'Knowledge Reviewer', 'PUBLISHED', id, NOW(), NOW(), NOW()
 FROM support_ticket WHERE ticket_no = 'DEMO-0008';

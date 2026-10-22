@@ -1,0 +1,42 @@
+{
+  "datasetId" : "ticket-output-unicode-confusable-v1",
+  "scope" : "synthetic Unicode confusable output-contract tests; mocked ChatModel",
+  "realProviderRequests" : 0,
+  "attackCases" : 3,
+  "attackRejected" : 3,
+  "controlCases" : 2,
+  "controlsAccepted" : 2,
+  "passedCases" : 5,
+  "failedCases" : 0,
+  "samples" : [ {
+    "id" : "OUTC01",
+    "group" : "attack",
+    "expectedSource" : "RULE",
+    "actualSource" : "RULE",
+    "passed" : true
+  }, {
+    "id" : "OUTC02",
+    "group" : "attack",
+    "expectedSource" : "RULE",
+    "actualSource" : "RULE",
+    "passed" : true
+  }, {
+    "id" : "OUTC03",
+    "group" : "attack",
+    "expectedSource" : "RULE",
+    "actualSource" : "RULE",
+    "passed" : true
+  }, {
+    "id" : "OUTC04",
+    "group" : "control",
+    "expectedSource" : "LLM",
+    "actualSource" : "LLM",
+    "passed" : true
+  }, {
+    "id" : "OUTC05",
+    "group" : "control",
+    "expectedSource" : "LLM",
+    "actualSource" : "LLM",
+    "passed" : true
+  } ]
+}

@@ -2,9 +2,12 @@ package com.enterpriseai.ticketcopilot.service;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enterpriseai.ticketcopilot.entity.KnowledgeArticle;
@@ -57,6 +60,26 @@ public class KnowledgeMatchingService {
     /** 固定使用关键词评分，作为评测混合检索前的可复现基线 */
     public List<KnowledgeMatch> searchByQueryBaseline(String query, int limit, Collection<String> articleNos) {
         return searchByQuery(query, limit, articleNos, false);
+    }
+
+    /** Fail rather than silently shrinking the candidate set for a pinned offline evaluation. */
+    public void requirePublishedArticles(Collection<String> articleNos) {
+        if (articleNos == null || articleNos.isEmpty()) {
+            throw new IllegalArgumentException("A pinned retrieval evaluation corpus is required");
+        }
+        List<KnowledgeArticle> published = knowledgeArticleMapper.selectList(
+            new LambdaQueryWrapper<KnowledgeArticle>()
+                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+                .in(KnowledgeArticle::getArticleNo, articleNos)
+        );
+        Set<String> available = new HashSet<>();
+        published.forEach(article -> available.add(article.getArticleNo()));
+        Set<String> missing = new TreeSet<>(articleNos);
+        missing.removeAll(available);
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException(
+                "Pinned retrieval evaluation articles are missing or unpublished: " + String.join(", ", missing));
+        }
     }
 
     private List<KnowledgeMatch> searchByQuery(String query, int limit, Collection<String> articleNos, boolean useVector) {

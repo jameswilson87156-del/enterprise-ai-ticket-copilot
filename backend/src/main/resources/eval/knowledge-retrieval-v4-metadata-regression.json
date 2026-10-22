@@ -1,0 +1,235 @@
+{
+  "version": "v4-keyword-metadata-regression-20261022",
+  "source": "unchanged qrels reused from V3 diagnostic challenge plus V2 purchasing FAQ queries; targeted regression only, not blind or independent holdout; no customer or production data",
+  "corpusVersion": "schema.sql+demo-data.sql demo knowledge seed v3 with narrowed purchasing FAQ keywords",
+  "corpusArticleNos": [
+    "KB-ACCOUNT-001",
+    "KB-API-500",
+    "KB-DATA-004",
+    "KB-DEPLOY-ENV",
+    "KB-DRAFT-DEMO-0008",
+    "KB-FAQ-KNOWLEDGE",
+    "KB-IAM-002",
+    "KB-IAM-ROLE",
+    "KB-JAVA-PORT",
+    "KB-MYSQL-SLOW",
+    "KB-OPS-003",
+    "KB-PROCESS-005",
+    "KB-REDIS-CONN",
+    "KB-SPRING-BEAN"
+  ],
+  "cases": [
+    {
+      "id": "V3-S01",
+      "query": "Address already in use；Tomcat Java 服务无法监听 8080，先确认是不是旧实例仍占用端口。",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-JAVA-PORT",
+      "relevantArticleNos": [
+        "KB-JAVA-PORT"
+      ],
+      "annotationRationale": "demo-data.sql 中该知识条目覆盖 Java、Tomcat、8080、BindException、监听进程和旧实例。"
+    },
+    {
+      "id": "V3-S02",
+      "query": "Spring Boot 启动时报 BeanCreationException，想定位异常 bean、profile 和构造器依赖。",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-SPRING-BEAN",
+      "relevantArticleNos": [
+        "KB-SPRING-BEAN"
+      ],
+      "annotationRationale": "demo-data.sql 的 Spring 启动清单明确检查异常 bean、配置项、构造器依赖和 profile。"
+    },
+    {
+      "id": "V3-S03",
+      "query": "Redis Lettuce connection timeout，排查地址、网络 ACL、密码和连接池耗尽。",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-REDIS-CONN",
+      "relevantArticleNos": [
+        "KB-REDIS-CONN"
+      ],
+      "annotationRationale": "Redis 地址、ACL、密码、Lettuce、连接池和超时均由 KB-REDIS-CONN 覆盖。"
+    },
+    {
+      "id": "V3-S04",
+      "query": "MySQL 报表 SQL 变慢，如何查看执行计划、索引命中和锁等待？",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-MYSQL-SLOW",
+      "relevantArticleNos": [
+        "KB-MYSQL-SLOW"
+      ],
+      "annotationRationale": "demo-data.sql 的慢查询条目明确要求收集 SQL、执行计划、索引命中和锁等待。"
+    },
+    {
+      "id": "V3-S05",
+      "query": "接口 502/500 带 traceId，怎么把网关日志、应用日志和依赖调用关联起来？",
+      "queryType": "hard_negative",
+      "expectedArticleNo": "KB-API-500",
+      "relevantArticleNos": [
+        "KB-API-500",
+        "KB-OPS-003"
+      ],
+      "annotationRationale": "KB-API-500 覆盖 traceId、网关与应用日志；KB-OPS-003 覆盖 5xx、网关、依赖延迟，二者均提供直接排查步骤。"
+    },
+    {
+      "id": "V3-S06",
+      "query": "RBAC 返回 403，审批已完成但资源仍拒绝访问，核验角色、策略和审计记录。",
+      "queryType": "hard_negative",
+      "expectedArticleNo": "KB-IAM-ROLE",
+      "relevantArticleNos": [
+        "KB-IAM-ROLE",
+        "KB-IAM-002"
+      ],
+      "annotationRationale": "KB-IAM-ROLE 覆盖 403、角色、资源策略和审计；KB-IAM-002 覆盖审批、目标资源与最小权限核验。"
+    },
+    {
+      "id": "V3-S07",
+      "query": "容器发布后报缺少 PAYMENT_GATEWAY_URL，应该对照哪些 ConfigMap、Secret 和启动参数？",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-DEPLOY-ENV",
+      "relevantArticleNos": [
+        "KB-DEPLOY-ENV"
+      ],
+      "annotationRationale": "KB-DEPLOY-ENV 明确要求比对环境变量、ConfigMap、Secret 和启动参数。"
+    },
+    {
+      "id": "V3-S08",
+      "query": "采购审批流程被不同团队反复咨询，整理成 FAQ 后由知识负责人审核再发布。",
+      "queryType": "hard_negative",
+      "expectedArticleNo": "KB-FAQ-KNOWLEDGE",
+      "relevantArticleNos": [
+        "KB-FAQ-KNOWLEDGE",
+        "KB-DRAFT-DEMO-0008",
+        "KB-PROCESS-005"
+      ],
+      "annotationRationale": "KB-FAQ-KNOWLEDGE 覆盖重复咨询和审核发布；KB-DRAFT-DEMO-0008 是采购审批 FAQ；KB-PROCESS-005 覆盖流程咨询与知识审核。"
+    },
+    {
+      "id": "V3-S09",
+      "query": "员工 SSO 因多次 MFA 校验失败被锁定，如何核验身份并处理账号恢复？",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-ACCOUNT-001",
+      "relevantArticleNos": [
+        "KB-ACCOUNT-001"
+      ],
+      "annotationRationale": "demo-data.sql 中 KB-ACCOUNT-001 覆盖账号锁定、MFA、SSO、身份核验与人工确认的重置动作。"
+    },
+    {
+      "id": "V3-S10",
+      "query": "报表导出记录不全，核对数据源、同步批次、指标口径和抽样审计。",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-DATA-004",
+      "relevantArticleNos": [
+        "KB-DATA-004"
+      ],
+      "annotationRationale": "schema.sql 中 KB-DATA-004 直接覆盖数据源、同步批次、口径变更、抽样记录及导出缺失。"
+    },
+    {
+      "id": "V3-S11",
+      "query": "内部流程类咨询应该转给谁，处理后如何补充可复用指引并进入审核？",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-PROCESS-005",
+      "relevantArticleNos": [
+        "KB-PROCESS-005"
+      ],
+      "annotationRationale": "KB-PROCESS-005 描述流程问题转交负责人，完成后补充可复用指引并进入知识审核。"
+    },
+    {
+      "id": "V3-S12",
+      "query": "权限申请需要核对申请人、审批记录、目标资源和最小权限角色。",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-IAM-002",
+      "relevantArticleNos": [
+        "KB-IAM-002"
+      ],
+      "annotationRationale": "该句逐项对应 schema.sql 中 KB-IAM-002 的权限申请与最小权限核验内容。"
+    },
+    {
+      "id": "V3-N01",
+      "query": "办公楼门禁读卡器亮红灯，员工卡失效，想申请补办实体门禁卡。",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "知识库有数字账号/RBAC 访问控制，但没有实体门禁设备故障或补卡流程；这是刻意设置的相邻概念负例。"
+    },
+    {
+      "id": "V3-N02",
+      "query": "财务办公室打印机卡纸，采购审批单打印到一半停住了，怎么维修？",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "知识库有采购审批 FAQ，但不包含打印机、耗材或设备维修指引；共享词用于检查词面误召回。"
+    },
+    {
+      "id": "V3-N03",
+      "query": "会议室投影仪无法切换 HDMI 输入，画面只显示无信号。",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "演示知识库没有会议设备、投影仪或 HDMI 故障知识。"
+    },
+    {
+      "id": "V3-N04",
+      "query": "员工餐卡被重复扣款，在哪里申请退款或核对食堂消费记录？",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "演示知识库没有餐卡、食堂账单或消费退款流程；申请/核对等流程词是近邻干扰。"
+    },
+    {
+      "id": "V3-N05",
+      "query": "请问公司班车周五晚上的发车时间和临时停靠站点。",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "演示知识库没有班车时刻表、路线或交通服务信息。"
+    },
+    {
+      "id": "V3-N06",
+      "query": "Python pip 安装依赖时连不上内部包镜像，如何配置虚拟环境源地址？",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "固定语料没有 Python、pip、虚拟环境或包镜像配置文档。"
+    },
+    {
+      "id": "V3-N07",
+      "query": "能帮我预约下周培训室吗？需要确认房间容量、空闲时段和设备。",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "固定语料没有会议室/培训室预订、容量或设备查询能力；流程类泛词可能引发误召回。"
+    },
+    {
+      "id": "V3-N08",
+      "query": "办公区升降桌按键失灵，桌面无法升高，应该联系谁维修？",
+      "queryType": "no_match",
+      "expectedArticleNo": null,
+      "relevantArticleNos": [],
+      "annotationRationale": "演示知识库没有办公家具、升降桌或设施报修指南。"
+    },
+    {
+      "id": "V2-R15",
+      "query": "多个团队重复咨询采购审批流程，怎么整理成 FAQ？",
+      "queryType": "direct",
+      "expectedArticleNo": "KB-FAQ-KNOWLEDGE",
+      "relevantArticleNos": [
+        "KB-FAQ-KNOWLEDGE",
+        "KB-DRAFT-DEMO-0008",
+        "KB-PROCESS-005"
+      ],
+      "annotationRationale": "重复咨询和 FAQ 直接对应知识沉淀规范；具体采购审批 FAQ 和通用流程咨询分派也相关。"
+    },
+    {
+      "id": "V2-R16",
+      "query": "采购流程问题反复出现，知识负责人审核后如何发布沉淀？",
+      "queryType": "paraphrase",
+      "expectedArticleNo": "KB-FAQ-KNOWLEDGE",
+      "relevantArticleNos": [
+        "KB-FAQ-KNOWLEDGE",
+        "KB-DRAFT-DEMO-0008",
+        "KB-PROCESS-005"
+      ],
+      "annotationRationale": "知识审核、流程沉淀直接对应 FAQ 规范、采购示例 FAQ 和通用流程沉淀规范。"
+    }
+  ]
+}

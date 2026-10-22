@@ -36,7 +36,8 @@ public class AiClassificationFacade {
         try {
             return llmClassificationService.classify(ticket);
         } catch (Exception e) {
-            log.warn("LLM 分类失败，工单 {} 降级为规则引擎分类：{}", ticket.getTicketNo(), e.getMessage());
+            log.warn("LLM 分类失败，工单 {} 降级为规则引擎分类（{}）",
+                ticket.getTicketNo(), e.getClass().getSimpleName());
             return ruleClassificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
         }
     }

@@ -98,12 +98,23 @@ export interface RetrievalEvaluationArticle {
 export interface RetrievalEvaluationCase {
   id: string
   query: string
-  queryType: 'direct' | 'paraphrase' | string
-  expectedArticleNo: string
+  queryType: 'direct' | 'paraphrase' | 'hard_negative' | 'no_match' | string
+  expectedArticleNo: string | null
+  relevantArticleNos: string[]
+  annotationRationale: string
   expectedRank: number
+  firstRelevantRank: number
   hitAt1: boolean
   hitAt3: boolean
+  correctNoMatch: boolean
+  recallAt1: number
+  recallAt3: number
+  precisionAt3: number
   failureType: string
+  relevantRanks: Array<{
+    articleNo: string
+    rank: number
+  }>
   retrieved: RetrievalEvaluationArticle[]
 }
 
@@ -111,15 +122,25 @@ export interface RetrievalEvaluationReport {
   generatedAt: string
   datasetVersion: string
   dataSource: string
+  corpusVersion: string
+  corpusArticleCount: number
   retrievalMode: string
   topK: number
   metrics: {
     total: number
+    positiveQueryCount: number
+    noMatchQueryCount: number
     hitAt1: number
     hitAt3: number
+    hitRateAt1: number
+    hitRateAt3: number
     recallAt1: number
     recallAt3: number
+    precisionAt3: number
     meanReciprocalRank: number
+    noMatchTrueNegativeCount: number
+    noMatchFalsePositiveCount: number
+    noMatchSpecificity: number
   }
   cases: RetrievalEvaluationCase[]
 }

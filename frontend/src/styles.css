@@ -1467,6 +1467,28 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+.evaluation-qrels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.evaluation-qrels code {
+  border: 1px solid rgba(55, 115, 92, 0.16);
+  border-radius: 6px;
+  padding: 3px 5px;
+  background: var(--knowledge-soft);
+}
+
+.evaluation-rationale {
+  display: block;
+  max-width: 290px;
+  margin-top: 7px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
 .evaluation-rank,
 .evaluation-diagnosis {
   display: inline-flex;
@@ -1556,7 +1578,7 @@ select:focus-visible {
   }
 
   .evaluation-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

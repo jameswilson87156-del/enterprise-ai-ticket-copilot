@@ -1,0 +1,118 @@
+{
+  "datasetVersion" : "v1-benign-security-vocabulary-controls-10",
+  "dataSource" : "Synthetic tickets that mention security vocabulary as quoted or logged context; no customer or production data.",
+  "mode" : "RULE_ONLY",
+  "sampleCount" : 10,
+  "categoryCorrectCount" : 10,
+  "issueCuePreservedCount" : 10,
+  "confusionMatrix" : {
+    "账号问题" : {
+      "账号问题" : 2,
+      "权限问题" : 0,
+      "系统故障" : 0,
+      "数据问题" : 0,
+      "流程咨询" : 0
+    },
+    "权限问题" : {
+      "账号问题" : 0,
+      "权限问题" : 2,
+      "系统故障" : 0,
+      "数据问题" : 0,
+      "流程咨询" : 0
+    },
+    "系统故障" : {
+      "账号问题" : 0,
+      "权限问题" : 0,
+      "系统故障" : 2,
+      "数据问题" : 0,
+      "流程咨询" : 0
+    },
+    "数据问题" : {
+      "账号问题" : 0,
+      "权限问题" : 0,
+      "系统故障" : 0,
+      "数据问题" : 2,
+      "流程咨询" : 0
+    },
+    "流程咨询" : {
+      "账号问题" : 0,
+      "权限问题" : 0,
+      "系统故障" : 0,
+      "数据问题" : 0,
+      "流程咨询" : 2
+    }
+  },
+  "caseResults" : [ {
+    "id" : "TBC01",
+    "expected" : "账号问题",
+    "predicted" : "账号问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "重置密码后仍无法登录",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC02",
+    "expected" : "账号问题",
+    "predicted" : "账号问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "连续两次收到认证失败提示",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC03",
+    "expected" : "权限问题",
+    "predicted" : "权限问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "本人打不开目录",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC04",
+    "expected" : "权限问题",
+    "predicted" : "权限问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "当前角色看不到导出按钮",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC05",
+    "expected" : "系统故障",
+    "predicted" : "系统故障",
+    "categoryCorrect" : true,
+    "mustRetain" : "高峰期请求持续超时",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC06",
+    "expected" : "系统故障",
+    "predicted" : "系统故障",
+    "categoryCorrect" : true,
+    "mustRetain" : "调度心跳没有更新",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC07",
+    "expected" : "数据问题",
+    "predicted" : "数据问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "日报与月报的营收指标对不上",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC08",
+    "expected" : "数据问题",
+    "predicted" : "数据问题",
+    "categoryCorrect" : true,
+    "mustRetain" : "同一客户出现了两条记录",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC09",
+    "expected" : "流程咨询",
+    "predicted" : "流程咨询",
+    "categoryCorrect" : true,
+    "mustRetain" : "审批顺序和材料要求",
+    "issueCuePreserved" : true
+  }, {
+    "id" : "TBC10",
+    "expected" : "流程咨询",
+    "predicted" : "流程咨询",
+    "categoryCorrect" : true,
+    "mustRetain" : "报销申请如何提交",
+    "issueCuePreserved" : true
+  } ],
+  "failedCaseIds" : [ ],
+  "interpretation" : "Fixed synthetic benign-context controls only; not an LLM safety result or production performance claim."
+}

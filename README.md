@@ -1,4 +1,4 @@
-﻿# Enterprise AI Ticket Copilot
+# Enterprise AI Ticket Copilot
 
 企业 AI 工单处理与知识库助手，是一个面向内部支持团队的个人作品集 / 实习简历项目。它围绕“工单进入 -> AI 分类 -> 知识库匹配 -> 处理建议 -> 人工确认 -> 状态流转 -> 知识沉淀”组织可演示闭环，强调 AI 辅助判断与人工决策边界。
 
@@ -151,22 +151,24 @@ cd backend
 mvn -Dtest=EvaluationTest test
 ```
 
-规则基线可离线运行。外部模型对比默认关闭；确认要发送合成样本并已在本地设置 `DEEPSEEK_API_KEY` 后，再显式设置 `AI_LLM_EVAL_PROVIDER=deepseek` 与 `AI_LLM_EVAL_ENABLED=true` 并运行同一命令。完整评测默认逐条调用模型 40 次，可能产生 API 费用；可用 `AI_LLM_EVAL_LIMIT` 做小样本联通检查，报告会标记样本数，不把部分运行当作完整评估。当前 DeepSeek 默认模型名为 `deepseek-flash`，可通过 `AI_DEEPSEEK_CHAT_MODEL` 覆盖。
+规则基线可离线运行。外部模型对比默认关闭；设置 `DEEPSEEK_API_KEY` 后，还需显式设置 `AI_LLM_EVAL_PROVIDER=deepseek` 与 `AI_LLM_EVAL_ENABLED=true`。每次真实评测最多调用 10 条合成工单，可用 `AI_LLM_EVAL_LIMIT=10` 与 `AI_LLM_EVAL_CATEGORY_OFFSET` 按类别分批覆盖全量集；每批使用独立的 `AI_LLM_EVAL_OUTPUT` 路径，评测报告拒绝覆盖已有输出。当前 DeepSeek 默认模型名为 `deepseek-flash`，可通过 `AI_DEEPSEEK_CHAT_MODEL` 覆盖。
 
-本机规则基线结果：Accuracy **32/40（80.00%）**，Macro-F1 **79.21%**；挑战样本命中 **3/11（27.27%）**，暴露了权限与语义表达的规则盲区。结果只描述这批合成样本，不代表生产工单表现。完整类别指标和混淆矩阵见[分类评估证据](docs/evidence/classification-eval-v2/README.md)。DeepSeek 对比尚未运行，因此没有该模型的工单分类成绩。
+当前 40 条均衡合成工单的结果：规则引擎 **40/40**；DeepSeek Flash **38/40（Accuracy 95.00%，Macro-F1 94.99%）**，40 次真实请求全部成功，模型错分 T04（SSO 会话/白屏）和 T13（单一报表入口缺少访问权限）。原始标签未更改，混淆矩阵与逐样本元数据见[分类评估证据 v3](docs/evidence/classification-eval-v3/README.md)。分数只描述这批合成样本，不代表生产工单表现。
 
 ### RAG 检索评估基线
 
-backend/src/main/resources/eval/knowledge-retrieval-v1.json 提供 16 条合成检索问题，覆盖仓库演示知识库的 8 条知识，每条有期望知识编号。评估只在数据集列出的目标知识条目中检索，可用于检查知识召回和排序；数据集不含客户或生产资料。
+默认检索评测读取 `backend/src/main/resources/eval/knowledge-retrieval-v2.json`：14 篇固定演示知识、18 条正向查询（含多相关 qrels）和 4 条无匹配控制。`knowledge-retrieval-v1.json` 留作历史版本；评测候选不再按目标答案缩小，而是在固定语料中计算逐样本命中和排序。数据集不含客户或生产资料。
 
-评测固定走关键词基线，不调用 DeepSeek 或 Embedding API。使用本地 MySQL 并导入 schema.sql 与 demo-data.sql 后，启动后端和普通 API 模式的前端，在「RAG 检索评测」页点击「运行检索评测」；接口 `POST /api/evaluations/retrieval/run` 返回逐条结果，并把报告写入 `backend/target/evaluation/knowledge-retrieval-v1.json`。前端 `npm run dev:demo` 是静态演示模式，会禁用运行按钮。
+评测固定走关键词基线，不调用 DeepSeek 或 Embedding API。使用本地 MySQL 并导入 `schema.sql` 与 `demo-data.sql` 后，启动后端和普通 API 模式的前端，在「RAG 检索评测」页点击「运行检索评测」；接口 `POST /api/evaluations/retrieval/run` 返回逐条结果，并把默认报告写入 `backend/target/evaluation/knowledge-retrieval-v2.json`。切换其他数据集时，默认报告名会跟随数据集文件名；也可以显式配置输出路径。前端 `npm run dev:demo` 是静态演示模式，会禁用运行按钮。
 
 也可以用命令行入口运行同一评测。启动时自动评测默认关闭，需要显式开启：
 
 <pre>cd backend
 mvn spring-boot:run "-Dspring-boot.run.arguments=--ticket-copilot.evaluation.retrieval.enabled=true --ticket-copilot.evaluation.retrieval.top-k=5 --ticket-copilot.ai.embedding-enabled=false"</pre>
 
-报告包含 Recall@1、Recall@3、MRR、逐条命中排名和未命中原因。网页只在接口成功返回后显示真实计算结果，不预填或推测检索成绩。评测语料是仓库中的合成问句和演示知识条目；分数只能说明这个固定小样本上的关键词基线表现，不能代表 DeepSeek 效果或生产效果。
+报告包含 Hit Rate@1/@3、Macro Recall@1/@3、Precision@3、MRR、无匹配特异度、逐条 qrels 排名和失败原因。网页只在接口成功返回后显示真实计算结果，不预填或推测检索成绩。评测语料是仓库中的合成问句和演示知识条目；分数只能说明固定小样本上的关键词基线表现，不能代表 DeepSeek 效果或生产效果。
+
+V3 诊断压力集另含 12 条正向查询和 8 条无匹配查询，评测后补齐了部署知识的 ConfigMap、Secret、环境变量名和启动参数别名；修复后 Hit Rate@1/@3 为 12/12，Macro Recall@1/@3 为 86.1%/100%，无匹配特异度为 7/8。V3 在查看 V2 失败后编写，不是独立留出集；“打印采购审批单时打印机卡纸”仍误召回采购 FAQ，样本和完整限制见[V3 诊断报告](docs/evidence/retrieval-evaluation-v3-stress-20261022/RETRIEVAL_EVALUATION_V3_STRESS_CN_20261022.md)。
 
 ## 测试与验收结果
 
@@ -178,8 +180,13 @@ mvn spring-boot:run "-Dspring-boot.run.arguments=--ticket-copilot.evaluation.ret
 | `npm run build` | 通过 | Vue TypeScript 检查与 Vite 生产构建完成 |
 | `npm run screenshots` | 通过 | 生成 4 张标准截图和 4 张 `1920x1200` 截图 |
 | `mvn -v` | 通过 | Maven 3.9.11、Java 17 可用 |
-| `mvn -Dtest=EvaluationTest test` | 2 项，1 项跳过 | 规则基线通过；外部模型对比因默认关闭而跳过 |
-| `mvn test` | 25 项，0 失败，1 项跳过 | 默认不调用外部模型；测试记录见分类评估证据 |
+| mvn -Dtest=EvaluationTest test | 4 项，0 失败，1 项跳过 | 外部模型对比默认关闭；类别与行为测试通过 |
+| mvn -o test | 41 项，0 失败，1 项跳过 | 2026-10-21 本机结果；默认不调用外部模型，详见分类评估证据 v3 |
+| mvn -o test | 52 项，0 失败，1 项跳过 | 2026-10-22 本机复跑；默认关闭的真实模型评测为唯一跳过项 |
+| mvn -o test | 58 项，0 失败，1 项跳过 | 2026-10-22 前缀注入修复后的完整复跑；默认关闭的真实模型评测为唯一跳过项 |
+| `mvn test` | 74 项，0 失败、0 错误、1 项跳过 | 2026-10-22 输出契约与 Provider 日志脱敏修复后的完整回归；唯一跳过项为显式启用的真实模型评测 |
+| `mvn -o test` | 89 项，0 失败、0 错误、1 项跳过 | 2026-10-22 增加安全术语正常控制集后的完整回归；唯一跳过项仍为默认关闭的真实模型评测 |
+| `mvn -o test` | 95 项，0 失败、0 错误、1 项跳过 | 2026-10-22 阶段回归记录；唯一跳过项为默认关闭的真实模型评测，日志见执行交付目录 `ticket-maven-full-20261022-final.log` |
 
 ## 项目边界
 
@@ -208,3 +215,22 @@ mvn spring-boot:run "-Dspring-boot.run.arguments=--ticket-copilot.evaluation.ret
 - [检索评测演示说明](docs/retrieval-evaluation-demo.md)
 - [验收清单](docs/acceptance-checklist.md)
 
+## 分类与红队评测
+
+- 40 条普通工单的历史真实模型对比和规则基线见 [分类评测 v3](docs/evidence/classification-eval-v3/README.md)。该报告只描述对应固定合成集。
+- 新增 25 条双语合成对抗样本、规则兜底防护和离线结果见 [红队评测补充](docs/evidence/classification-eval-v4/RED_TEAM_EVALUATION_CN_20261022.md)。规则 25/25 是固定样本离线结果，不是 DeepSeek 红队成绩；新红队集的真实模型评测尚未运行。
+- 新增 50 条、10 种攻击面的红队 v2 集与规则离线基线见 [红队评测 v2](docs/evidence/classification-eval-v5/RED_TEAM_EVALUATION_V2_CN_20261022.md)。规则 50/50 不是模型安全成绩；这 50 条尚未发送给 DeepSeek。
+- 红队 v3 新增攻击前缀后仍保留的真实故障描述，复现并修复了规则把整段字段尾部删除、导致后续症状丢失的问题。55 条合成样本的规则基线为 55/55，详见[红队评测 v3](docs/evidence/classification-eval-v6/RED_TEAM_EVALUATION_V3_CN_20261022.md)；该分数不是 LLM 安全率，真实模型红队尚未运行。
+- 红队 v4 将明确标记的分号后真实问题段作为保留边界，60 条规则离线基线为 60/60，详见[红队评测 v4](docs/evidence/classification-eval-v7/RED_TEAM_EVALUATION_V4_CN_20261022.md)。
+- 红队 v5 在保留 v4 全部 60 条的基础上新增 10 条全角/零宽 Unicode 混淆样本；NFKC 归一化与格式控制字符清理同时覆盖规则路径和发往 ChatModel 的工单字段。70 条规则离线基线为 70/70；新增 Prompt 测试证明攻击片段不进入请求且原始工单对象不变。该结果不是 LLM 安全率，本轮真实模型请求数为 0，详见[红队评测 v5](docs/evidence/classification-eval-v8/RED_TEAM_EVALUATION_V5_CN_20261022.md)。
+- 输出侧红队补充发现并修复模型响应回显工单 canary 的问题：标记指纹比较覆盖空白、标点、全角和零宽变体；明确的提示词提取、凭证泄露、破坏性操作指令会触发规则降级。新增 9 个合成攻击样本和 2 个正常文案控制样本，模拟 ChatModel 结果为 9/9 拒绝攻击、2/2 接受控制样本。该结果只验证响应契约和降级逻辑，不是 DeepSeek 安全成绩；本轮真实模型请求数为 0。详见[LLM 输出契约红队评测](docs/evidence/classification-eval-v9/LLM_OUTPUT_CONTRACT_REDTEAM_V1_CN_20261022.md)。
+- v10 输出同形字回归复现了 canary 中拉丁字符被视觉相近的西里尔字符替换后未触发降级的问题。只在标记指纹比较中折叠有限同形字后，3/3 合成攻击触发规则降级，2/2 普通文案控制保留 LLM 来源；全量 Maven 为 75 项通过、0 失败、0 错误、1 项跳过。该固定 5 条样本不是模型安全率，详见[输出同形字红队 v1](docs/evidence/classification-eval-v10/UNICODE_CONFUSABLE_OUTPUT_REDTEAM_V1_CN_20261022.md)。
+
+
+- 红队 v11 新增编码文本专项，分别验证工单输入净化与模拟 ChatModel 输出 canary 检查：百分号编码/数字 HTML 实体攻击各 2/2 命中，普通控制各 2/2 保留。修复前每个测试面均有 2 条攻击失败；修复后 Maven 全量 77 项、0 失败、0 错误、1 项默认关闭模型评测跳过。仅为 4 条/测试面的合成规则与 Mock 回归，不代表真实模型安全率；本轮 DeepSeek 请求为 0。详见 [编码文本补测 v11](docs/evidence/classification-eval-v11-encoded-text/ENCODED_TEXT_REDTEAM_V1_CN_20261022.md)。
+- 红队 v12 扩展到显式标记的 Base64、Base64URL、HEX 与 ROT13：输入侧 4/4 攻击句移除且真实症状保留、4/4 控制保留；输出侧 3/3 编码 canary 回显触发规则回退、3/3 普通控制仍走模拟 LLM。修复了 Base64 解码前被转小写的问题，并对格式错误、无前缀和超长输入做边界回归。全量 Maven 88 项通过、1 项默认关闭模型评测跳过；真实 DeepSeek 请求 0。该结果是合成规则与 ChatModel stub 契约验证，不是模型安全率。详见[红队 v12 编码扩展](docs/evidence/classification-eval-v12-framed-encodings/FRAMED_ENCODING_REDTEAM_V1_CN_20261022.md)。
+- 红队 v13 另加 10 条“安全词汇出现在日志/复盘语境、但工单问题正常”的合成控制样本，五类各两条；规则分类 10/10，指定问题线索净化后保留 10/10，混淆矩阵五类均为 2/2 对角线。本组专门检查正常工单上下文，不与攻击集或 LLM 结果合并。最新 Maven 全量 89 项通过、0 失败、0 错误、1 项默认关闭的外部评测跳过；DeepSeek 请求数为 0。详见[正常安全术语控制集 v1](docs/evidence/classification-eval-v13-benign-controls/TICKET_BENIGN_SECURITY_CONTROLS_V1_CN_20261022.md)。
+- 分层红队 v16 把普通编码、框架编码、输出结构、同形字符与无害控制拆开逐样本验证：38 个唯一样本中 23/23 攻击断言通过、15/15 正常控制通过；全程外部请求 0。该结果是 Java 清洗与模拟 Provider 契约回归，不是模型安全率。V16 阶段全量回归为 95 项、0 失败、0 错误、1 项默认关闭评测跳过；详见[分层红队 v16](docs/evidence/classification-eval-v16-layered-redteam-20261022/TICKET_LAYERED_REDTEAM_V1_CN_20261022.md)。
+- 固定候选语料检索 v2 使用 14 篇演示知识、18 条正向查询和 4 条无匹配控制；Hit Rate@1 14/18（77.8%）、Macro Recall@3 72.2%、MRR 0.778、二元 nDCG@3 0.735、无匹配特异度 3/4。漏召回与误召回保留在[逐样本诊断报告](docs/evidence/retrieval-evaluation-v2-20261022/RANKED_RETRIEVAL_DIAGNOSTICS_V1_CN_20261022.md)；这是小型合成数据上的关键词基线，不是独立留出集、DeepSeek 分数或生产估计。
+- 检索元数据回归 v4 将 V3 的 20 条原始诊断样本与 V2 两条采购 FAQ 正向查询合并为 22 条针对性回归；只把 `KB-DRAFT-DEMO-0008` 的关键词从泛化的“采购、审批、FAQ、流程、材料”收紧为“采购、流程、FAQ、材料”，不改检索阈值、评分公式或 qrels。H2/MyBatis 结果中，N02 打印机误召回从 1 条降至 0 条，无匹配特异度从 7/8 提升为 8/8，14 条正向查询均有相关知识排首位；V4 是复用过往开发集的定向回归，不是独立留出集。逐样本前后结果、红绿测试与报告见 [V4 检索元数据回归](docs/evidence/retrieval-evaluation-v4-metadata-refinement-20261022/REPORT_CN.md)。
+- 最新 Ticket Copilot 完整 Maven 回归 99 项、0 失败、0 错误、1 项默认关闭的真实模型评测跳过；包含 U+0131 dotless-i 规则回归和 V4 检索元数据回归。没有真实 DeepSeek 请求。逐样本检索结果见 [V4 检索元数据回归](docs/evidence/retrieval-evaluation-v4-metadata-refinement-20261022/REPORT_CN.md)，本机完整 Maven 日志保存在 `_JOB_READY_SPRINT_20261021/deliverables/ticket-retrieval-v4-metadata-refinement-20261022/mvn-full-regression.log`。

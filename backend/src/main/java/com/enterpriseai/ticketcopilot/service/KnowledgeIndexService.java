@@ -55,7 +55,7 @@ public class KnowledgeIndexService {
             reindex();
         } catch (Exception e) {
             // 索引失败不阻断启动，检索自动退化为纯关键词
-            log.warn("知识库向量索引初始化失败，检索退化为纯关键词：{}", e.getMessage());
+            log.warn("知识库向量索引初始化失败，检索退化为纯关键词（{}）", e.getClass().getSimpleName());
         }
     }
 

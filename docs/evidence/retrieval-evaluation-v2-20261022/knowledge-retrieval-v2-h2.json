@@ -1,0 +1,562 @@
+{
+  "generatedAt" : "2026-10-21T23:18:21.742815800Z",
+  "datasetVersion" : "v2-full-corpus-qrels",
+  "dataSource" : "synthetic-curated from repository demo knowledge articles; no customer or production data",
+  "corpusVersion" : "schema.sql+demo-data.sql demo knowledge seed v1",
+  "corpusArticleCount" : 14,
+  "retrievalMode" : "keyword-baseline",
+  "topK" : 5,
+  "metrics" : {
+    "total" : 22,
+    "positiveQueryCount" : 18,
+    "noMatchQueryCount" : 4,
+    "hitAt1" : 14,
+    "hitAt3" : 14,
+    "hitRateAt1" : 0.7777777777777778,
+    "hitRateAt3" : 0.7777777777777778,
+    "recallAt1" : 0.5925925925925926,
+    "recallAt3" : 0.7222222222222222,
+    "precisionAt3" : 0.37037037037037035,
+    "meanReciprocalRank" : 0.7777777777777778,
+    "noMatchTrueNegativeCount" : 3,
+    "noMatchFalsePositiveCount" : 1,
+    "noMatchSpecificity" : 0.75
+  },
+  "cases" : [ {
+    "id" : "R01",
+    "query" : "Java 服务启动提示 8080 端口已占用，应该怎么排查？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-JAVA-PORT",
+    "relevantArticleNos" : [ "KB-JAVA-PORT" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-JAVA-PORT",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-JAVA-PORT",
+      "title" : "Java 服务端口占用排查手册",
+      "relevance" : 82
+    } ]
+  }, {
+    "id" : "R02",
+    "query" : "Tomcat 无法绑定 8080，日志是 Address already in use",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-JAVA-PORT",
+    "relevantArticleNos" : [ "KB-JAVA-PORT" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-JAVA-PORT",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-JAVA-PORT",
+      "title" : "Java 服务端口占用排查手册",
+      "relevance" : 36
+    } ]
+  }, {
+    "id" : "R03",
+    "query" : "Spring Boot 启动失败，BeanCreationException，如何定位异常 bean？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-SPRING-BEAN",
+    "relevantArticleNos" : [ "KB-SPRING-BEAN" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-SPRING-BEAN",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-SPRING-BEAN",
+      "title" : "Spring Boot BeanCreationException 处理清单",
+      "relevance" : 96
+    } ]
+  }, {
+    "id" : "R04",
+    "query" : "settlementStrategy 创建 bean 时失败，先检查哪些配置和依赖？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-SPRING-BEAN",
+    "relevantArticleNos" : [ "KB-SPRING-BEAN" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NO_RELEVANT_ARTICLE_RETRIEVED",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-SPRING-BEAN",
+      "rank" : 0
+    } ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "R05",
+    "query" : "Redis timeout，Lettuce 连接失败和连接池耗尽怎么排查？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-REDIS-CONN",
+    "relevantArticleNos" : [ "KB-REDIS-CONN" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-REDIS-CONN",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-REDIS-CONN",
+      "title" : "Redis 连接失败与连接池排查",
+      "relevance" : 96
+    } ]
+  }, {
+    "id" : "R06",
+    "query" : "员工门户频繁掉线，缓存连接超时，要检查哪些网络和池配置？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-REDIS-CONN",
+    "relevantArticleNos" : [ "KB-REDIS-CONN" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NO_RELEVANT_ARTICLE_RETRIEVED",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-REDIS-CONN",
+      "rank" : 0
+    } ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "R07",
+    "query" : "MySQL 慢查询如何结合执行计划、索引和锁等待定位？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-MYSQL-SLOW",
+    "relevantArticleNos" : [ "KB-MYSQL-SLOW" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-MYSQL-SLOW",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-MYSQL-SLOW",
+      "title" : "MySQL 慢查询定位与索引评估流程",
+      "relevance" : 96
+    } ]
+  }, {
+    "id" : "R08",
+    "query" : "CRM 客户列表很慢，按续费状态筛选后还要按更新时间排序",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-MYSQL-SLOW",
+    "relevantArticleNos" : [ "KB-MYSQL-SLOW" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NO_RELEVANT_ARTICLE_RETRIEVED",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-MYSQL-SLOW",
+      "rank" : 0
+    } ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "R09",
+    "query" : "接口返回 500，怎样用 traceId 关联网关和应用日志？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-API-500",
+    "relevantArticleNos" : [ "KB-API-500", "KB-OPS-003" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.5,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.6666666666666666,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-API-500",
+      "rank" : 1
+    }, {
+      "articleNo" : "KB-OPS-003",
+      "rank" : 2
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-API-500",
+      "title" : "接口 500 错误分层排查手册",
+      "relevance" : 72
+    }, {
+      "articleNo" : "KB-OPS-003",
+      "title" : "系统故障超时与 5xx 排查手册",
+      "relevance" : 36
+    } ]
+  }, {
+    "id" : "R10",
+    "query" : "报价服务出现 NullPointerException，HTTP 500 应该从哪里开始查？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-API-500",
+    "relevantArticleNos" : [ "KB-API-500", "KB-OPS-003" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.5,
+    "recallAt3" : 0.5,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "PARTIAL_RELEVANT_RECALL",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-API-500",
+      "rank" : 0
+    }, {
+      "articleNo" : "KB-OPS-003",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-OPS-003",
+      "title" : "系统故障超时与 5xx 排查手册",
+      "relevance" : 36
+    } ]
+  }, {
+    "id" : "R11",
+    "query" : "403 Forbidden 权限问题，如何核验 RBAC 角色、资源策略和审计记录？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-IAM-ROLE",
+    "relevantArticleNos" : [ "KB-IAM-ROLE", "KB-IAM-002" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.5,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.6666666666666666,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-IAM-ROLE",
+      "rank" : 1
+    }, {
+      "articleNo" : "KB-IAM-002",
+      "rank" : 2
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-IAM-ROLE",
+      "title" : "权限配置问题与 RBAC 核验流程",
+      "relevance" : 90
+    }, {
+      "articleNo" : "KB-IAM-002",
+      "title" : "权限申请与最小权限核验清单",
+      "relevance" : 54
+    } ]
+  }, {
+    "id" : "R12",
+    "query" : "共享盘审批已通过，但用户访问仍被拒绝，应该检查什么？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-IAM-ROLE",
+    "relevantArticleNos" : [ "KB-IAM-ROLE", "KB-IAM-002" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.5,
+    "recallAt3" : 0.5,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "PARTIAL_RELEVANT_RECALL",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-IAM-ROLE",
+      "rank" : 0
+    }, {
+      "articleNo" : "KB-IAM-002",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-IAM-002",
+      "title" : "权限申请与最小权限核验清单",
+      "relevance" : 54
+    } ]
+  }, {
+    "id" : "R13",
+    "query" : "部署后提示缺少 PAYMENT_GATEWAY_URL 环境变量，怎么排查？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-DEPLOY-ENV",
+    "relevantArticleNos" : [ "KB-DEPLOY-ENV" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-DEPLOY-ENV",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-DEPLOY-ENV",
+      "title" : "部署环境变量缺失排查清单",
+      "relevance" : 36
+    } ]
+  }, {
+    "id" : "R14",
+    "query" : "UAT 容器启动配置不完整，要比对哪些环境配置项？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-DEPLOY-ENV",
+    "relevantArticleNos" : [ "KB-DEPLOY-ENV" ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NO_RELEVANT_ARTICLE_RETRIEVED",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-DEPLOY-ENV",
+      "rank" : 0
+    } ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "R15",
+    "query" : "多个团队重复咨询采购审批流程，怎么整理成 FAQ？",
+    "queryType" : "direct",
+    "expectedArticleNo" : "KB-FAQ-KNOWLEDGE",
+    "relevantArticleNos" : [ "KB-FAQ-KNOWLEDGE", "KB-DRAFT-DEMO-0008", "KB-PROCESS-005" ],
+    "expectedRank" : 2,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.3333333333333333,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 1.0,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-FAQ-KNOWLEDGE",
+      "rank" : 2
+    }, {
+      "articleNo" : "KB-DRAFT-DEMO-0008",
+      "rank" : 1
+    }, {
+      "articleNo" : "KB-PROCESS-005",
+      "rank" : 3
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-DRAFT-DEMO-0008",
+      "title" : "采购系统审批流程 FAQ",
+      "relevance" : 72
+    }, {
+      "articleNo" : "KB-FAQ-KNOWLEDGE",
+      "title" : "重复咨询转知识库沉淀规范",
+      "relevance" : 64
+    }, {
+      "articleNo" : "KB-PROCESS-005",
+      "title" : "内部流程咨询分派与知识沉淀规范",
+      "relevance" : 54
+    } ]
+  }, {
+    "id" : "R16",
+    "query" : "采购流程问题反复出现，知识负责人审核后如何发布沉淀？",
+    "queryType" : "paraphrase",
+    "expectedArticleNo" : "KB-FAQ-KNOWLEDGE",
+    "relevantArticleNos" : [ "KB-FAQ-KNOWLEDGE", "KB-DRAFT-DEMO-0008", "KB-PROCESS-005" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.3333333333333333,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 1.0,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-FAQ-KNOWLEDGE",
+      "rank" : 1
+    }, {
+      "articleNo" : "KB-DRAFT-DEMO-0008",
+      "rank" : 2
+    }, {
+      "articleNo" : "KB-PROCESS-005",
+      "rank" : 3
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-FAQ-KNOWLEDGE",
+      "title" : "重复咨询转知识库沉淀规范",
+      "relevance" : 54
+    }, {
+      "articleNo" : "KB-DRAFT-DEMO-0008",
+      "title" : "采购系统审批流程 FAQ",
+      "relevance" : 36
+    }, {
+      "articleNo" : "KB-PROCESS-005",
+      "title" : "内部流程咨询分派与知识沉淀规范",
+      "relevance" : 36
+    } ]
+  }, {
+    "id" : "R17",
+    "query" : "员工账号多次 MFA 验证失败，SSO 登录被锁定，应该怎样恢复？",
+    "queryType" : "hard_negative",
+    "expectedArticleNo" : "KB-ACCOUNT-001",
+    "relevantArticleNos" : [ "KB-ACCOUNT-001" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-ACCOUNT-001",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-ACCOUNT-001",
+      "title" : "账号登录失败与 MFA 重置处理流程",
+      "relevance" : 90
+    } ]
+  }, {
+    "id" : "R18",
+    "query" : "报表数据没有按周期同步，导出记录缺失，怎么核对同步批次和指标口径？",
+    "queryType" : "hard_negative",
+    "expectedArticleNo" : "KB-DATA-004",
+    "relevantArticleNos" : [ "KB-DATA-004" ],
+    "expectedRank" : 1,
+    "firstRelevantRank" : 1,
+    "hitAt1" : true,
+    "hitAt3" : true,
+    "correctNoMatch" : false,
+    "recallAt1" : 1.0,
+    "recallAt3" : 1.0,
+    "precisionAt3" : 0.3333333333333333,
+    "failureType" : "NONE",
+    "relevantRanks" : [ {
+      "articleNo" : "KB-DATA-004",
+      "rank" : 1
+    } ],
+    "retrieved" : [ {
+      "articleNo" : "KB-DATA-004",
+      "title" : "数据同步异常与报表口径排查",
+      "relevance" : 96
+    } ]
+  }, {
+    "id" : "N01",
+    "query" : "办公室咖啡机漏水，想申请更换滤芯并咨询报修流程",
+    "queryType" : "no_match",
+    "expectedArticleNo" : null,
+    "relevantArticleNos" : [ ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : false,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "UNEXPECTED_RETRIEVAL",
+    "relevantRanks" : [ ],
+    "retrieved" : [ {
+      "articleNo" : "KB-PROCESS-005",
+      "title" : "内部流程咨询分派与知识沉淀规范",
+      "relevance" : 54
+    } ]
+  }, {
+    "id" : "N02",
+    "query" : "会议室蓝牙音箱无法与手机配对，重启后仍搜不到设备",
+    "queryType" : "no_match",
+    "expectedArticleNo" : null,
+    "relevantArticleNos" : [ ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : true,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NONE",
+    "relevantRanks" : [ ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "N03",
+    "query" : "请帮我预约周五晚上的羽毛球场，确认场馆开放时间",
+    "queryType" : "no_match",
+    "expectedArticleNo" : null,
+    "relevantArticleNos" : [ ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : true,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NONE",
+    "relevantRanks" : [ ],
+    "retrieved" : [ ]
+  }, {
+    "id" : "N04",
+    "query" : "投影仪遥控器的电池仓盖松动，无法切换 HDMI 输入",
+    "queryType" : "no_match",
+    "expectedArticleNo" : null,
+    "relevantArticleNos" : [ ],
+    "expectedRank" : 0,
+    "firstRelevantRank" : 0,
+    "hitAt1" : false,
+    "hitAt3" : false,
+    "correctNoMatch" : true,
+    "recallAt1" : 0.0,
+    "recallAt3" : 0.0,
+    "precisionAt3" : 0.0,
+    "failureType" : "NONE",
+    "relevantRanks" : [ ],
+    "retrieved" : [ ]
+  } ]
+}

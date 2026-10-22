@@ -1,0 +1,342 @@
+{
+  "generatedAt" : "2026-10-21T22:12:58.213428200Z",
+  "datasetVersion" : "v2-balanced-40",
+  "dataSource" : "synthetic-curated; no customer or production ticket data",
+  "datasetSize" : 40,
+  "evaluatedCases" : 40,
+  "fullDataset" : true,
+  "systems" : {
+    "rule-engine" : {
+      "correct" : 40,
+      "total" : 40,
+      "accuracy" : 1.0,
+      "macroPrecision" : 1.0,
+      "macroRecall" : 1.0,
+      "macroF1" : 1.0,
+      "ruleBlindSpotAccuracy" : 1.0,
+      "perCategory" : {
+        "账号问题" : {
+          "support" : 8,
+          "correct" : 8,
+          "precision" : 1.0,
+          "recall" : 1.0,
+          "f1" : 1.0
+        },
+        "权限问题" : {
+          "support" : 8,
+          "correct" : 8,
+          "precision" : 1.0,
+          "recall" : 1.0,
+          "f1" : 1.0
+        },
+        "系统故障" : {
+          "support" : 8,
+          "correct" : 8,
+          "precision" : 1.0,
+          "recall" : 1.0,
+          "f1" : 1.0
+        },
+        "数据问题" : {
+          "support" : 8,
+          "correct" : 8,
+          "precision" : 1.0,
+          "recall" : 1.0,
+          "f1" : 1.0
+        },
+        "流程咨询" : {
+          "support" : 8,
+          "correct" : 8,
+          "precision" : 1.0,
+          "recall" : 1.0,
+          "f1" : 1.0
+        }
+      },
+      "confusionMatrix" : {
+        "账号问题" : {
+          "账号问题" : 8,
+          "权限问题" : 0,
+          "系统故障" : 0,
+          "数据问题" : 0,
+          "流程咨询" : 0,
+          "调用失败" : 0
+        },
+        "权限问题" : {
+          "账号问题" : 0,
+          "权限问题" : 8,
+          "系统故障" : 0,
+          "数据问题" : 0,
+          "流程咨询" : 0,
+          "调用失败" : 0
+        },
+        "系统故障" : {
+          "账号问题" : 0,
+          "权限问题" : 0,
+          "系统故障" : 8,
+          "数据问题" : 0,
+          "流程咨询" : 0,
+          "调用失败" : 0
+        },
+        "数据问题" : {
+          "账号问题" : 0,
+          "权限问题" : 0,
+          "系统故障" : 0,
+          "数据问题" : 8,
+          "流程咨询" : 0,
+          "调用失败" : 0
+        },
+        "流程咨询" : {
+          "账号问题" : 0,
+          "权限问题" : 0,
+          "系统故障" : 0,
+          "数据问题" : 0,
+          "流程咨询" : 8,
+          "调用失败" : 0
+        }
+      },
+      "caseResults" : [ {
+        "id" : "T01",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T02",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T03",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T04",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T05",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T06",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T07",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T08",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T09",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T10",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T11",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T12",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T13",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T14",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T15",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T16",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T17",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T18",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T19",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T20",
+        "expected" : "账号问题",
+        "predicted" : "账号问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T21",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T22",
+        "expected" : "系统故障",
+        "predicted" : "系统故障",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T23",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T24",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T25",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T26",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T27",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T28",
+        "expected" : "数据问题",
+        "predicted" : "数据问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T29",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T30",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T31",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T32",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T33",
+        "expected" : "权限问题",
+        "predicted" : "权限问题",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T34",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T35",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T36",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T37",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T38",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T39",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      }, {
+        "id" : "T40",
+        "expected" : "流程咨询",
+        "predicted" : "流程咨询",
+        "correct" : true,
+        "callEvidence" : null
+      } ]
+    }
+  },
+  "accuracyDelta" : null,
+  "runMetadata" : null,
+  "redTeamEvaluation" : null
+}

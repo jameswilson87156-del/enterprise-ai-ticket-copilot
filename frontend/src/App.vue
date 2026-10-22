@@ -130,20 +130,39 @@ const runEvaluation = async () => {
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
 
 const evaluationOutcome = (testCase: RetrievalEvaluationCase) => {
-  if (testCase.expectedRank === 0) {
-    return '未召回'
+  if (testCase.relevantArticleNos.length === 0) {
+    return testCase.correctNoMatch ? '正确无召回' : `误召回 ${testCase.retrieved.length} 条`
   }
-  return `第 ${testCase.expectedRank} 位`
+  if (testCase.firstRelevantRank === 0) {
+    return '未召回相关知识'
+  }
+  return `首次相关第 ${testCase.firstRelevantRank} 位`
 }
 
-const evaluationFailureText = (failureType: string) => {
-  if (failureType === 'EXPECTED_ARTICLE_NOT_RETRIEVED') {
-    return '目标知识未召回'
+const evaluationQueryTypeText = (queryType: string) => {
+  const labels: Record<string, string> = {
+    direct: '直接问句',
+    paraphrase: '改写问句',
+    hard_negative: '易混淆正例',
+    no_match: '无匹配负例'
   }
-  if (failureType === 'EXPECTED_ARTICLE_RANKED_BELOW_FIRST') {
-    return '目标知识未排首位'
+  return labels[queryType] ?? queryType
+}
+
+const evaluationFailureText = (testCase: RetrievalEvaluationCase) => {
+  if (testCase.failureType === 'UNEXPECTED_RETRIEVAL') {
+    return '无匹配问题发生误召回'
   }
-  return '命中首位'
+  if (testCase.failureType === 'NO_RELEVANT_ARTICLE_RETRIEVED') {
+    return '正向问题无相关知识命中'
+  }
+  if (testCase.failureType === 'PARTIAL_RELEVANT_RECALL') {
+    return '多相关知识只召回部分'
+  }
+  if (testCase.failureType === 'RELEVANT_ARTICLE_RANKED_BELOW_FIRST') {
+    return '相关知识未排首位'
+  }
+  return testCase.queryType === 'no_match' ? '未误召回' : '相关知识排首位'
 }
 
 const loadTickets = async () => {
@@ -343,7 +362,7 @@ onMounted(() => {
         <div>
           <p class="eyebrow">检索质量 / 离线评测</p>
           <h2 id="evaluation-title">知识检索评测</h2>
-          <p>使用固定的合成问句和标注知识，检查当前关键词检索的召回与排序表现。</p>
+          <p>在固定的演示知识全语料上，用多相关 qrels 和无匹配问题检查召回、排序与误召回。</p>
         </div>
         <button class="primary-action" :disabled="isDemoRuntime || evaluationBusy" @click="runEvaluation">
           {{ evaluationBusy ? '正在运行…' : evaluationReport ? '重新运行评测' : '运行检索评测' }}
@@ -352,7 +371,7 @@ onMounted(() => {
 
       <div class="evaluation-notice" :class="{ 'evaluation-notice--warning': isDemoRuntime }">
         <strong>{{ isDemoRuntime ? '当前为前端 Demo 模式' : '关键词基线 / 合成样例 / 不调用大模型' }}</strong>
-        <span>{{ isDemoRuntime ? '切换到后端 API 模式并连接项目数据库后，可运行真实评测接口。' : '结果仅反映仓库内 16 条合成问句和对应知识条目，不代表生产数据效果。' }}</span>
+        <span>{{ isDemoRuntime ? '切换到后端 API 模式并连接项目数据库后，可运行真实评测接口。' : 'V2 固定候选为仓库种子中的 14 篇已发布知识，包含 18 条正向问句、4 条无匹配负例；只评估关键词基线，不代表生产数据或大模型效果。' }}</span>
       </div>
 
       <p v-if="evaluationError" class="evaluation-error" role="alert">运行失败：{{ evaluationError }}</p>
@@ -360,24 +379,39 @@ onMounted(() => {
       <template v-if="evaluationReport">
         <div class="evaluation-metrics" aria-label="检索评测指标">
           <article class="evaluation-metric">
-            <span>Recall@1</span>
-            <strong>{{ formatPercent(evaluationReport.metrics.recallAt1) }}</strong>
-            <small>{{ evaluationReport.metrics.hitAt1 }} / {{ evaluationReport.metrics.total }} 条目标知识排首位</small>
+            <span>Hit Rate@1</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.hitRateAt1) }}</strong>
+            <small>{{ evaluationReport.metrics.hitAt1 }} / {{ evaluationReport.metrics.positiveQueryCount }} 条正向问句首位命中</small>
           </article>
           <article class="evaluation-metric">
-            <span>Recall@3</span>
+            <span>Hit Rate@3</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.hitRateAt3) }}</strong>
+            <small>{{ evaluationReport.metrics.hitAt3 }} / {{ evaluationReport.metrics.positiveQueryCount }} 条正向问句前三命中</small>
+          </article>
+          <article class="evaluation-metric">
+            <span>Macro Recall@3</span>
             <strong>{{ formatPercent(evaluationReport.metrics.recallAt3) }}</strong>
-            <small>{{ evaluationReport.metrics.hitAt3 }} / {{ evaluationReport.metrics.total }} 条目标知识进入前三</small>
+            <small>按每条正向问句的全部相关知识计算后取平均</small>
+          </article>
+          <article class="evaluation-metric">
+            <span>Precision@3</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.precisionAt3) }}</strong>
+            <small>正向问句前三候选中相关知识所占比例</small>
           </article>
           <article class="evaluation-metric">
             <span>MRR</span>
             <strong>{{ evaluationReport.metrics.meanReciprocalRank.toFixed(3) }}</strong>
-            <small>按目标知识排名倒数取平均</small>
+            <small>按首次相关知识排名倒数取平均</small>
+          </article>
+          <article class="evaluation-metric">
+            <span>无匹配特异度</span>
+            <strong>{{ formatPercent(evaluationReport.metrics.noMatchSpecificity) }}</strong>
+            <small>{{ evaluationReport.metrics.noMatchTrueNegativeCount }} / {{ evaluationReport.metrics.noMatchQueryCount }} 条负例正确保持无召回</small>
           </article>
           <article class="evaluation-metric evaluation-metric--meta">
             <span>评测设置</span>
             <strong>Top {{ evaluationReport.topK }}</strong>
-            <small>{{ evaluationReport.datasetVersion }} · {{ new Date(evaluationReport.generatedAt).toLocaleString('zh-CN') }}</small>
+            <small>{{ evaluationReport.corpusArticleCount }} 篇候选 · {{ evaluationReport.corpusVersion }} · {{ new Date(evaluationReport.generatedAt).toLocaleString('zh-CN') }}</small>
           </article>
         </div>
 
@@ -385,9 +419,9 @@ onMounted(() => {
           <div class="evaluation-results__heading">
             <div>
               <h3>逐条检索结果</h3>
-              <p>失败样例能定位“没召回”和“召回但排序靠后”两类问题。</p>
+              <p>同时展示多相关标注排名、部分召回、未召回和无匹配问题误召回。</p>
             </div>
-            <span>{{ evaluationReport.retrievalMode }}</span>
+            <span>{{ evaluationReport.datasetVersion }} · {{ evaluationReport.retrievalMode }}</span>
           </div>
           <div class="evaluation-table-wrap">
             <table class="evaluation-table">
@@ -403,11 +437,17 @@ onMounted(() => {
               <tbody>
                 <tr v-for="testCase in evaluationReport.cases" :key="testCase.id">
                   <td>
-                    <span class="evaluation-case-id">{{ testCase.id }} · {{ testCase.queryType === 'paraphrase' ? '改写问句' : '直接问句' }}</span>
+                    <span class="evaluation-case-id">{{ testCase.id }} · {{ evaluationQueryTypeText(testCase.queryType) }}</span>
                     <strong>{{ testCase.query }}</strong>
                   </td>
-                  <td><code>{{ testCase.expectedArticleNo }}</code></td>
-                  <td><span class="evaluation-rank" :class="{ 'evaluation-rank--miss': testCase.expectedRank === 0 }">{{ evaluationOutcome(testCase) }}</span></td>
+                  <td>
+                    <div v-if="testCase.relevantArticleNos.length" class="evaluation-qrels">
+                      <code v-for="articleNo in testCase.relevantArticleNos" :key="articleNo">{{ articleNo }}</code>
+                    </div>
+                    <span v-else class="evaluation-empty">无匹配知识</span>
+                    <small v-if="testCase.annotationRationale" class="evaluation-rationale">{{ testCase.annotationRationale }}</small>
+                  </td>
+                  <td><span class="evaluation-rank" :class="{ 'evaluation-rank--miss': testCase.relevantArticleNos.length === 0 ? !testCase.correctNoMatch : testCase.firstRelevantRank === 0 }">{{ evaluationOutcome(testCase) }}</span></td>
                   <td>
                     <ol v-if="testCase.retrieved.length" class="evaluation-candidates">
                       <li v-for="article in testCase.retrieved" :key="article.articleNo">
@@ -417,7 +457,7 @@ onMounted(() => {
                     </ol>
                     <span v-else class="evaluation-empty">无候选结果</span>
                   </td>
-                  <td><span class="evaluation-diagnosis" :class="{ 'evaluation-diagnosis--miss': !testCase.hitAt3 }">{{ evaluationFailureText(testCase.failureType) }}</span></td>
+                  <td><span class="evaluation-diagnosis" :class="{ 'evaluation-diagnosis--miss': testCase.failureType !== 'NONE' }">{{ evaluationFailureText(testCase) }}</span></td>
                 </tr>
               </tbody>
             </table>

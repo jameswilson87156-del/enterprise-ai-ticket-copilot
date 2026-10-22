@@ -1,0 +1,1266 @@
+{
+  "runType": "REAL_DEEPSEEK",
+  "datasetVersion": "v2-balanced-40",
+  "dataSource": "synthetic-curated; no customer or production ticket data",
+  "datasetSize": 40,
+  "evaluatedCases": 40,
+  "fullDataset": true,
+  "externalRequestAttempts": 40,
+  "provider": {
+    "name": "DeepSeek",
+    "requestedModel": "deepseek-flash",
+    "responseModels": [
+      "deepseek-flash"
+    ],
+    "endpointHost": "api.deepseek.com"
+  },
+  "metrics": {
+    "deepseek": {
+      "correct": 38,
+      "total": 40,
+      "accuracy": 0.95,
+      "macroPrecision": 0.9528,
+      "macroRecall": 0.95,
+      "macroF1": 0.9499,
+      "ruleBlindSpotAccuracy": 0.9091,
+      "ruleBlindSpotCorrect": 10,
+      "ruleBlindSpotTotal": 11,
+      "perCategory": {
+        "账号问题": {
+          "support": 8,
+          "correct": 7,
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1": 0.875
+        },
+        "权限问题": {
+          "support": 8,
+          "correct": 7,
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1": 0.9333
+        },
+        "系统故障": {
+          "support": 8,
+          "correct": 8,
+          "precision": 0.8889,
+          "recall": 1.0,
+          "f1": 0.9412
+        },
+        "数据问题": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "流程咨询": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusionMatrix": {
+        "账号问题": {
+          "账号问题": 7,
+          "权限问题": 0,
+          "系统故障": 1,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "权限问题": {
+          "账号问题": 1,
+          "权限问题": 7,
+          "系统故障": 0,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "系统故障": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 8,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "数据问题": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 0,
+          "数据问题": 8,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "流程咨询": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 0,
+          "数据问题": 0,
+          "流程咨询": 8,
+          "调用失败": 0
+        }
+      }
+    },
+    "ruleEngine": {
+      "correct": 40,
+      "total": 40,
+      "accuracy": 1.0,
+      "macroPrecision": 1.0,
+      "macroRecall": 1.0,
+      "macroF1": 1.0,
+      "ruleBlindSpotAccuracy": 1.0,
+      "ruleBlindSpotCorrect": 11,
+      "ruleBlindSpotTotal": 11,
+      "perCategory": {
+        "账号问题": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "权限问题": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "系统故障": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "数据问题": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "流程咨询": {
+          "support": 8,
+          "correct": 8,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusionMatrix": {
+        "账号问题": {
+          "账号问题": 8,
+          "权限问题": 0,
+          "系统故障": 0,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "权限问题": {
+          "账号问题": 0,
+          "权限问题": 8,
+          "系统故障": 0,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "系统故障": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 8,
+          "数据问题": 0,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "数据问题": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 0,
+          "数据问题": 8,
+          "流程咨询": 0,
+          "调用失败": 0
+        },
+        "流程咨询": {
+          "账号问题": 0,
+          "权限问题": 0,
+          "系统故障": 0,
+          "数据问题": 0,
+          "流程咨询": 8,
+          "调用失败": 0
+        }
+      }
+    },
+    "accuracyDeltaModelMinusRule": -0.05,
+    "providerFailureCount": 0,
+    "misclassificationCount": 2
+  },
+  "tokenUsage": {
+    "status": "RECORDED",
+    "sampleCount": 40,
+    "promptTokens": 8679,
+    "completionTokens": 13392,
+    "totalTokens": 22071
+  },
+  "latencyMs": {
+    "sampleCount": 40,
+    "mean": 2766.5,
+    "p95": 3926,
+    "max": 4258
+  },
+  "requestIdCount": 40,
+  "batchMetadata": [
+    {
+      "runType": "REAL_DEEPSEEK",
+      "provider": "DeepSeek",
+      "requestedModel": "deepseek-flash",
+      "endpointHost": "api.deepseek.com",
+      "categoryOffset": 0,
+      "maxTokens": 2048,
+      "maxAttempts": 1,
+      "sampleIds": [
+        "T01",
+        "T11",
+        "T05",
+        "T09",
+        "T12",
+        "T02",
+        "T13",
+        "T06",
+        "T10",
+        "T34"
+      ]
+    },
+    {
+      "runType": "REAL_DEEPSEEK",
+      "provider": "DeepSeek",
+      "requestedModel": "deepseek-flash",
+      "endpointHost": "api.deepseek.com",
+      "categoryOffset": 2,
+      "maxTokens": 2048,
+      "maxAttempts": 1,
+      "sampleIds": [
+        "T03",
+        "T14",
+        "T07",
+        "T23",
+        "T35",
+        "T04",
+        "T29",
+        "T08",
+        "T24",
+        "T36"
+      ]
+    },
+    {
+      "runType": "REAL_DEEPSEEK",
+      "provider": "DeepSeek",
+      "requestedModel": "deepseek-flash",
+      "endpointHost": "api.deepseek.com",
+      "categoryOffset": 4,
+      "maxTokens": 2048,
+      "maxAttempts": 1,
+      "sampleIds": [
+        "T17",
+        "T30",
+        "T15",
+        "T25",
+        "T37",
+        "T18",
+        "T31",
+        "T16",
+        "T26",
+        "T38"
+      ]
+    },
+    {
+      "runType": "REAL_DEEPSEEK",
+      "provider": "DeepSeek",
+      "requestedModel": "deepseek-flash",
+      "endpointHost": "api.deepseek.com",
+      "categoryOffset": 6,
+      "maxTokens": 2048,
+      "maxAttempts": 1,
+      "sampleIds": [
+        "T19",
+        "T32",
+        "T21",
+        "T27",
+        "T39",
+        "T20",
+        "T33",
+        "T22",
+        "T28",
+        "T40"
+      ]
+    }
+  ],
+  "batchSummaries": [
+    {
+      "file": "ticket-deepseek-v2-offset-0.json",
+      "categoryOffset": 0,
+      "evaluatedCases": 10,
+      "fullDataset": false,
+      "failures": 0
+    },
+    {
+      "file": "ticket-deepseek-supplement-v1.json",
+      "categoryOffset": 2,
+      "evaluatedCases": 10,
+      "fullDataset": false,
+      "failures": 0
+    },
+    {
+      "file": "ticket-deepseek-v2-offset-4.json",
+      "categoryOffset": 4,
+      "evaluatedCases": 10,
+      "fullDataset": false,
+      "failures": 0
+    },
+    {
+      "file": "ticket-deepseek-v2-offset-6.json",
+      "categoryOffset": 6,
+      "evaluatedCases": 10,
+      "fullDataset": false,
+      "failures": 0
+    }
+  ],
+  "misclassifications": [
+    {
+      "id": "T04",
+      "input": {
+        "title": "SSO 跳转后白屏",
+        "description": "从门户点击 SSO 跳转到业务系统后白屏，怀疑单点登录会话异常。",
+        "systemName": "sso-gateway",
+        "errorLog": "sso redirect loop detected",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "系统故障",
+      "correct": false,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3470,
+        "promptTokens": 228,
+        "completionTokens": 446,
+        "totalTokens": 674,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T13",
+      "input": {
+        "title": "新入职同事打不开报表平台",
+        "description": "新同事说报表平台一直转圈进不去，他使用其他系统都正常，帮忙看看是不是哪里没给他配置好。",
+        "systemName": "report-platform",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "账号问题",
+      "correct": false,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3310,
+        "promptTokens": 225,
+        "completionTokens": 421,
+        "totalTokens": 646,
+        "failureCode": null
+      }
+    }
+  ],
+  "providerFailures": [],
+  "caseResults": [
+    {
+      "id": "T01",
+      "input": {
+        "title": "无法登录 OA 系统",
+        "description": "输入密码后提示认证失败，重置密码后仍未解决，多人都反馈同样问题。",
+        "systemName": "oa-portal",
+        "errorLog": "auth failure: invalid credentials",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 4258,
+        "promptTokens": 221,
+        "completionTokens": 578,
+        "totalTokens": 799,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T02",
+      "input": {
+        "title": "MFA 验证码收不到",
+        "description": "登录时 MFA 动态码一直收不到，短信和 App 都试过，无法完成登录。",
+        "systemName": "iam",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2895,
+        "promptTokens": 220,
+        "completionTokens": 334,
+        "totalTokens": 554,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T03",
+      "input": {
+        "title": "账号被锁定",
+        "description": "密码连续输错多次后账号被锁定，需要走解锁流程。",
+        "systemName": "iam",
+        "errorLog": "account locked",
+        "urgency": "P3"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2308,
+        "promptTokens": 210,
+        "completionTokens": 242,
+        "totalTokens": 452,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T04",
+      "input": {
+        "title": "SSO 跳转后白屏",
+        "description": "从门户点击 SSO 跳转到业务系统后白屏，怀疑单点登录会话异常。",
+        "systemName": "sso-gateway",
+        "errorLog": "sso redirect loop detected",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "系统故障",
+      "correct": false,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3470,
+        "promptTokens": 228,
+        "completionTokens": 446,
+        "totalTokens": 674,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T05",
+      "input": {
+        "title": "订单接口大量超时",
+        "description": "高峰期订单查询接口超时严重，网关返回 502，影响下单主流程。",
+        "systemName": "order-service",
+        "errorLog": "upstream timeout, 502 Bad Gateway",
+        "urgency": "P1"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2538,
+        "promptTokens": 222,
+        "completionTokens": 280,
+        "totalTokens": 502,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T06",
+      "input": {
+        "title": "页面加载超过 30 秒",
+        "description": "工作台首页高峰期加载要 30 秒以上，基本不可用，非高峰正常。",
+        "systemName": "portal-web",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2780,
+        "promptTokens": 218,
+        "completionTokens": 328,
+        "totalTokens": 546,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T07",
+      "input": {
+        "title": "支付服务疑似宕机",
+        "description": "支付服务健康检查连续失败，实例疑似宕机，需要值班介入。",
+        "systemName": "payment-service",
+        "errorLog": "health check failed 5/5",
+        "urgency": "P1"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2231,
+        "promptTokens": 219,
+        "completionTokens": 285,
+        "totalTokens": 504,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T08",
+      "input": {
+        "title": "导出报表时后端报错 500",
+        "description": "点击导出按钮后后端直接报错 500，所有报表都无法导出。",
+        "systemName": "report-service",
+        "errorLog": "NullPointerException at ExportController",
+        "urgency": "P2"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2117,
+        "promptTokens": 221,
+        "completionTokens": 244,
+        "totalTokens": 465,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T09",
+      "input": {
+        "title": "两张报表的营收数字不一致",
+        "description": "经营日报和月报同一指标口径对不上，怀疑夜间同步任务有问题。",
+        "systemName": "data-platform",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2929,
+        "promptTokens": 214,
+        "completionTokens": 376,
+        "totalTokens": 590,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T10",
+      "input": {
+        "title": "导入 Excel 后部分字段缺失",
+        "description": "批量导入客户资料后，联系电话和地址字段大面积缺失。",
+        "systemName": "crm",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2666,
+        "promptTokens": 211,
+        "completionTokens": 325,
+        "totalTokens": 536,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T11",
+      "input": {
+        "title": "申请共享盘目录权限被拒",
+        "description": "按流程申请了共享盘目录权限，访问时仍提示 403 Forbidden。",
+        "systemName": "file-hub",
+        "errorLog": "403 Forbidden",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2807,
+        "promptTokens": 220,
+        "completionTokens": 304,
+        "totalTokens": 524,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T12",
+      "input": {
+        "title": "咨询报销流程怎么走",
+        "description": "新员工想了解差旅报销的申请流程和需要的材料。",
+        "systemName": "faq",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 1876,
+        "promptTokens": 210,
+        "completionTokens": 181,
+        "totalTokens": 391,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T13",
+      "input": {
+        "title": "新入职同事打不开报表平台",
+        "description": "新同事说报表平台一直转圈进不去，他使用其他系统都正常，帮忙看看是不是哪里没给他配置好。",
+        "systemName": "report-platform",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "账号问题",
+      "correct": false,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3310,
+        "promptTokens": 225,
+        "completionTokens": 421,
+        "totalTokens": 646,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T14",
+      "input": {
+        "title": "导出按钮不见了",
+        "description": "要把上季度经营数据导出来给审计，但我界面上没有导出按钮，旁边工位同事的账号都有这个按钮。",
+        "systemName": "report-platform",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2603,
+        "promptTokens": 221,
+        "completionTokens": 318,
+        "totalTokens": 539,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T15",
+      "input": {
+        "title": "会议室预定提交后白屏",
+        "description": "点了提交按钮页面直接白屏，刷新后预定记录还在，但确认邮件没有发出来。",
+        "systemName": "meeting-booking",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3000,
+        "promptTokens": 220,
+        "completionTokens": 356,
+        "totalTokens": 576,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T16",
+      "input": {
+        "title": "分公司访问 SaaS 偶发 connection reset",
+        "description": "分公司到 SaaS 的访问时好时坏，抓包看到丢包和连接被重置，总部正常。",
+        "systemName": "saas-office",
+        "errorLog": "connection reset by peer",
+        "urgency": "P2"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2747,
+        "promptTokens": 228,
+        "completionTokens": 398,
+        "totalTokens": 626,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T17",
+      "input": {
+        "title": "云桌面认证后反复跳回登录页",
+        "description": "输入正确凭据后仍回到登录页面，重新打开浏览器也一样。",
+        "systemName": "virtual-desktop",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3515,
+        "promptTokens": 216,
+        "completionTokens": 387,
+        "totalTokens": 603,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T18",
+      "input": {
+        "title": "新员工首次登录提示账号不存在",
+        "description": "入职流程显示账号已开通，但首次进入办公门户时提示用户不存在。",
+        "systemName": "iam",
+        "errorLog": "user not found",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2589,
+        "promptTokens": 217,
+        "completionTokens": 334,
+        "totalTokens": 551,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T19",
+      "input": {
+        "title": "统一认证凭据更新后会话无法续期",
+        "description": "更新登录凭据后访问业务系统仍不断返回认证页面。",
+        "systemName": "sso-gateway",
+        "errorLog": "token refresh rejected",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3926,
+        "promptTokens": 221,
+        "completionTokens": 504,
+        "totalTokens": 725,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T20",
+      "input": {
+        "title": "身份票据续期后访问被拒",
+        "description": "所有业务页面都跳回起始页，没有明确提示账号或密码错误。",
+        "systemName": "workspace",
+        "errorLog": "session renewal declined",
+        "urgency": "P2"
+      },
+      "expectedCategory": "账号问题",
+      "predictedCategory": "账号问题",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 4014,
+        "promptTokens": 219,
+        "completionTokens": 626,
+        "totalTokens": 845,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T21",
+      "input": {
+        "title": "后台任务队列停止推进",
+        "description": "待处理任务持续堆积，调度心跳没有继续更新，多个业务入口都受影响。",
+        "systemName": "job-platform",
+        "errorLog": "scheduler heartbeat stale",
+        "urgency": "P1"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2825,
+        "promptTokens": 218,
+        "completionTokens": 335,
+        "totalTokens": 553,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T22",
+      "input": {
+        "title": "网关间歇返回 Service Unavailable",
+        "description": "多个实例健康检查连续失败，用户请求偶发无法完成。",
+        "systemName": "api-gateway",
+        "errorLog": "503 Service Unavailable",
+        "urgency": "P1"
+      },
+      "expectedCategory": "系统故障",
+      "predictedCategory": "系统故障",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2662,
+        "promptTokens": 217,
+        "completionTokens": 279,
+        "totalTokens": 496,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T23",
+      "input": {
+        "title": "批量导入后出现重复客户记录",
+        "description": "同一份客户清单重复提交后产生了多条内容相同的记录。",
+        "systemName": "crm",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 1950,
+        "promptTokens": 211,
+        "completionTokens": 277,
+        "totalTokens": 488,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T24",
+      "input": {
+        "title": "看板和月报的同一指标不一致",
+        "description": "两处页面筛选条件相同，但显示的订单总数不同，怀疑统计口径或同步过程异常。",
+        "systemName": "analytics",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2637,
+        "promptTokens": 220,
+        "completionTokens": 295,
+        "totalTokens": 515,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T25",
+      "input": {
+        "title": "已保存的记录没有出现在导出文件中",
+        "description": "页面能查到记录，但生成的 CSV 缺少这条数据，其他记录可以正常导出。",
+        "systemName": "report-service",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2844,
+        "promptTokens": 217,
+        "completionTokens": 346,
+        "totalTokens": 563,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T26",
+      "input": {
+        "title": "导入表格后日期字段被截短",
+        "description": "源文件中的完整日期进入系统后只保留了部分内容，其他字段正常。",
+        "systemName": "asset-registry",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2593,
+        "promptTokens": 217,
+        "completionTokens": 268,
+        "totalTokens": 485,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T27",
+      "input": {
+        "title": "同一客户在两个页面显示不同联系电话",
+        "description": "核对后确认两处记录指向同一客户，但联系电话内容不一致。",
+        "systemName": "crm",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2594,
+        "promptTokens": 213,
+        "completionTokens": 282,
+        "totalTokens": 495,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T28",
+      "input": {
+        "title": "夜间同步后计费明细仍缺一天",
+        "description": "上游记录已经生成，计费明细没有跟上，业务人员无法核对当天账单。",
+        "systemName": "billing-data",
+        "errorLog": "sync watermark unchanged",
+        "urgency": "P2"
+      },
+      "expectedCategory": "数据问题",
+      "predictedCategory": "数据问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2899,
+        "promptTokens": 222,
+        "completionTokens": 402,
+        "totalTokens": 624,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T29",
+      "input": {
+        "title": "新员工看不到同组使用的功能入口",
+        "description": "同组同事可以从工作台进入该功能，我的页面没有对应入口且没有错误提示。",
+        "systemName": "workspace",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2356,
+        "promptTokens": 219,
+        "completionTokens": 372,
+        "totalTokens": 591,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T30",
+      "input": {
+        "title": "角色调整后报表接口仍返回 403",
+        "description": "管理员已调整岗位角色，重新登录后报表 API 仍提示 Forbidden。",
+        "systemName": "report-platform",
+        "errorLog": "403 Forbidden",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2620,
+        "promptTokens": 220,
+        "completionTokens": 298,
+        "totalTokens": 518,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T31",
+      "input": {
+        "title": "审批中心中的申请对经办人不可见",
+        "description": "审批记录显示已提交，但经办人进入页面后看不到这条申请。",
+        "systemName": "approval-center",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 3334,
+        "promptTokens": 217,
+        "completionTokens": 452,
+        "totalTokens": 669,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T32",
+      "input": {
+        "title": "共享盘目录拒绝访问",
+        "description": "通过公司文件平台打开已分配的共享目录时提示访问被拒绝。",
+        "systemName": "file-hub",
+        "errorLog": "permission denied",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2673,
+        "promptTokens": 215,
+        "completionTokens": 276,
+        "totalTokens": 491,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T33",
+      "input": {
+        "title": "只有部分成员能看到导出入口",
+        "description": "同一部门的其他成员可以导出报表，我的页面没有这个操作入口。",
+        "systemName": "report-platform",
+        "errorLog": "",
+        "urgency": "P2"
+      },
+      "expectedCategory": "权限问题",
+      "predictedCategory": "权限问题",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2661,
+        "promptTokens": 212,
+        "completionTokens": 270,
+        "totalTokens": 482,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T34",
+      "input": {
+        "title": "第一次出差报销需要准备哪些材料",
+        "description": "新员工想了解提交差旅费用时需要准备的附件。",
+        "systemName": "expense-portal",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2797,
+        "promptTokens": 212,
+        "completionTokens": 314,
+        "totalTokens": 526,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T35",
+      "input": {
+        "title": "采购申请通常按什么顺序审批",
+        "description": "想了解提交采购申请后会经过哪些审批环节。",
+        "systemName": "procurement",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2265,
+        "promptTokens": 209,
+        "completionTokens": 253,
+        "totalTokens": 462,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T36",
+      "input": {
+        "title": "调岗后差旅报销应该在哪个系统填写",
+        "description": "工作岗位变更后不清楚差旅费用从哪里提交。",
+        "systemName": "expense-portal",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2982,
+        "promptTokens": 213,
+        "completionTokens": 331,
+        "totalTokens": 544,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T37",
+      "input": {
+        "title": "采购申请要附哪些材料",
+        "description": "新人想了解申请需要的附件以及完整提交步骤。",
+        "systemName": "procurement",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2319,
+        "promptTokens": 208,
+        "completionTokens": 262,
+        "totalTokens": 470,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T38",
+      "input": {
+        "title": "费用单被退回后如何补交",
+        "description": "想按要求修正后重新提交，不确定下一步应该怎么操作。",
+        "systemName": "expense-portal",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2223,
+        "promptTokens": 214,
+        "completionTokens": 293,
+        "totalTokens": 507,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T39",
+      "input": {
+        "title": "第一次使用排班平台需要办理什么",
+        "description": "新同事想了解开始使用排班系统前需要完成的准备事项。",
+        "systemName": "staff-scheduling",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": false,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2286,
+        "promptTokens": 215,
+        "completionTokens": 277,
+        "totalTokens": 492,
+        "failureCode": null
+      }
+    },
+    {
+      "id": "T40",
+      "input": {
+        "title": "出差审批规范在哪里查看",
+        "description": "想确认差旅申请的审批要求和查询相关指引的位置。",
+        "systemName": "travel-portal",
+        "errorLog": "",
+        "urgency": "P3"
+      },
+      "expectedCategory": "流程咨询",
+      "predictedCategory": "流程咨询",
+      "correct": true,
+      "ruleMissExpected": true,
+      "providerEvidence": {
+        "responseModel": "deepseek-flash",
+        "latencyMs": 2561,
+        "promptTokens": 209,
+        "completionTokens": 243,
+        "totalTokens": 452,
+        "failureCode": null
+      }
+    }
+  ],
+  "limitations": [
+    "40 条均为合成工单，按原有标签评估；结果不代表生产工单分布或生产质量。",
+    "DeepSeek 与规则引擎对比按相同 40 条样本计算，规则结果单独列出。",
+    "未保存原始模型响应；保存分类结果、响应元数据、令牌用量、延迟与失败样本。"
+  ]
+}

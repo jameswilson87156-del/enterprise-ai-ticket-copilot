@@ -26,12 +26,16 @@ public class KnowledgeRetrievalEvaluationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         var report = evaluationService.evaluateAndSave();
         System.out.printf(Locale.ROOT,
-            "检索评估完成：dataset=%s, cases=%d, recall@1=%.4f, recall@3=%.4f, mrr=%.4f%n",
+            "检索评估完成：dataset=%s, corpus=%d, cases=%d, positive=%d, noMatch=%d, hitRate@1=%.4f, macroRecall@3=%.4f, mrr=%.4f, noMatchSpecificity=%.4f%n",
             report.datasetVersion(),
+            report.corpusArticleCount(),
             report.metrics().total(),
-            report.metrics().recallAt1(),
+            report.metrics().positiveQueryCount(),
+            report.metrics().noMatchQueryCount(),
+            report.metrics().hitRateAt1(),
             report.metrics().recallAt3(),
-            report.metrics().meanReciprocalRank()
+            report.metrics().meanReciprocalRank(),
+            report.metrics().noMatchSpecificity()
         );
     }
 }

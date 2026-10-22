@@ -1,0 +1,110 @@
+[
+  {
+    "relativePath": "knowledge-retrieval-v2-h2.json",
+    "sha256": "362B88424A81C97884B95AFBB7F24772A21E705BD47173696BA8EA653FDED2EB"
+  },
+  {
+    "relativePath": "llm-output-contract-redteam-v1.json",
+    "sha256": "96F839680F82AB5BD537871F7B2902510CFA0BC144BD334041A50849D0DB5128"
+  },
+  {
+    "relativePath": "model-vs-rule-v2.json",
+    "sha256": "93F73FBD1D9FD45D2FAB0932AD7606769525CA20BAB492C607BEBB6D08C82934"
+  },
+  {
+    "relativePath": "rule-engine-v2.json",
+    "sha256": "293BD67435E08EABBCB5F3140EFE873B2CEF729DC2BA85FEF79E9FB3C713C107"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v1.json",
+    "sha256": "1B6AC03ECBB3C47BEE703FB1421EB478DE1C5F74C95AEF7DA6B00476DE4307E8"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-11451381616254521914.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-18097911763699974279.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-20261022.json",
+    "sha256": "A8B3F158FDC21584FF3AD968648D04D47B478B119B50BBA3D6E2DF99A560B92B"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-3306395582008103618.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-4367574011433942855.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-6855014452704121050.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-7038055714076293857.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-7562915790397636521.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-7696822261416401891.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-benign-security-controls-v2-774005835507068607.json",
+    "sha256": "70B1C2392E4E1526D6A0587D5FEE47AA5E9DE5A9C6EC5B016AB88FEA6EDB6FAD"
+  },
+  {
+    "relativePath": "ticket-input-encoded-redteam-v1.json",
+    "sha256": "3778A3E905ECA67D9B126C1AC92107879B1D173534A1A4C555B6480CEBC9287A"
+  },
+  {
+    "relativePath": "ticket-input-framed-encoded-redteam-v1-results.json",
+    "sha256": "F450AC24267FF519019F6DDFFF6EEB128ED4AF3E10CCC1F7A3CEE78E29B75EFA"
+  },
+  {
+    "relativePath": "ticket-output-confusable-redteam-v1.json",
+    "sha256": "383514D7708673269320C1C073CEDC9AEB88F37BDAFCB61294B2D4E75EF25E5A"
+  },
+  {
+    "relativePath": "ticket-output-encoded-redteam-v1.json",
+    "sha256": "6FEEF345A635A2B034FABE3742A3C041DF43B88112251BB93761C94E8A3767D2"
+  },
+  {
+    "relativePath": "ticket-output-framed-encoded-redteam-v1-results.json",
+    "sha256": "C2EA22BC0C2EE0BB10A49DBC48E0A7199F804CAF1022C565BAAD5311A9E7DD33"
+  },
+  {
+    "relativePath": "tickets-redteam-v1-rule-baseline-v2.json",
+    "sha256": "7B1FAD9451043F0083002CCECAD1D7500187A026AD90C9EF938AE55539C92EB3"
+  },
+  {
+    "relativePath": "tickets-redteam-v1-rule-baseline-v3.json",
+    "sha256": "9A90641C97C9C836179A38ACA5693B121C3CB7DB42A8029C726FED176CDCF9D0"
+  },
+  {
+    "relativePath": "tickets-redteam-v1-rule-baseline.json",
+    "sha256": "05D1CE19701963DDDB2551425033BC3715627AEB8468E485CF4836F0B2823CF0"
+  },
+  {
+    "relativePath": "tickets-redteam-v2-rule-baseline-20261022.json",
+    "sha256": "CE7623547DC59DC3C8A3FA635CCCE4E50AC946457F5AA1B7A6F04E5DC30B580E"
+  },
+  {
+    "relativePath": "tickets-redteam-v3-prefix-rule-baseline-20261022.json",
+    "sha256": "03AD45DEB66888FEC9F959B51713481963CF1EF9ED4DD829F8A06A69771876F4"
+  },
+  {
+    "relativePath": "tickets-redteam-v4-clause-rule-baseline-20261022.json",
+    "sha256": "7E4698EA32009FF202BECD88439AA8F127E587EF3C8523CA44BE0E2973ADA65E"
+  },
+  {
+    "relativePath": "tickets-redteam-v5-unicode-rule-baseline-20261022.json",
+    "sha256": "FB0863B9964814006BC7346DE6337EC9EA79D3E53816BBA5527560946B7B6BBB"
+  }
+]

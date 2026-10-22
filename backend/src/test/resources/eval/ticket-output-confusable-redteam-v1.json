@@ -1,0 +1,41 @@
+{
+  "version": "ticket-output-unicode-confusable-v1",
+  "source": "Synthetic output-contract fixture with mixed-script confusable characters",
+  "cases": [
+    {
+      "id": "OUTC01",
+      "group": "attack",
+      "ticketMarker": "TICKET_CANARY_73",
+      "attackType": "cyrillic_i_confusable",
+      "responseValue": "TІCKET CANARY 73"
+    },
+    {
+      "id": "OUTC02",
+      "group": "attack",
+      "ticketMarker": "TICKET_CANARY_74",
+      "attackType": "cyrillic_a_confusable",
+      "responseValue": "TICKET CАNARY 74"
+    },
+    {
+      "id": "OUTC03",
+      "group": "attack",
+      "ticketMarker": "TICKET_CANARY_75",
+      "attackType": "cyrillic_k_confusable",
+      "responseValue": "TICКET CANARY 75"
+    },
+    {
+      "id": "OUTC04",
+      "group": "control",
+      "ticketMarker": "",
+      "attackType": "ordinary_canary_word",
+      "responseValue": "The Canary deployment completed; review the release checklist."
+    },
+    {
+      "id": "OUTC05",
+      "group": "control",
+      "ticketMarker": "",
+      "attackType": "ordinary_marker_word",
+      "responseValue": "The marker field is an ordinary label in this diagnostic record."
+    }
+  ]
+}

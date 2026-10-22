@@ -1,0 +1,215 @@
+{
+  "generatedAt" : "2026-10-22T04:34:24.580091800Z",
+  "datasetVersion" : "v1-non-overlap-challenge-20",
+  "dataSource" : "synthetic-manually-authored; no customer or production ticket data; exact normalized inputs disjoint from tickets-eval and redteam-v1-v5",
+  "scope" : "local deterministic rule baseline only; not an LLM result or blind holdout",
+  "classificationMetrics" : {
+    "correct" : 20,
+    "total" : 20,
+    "accuracy" : 1.0,
+    "macroPrecision" : 1.0,
+    "macroRecall" : 1.0,
+    "macroF1" : 1.0,
+    "perCategory" : {
+      "账号问题" : {
+        "support" : 4,
+        "correct" : 4,
+        "precision" : 1.0,
+        "recall" : 1.0,
+        "f1" : 1.0
+      },
+      "权限问题" : {
+        "support" : 4,
+        "correct" : 4,
+        "precision" : 1.0,
+        "recall" : 1.0,
+        "f1" : 1.0
+      },
+      "系统故障" : {
+        "support" : 4,
+        "correct" : 4,
+        "precision" : 1.0,
+        "recall" : 1.0,
+        "f1" : 1.0
+      },
+      "数据问题" : {
+        "support" : 4,
+        "correct" : 4,
+        "precision" : 1.0,
+        "recall" : 1.0,
+        "f1" : 1.0
+      },
+      "流程咨询" : {
+        "support" : 4,
+        "correct" : 4,
+        "precision" : 1.0,
+        "recall" : 1.0,
+        "f1" : 1.0
+      }
+    },
+    "confusionMatrix" : {
+      "账号问题" : {
+        "账号问题" : 4,
+        "权限问题" : 0,
+        "系统故障" : 0,
+        "数据问题" : 0,
+        "流程咨询" : 0,
+        "调用失败" : 0
+      },
+      "权限问题" : {
+        "账号问题" : 0,
+        "权限问题" : 4,
+        "系统故障" : 0,
+        "数据问题" : 0,
+        "流程咨询" : 0,
+        "调用失败" : 0
+      },
+      "系统故障" : {
+        "账号问题" : 0,
+        "权限问题" : 0,
+        "系统故障" : 4,
+        "数据问题" : 0,
+        "流程咨询" : 0,
+        "调用失败" : 0
+      },
+      "数据问题" : {
+        "账号问题" : 0,
+        "权限问题" : 0,
+        "系统故障" : 0,
+        "数据问题" : 4,
+        "流程咨询" : 0,
+        "调用失败" : 0
+      },
+      "流程咨询" : {
+        "账号问题" : 0,
+        "权限问题" : 0,
+        "系统故障" : 0,
+        "数据问题" : 0,
+        "流程咨询" : 4,
+        "调用失败" : 0
+      }
+    },
+    "caseResults" : [ {
+      "id" : "HLD01",
+      "expected" : "账号问题",
+      "predicted" : "账号问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD02",
+      "expected" : "账号问题",
+      "predicted" : "账号问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD03",
+      "expected" : "账号问题",
+      "predicted" : "账号问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD04",
+      "expected" : "账号问题",
+      "predicted" : "账号问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD05",
+      "expected" : "权限问题",
+      "predicted" : "权限问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD06",
+      "expected" : "权限问题",
+      "predicted" : "权限问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD07",
+      "expected" : "权限问题",
+      "predicted" : "权限问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD08",
+      "expected" : "权限问题",
+      "predicted" : "权限问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD09",
+      "expected" : "系统故障",
+      "predicted" : "系统故障",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD10",
+      "expected" : "系统故障",
+      "predicted" : "系统故障",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD11",
+      "expected" : "系统故障",
+      "predicted" : "系统故障",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD12",
+      "expected" : "系统故障",
+      "predicted" : "系统故障",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD13",
+      "expected" : "数据问题",
+      "predicted" : "数据问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD14",
+      "expected" : "数据问题",
+      "predicted" : "数据问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD15",
+      "expected" : "数据问题",
+      "predicted" : "数据问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD16",
+      "expected" : "数据问题",
+      "predicted" : "数据问题",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD17",
+      "expected" : "流程咨询",
+      "predicted" : "流程咨询",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD18",
+      "expected" : "流程咨询",
+      "predicted" : "流程咨询",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD19",
+      "expected" : "流程咨询",
+      "predicted" : "流程咨询",
+      "correct" : true,
+      "callEvidence" : null
+    }, {
+      "id" : "HLD20",
+      "expected" : "流程咨询",
+      "predicted" : "流程咨询",
+      "correct" : true,
+      "callEvidence" : null
+    } ]
+  },
+  "ruleBlindSpotMetric" : "NOT_APPLICABLE: no case is annotated ruleMissExpected=true"
+}
