@@ -29,6 +29,8 @@ The Java adapter currently sends a bounded OpenAI-compatible Chat Completions re
 
 The adapter sends only ticket fields and current-run retrieval evidence. It validates the response shape, records provider outcome metadata, and keeps the human review gate. The server must set `TICKET_AI_FALLBACK_TO_LOCAL=false` if a provider failure must not become a local-rule answer.
 
+LLM classification is a separate optional call controlled by `TICKET_AI_CLASSIFICATION_ENABLED` (default `false`). When enabled, normalized and bounded ticket fields are sent to the configured compatible Provider; category, confidence and reason are validated before use. Invalid output or transport failure is recorded as a rule fallback. Classification generation records store only a safe summary, not the raw ticket text or raw Provider response. The new local regression uses a loopback HTTP stub and synthetic tickets; it did not send a real-model request.
+
 An earlier shared compatible-endpoint check returned HTTP `403`; that historical result remains an upstream credential/permission or endpoint failure, not a success. A later isolated DeepSeek verification did succeed with a developer-supplied, untracked local runtime configuration. It used only synthetic data and confirmed the actual backend path records `requestedProvider=deepseek`, `actualProvider=deepseek`, `fallbackUsed=false`, `VALID` structured output, and `VALID` citation membership before human review. See [sanitized DeepSeek smoke evidence](evidence/deepseek-isolated-smoke-20260904.md). It does not establish public deployment readiness or real-data model quality.
 
 ## OIDC provider registration

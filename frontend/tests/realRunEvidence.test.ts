@@ -11,6 +11,7 @@ import {
   toRealRunEvidenceError,
   toRealRunEvidenceViewModel
 } from '../src/features/realRunEvidence.ts'
+import { generationSourceLabel } from '../src/utils/realFlowFormat.ts'
 
 function immutableEvidence(): TraceEvidenceResponse {
   return {
@@ -127,4 +128,10 @@ test('demo fallback label cannot be presented as a real backend run', () => {
   assert.equal(DEMO_SAMPLE_LABEL, 'Demo sample — backend not called')
   assert.equal(DEMO_SAMPLE_LABEL.includes('backend not called'), true)
   assert.equal(DEMO_SAMPLE_LABEL.includes('IMMUTABLE_RUN'), false)
+})
+
+test('generation source labels explain rule, model and fallback paths', () => {
+  assert.equal(generationSourceLabel('RULE_ENGINE'), '本地规则分类')
+  assert.equal(generationSourceLabel('LLM_CLASSIFIER'), '大模型辅助分类')
+  assert.equal(generationSourceLabel('RULE_ENGINE_FALLBACK'), '模型失败后回退规则')
 })

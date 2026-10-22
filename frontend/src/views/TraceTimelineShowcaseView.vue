@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { isDemoRuntime } from '../api/tickets'
 import { useTicketRealFlow } from '../composables/useTicketRealFlow'
-import { boolLabel, displayDateTime, safeText, statusLabel } from '../utils/realFlowFormat'
+import { boolLabel, displayDateTime, generationSourceLabel, safeText, statusLabel } from '../utils/realFlowFormat'
 import EmptyState from '../components/ui/EmptyState.vue'
 import ErrorState from '../components/ui/ErrorState.vue'
 import LoadingState from '../components/ui/LoadingState.vue'
@@ -62,7 +62,7 @@ const runStatusTone = computed(() => run.value?.runStatus === 'COMPLETED' ? 'suc
         <div v-if="steps.length" class="trace-step-list">
           <article v-for="(step, index) in steps" :key="`${step.stepName}-${index}-${step.createdAt}`" class="trace-step">
             <span class="trace-step__index">{{ String(index + 1).padStart(2, '0') }}</span>
-            <div class="trace-step__body"><strong>{{ step.stepName }}</strong><span>{{ safeText(step.summary, '未返回步骤摘要') }}</span><small>{{ safeText(step.sourceType) }} · {{ safeText(step.status) }} · {{ displayDateTime(step.createdAt) }}</small></div>
+            <div class="trace-step__body"><strong>{{ step.stepName }}</strong><span>{{ safeText(step.summary, '未返回步骤摘要') }}</span><small>{{ generationSourceLabel(step.sourceType) }} · {{ safeText(step.status) }} · {{ displayDateTime(step.createdAt) }}</small></div>
             <span class="trace-step__latency">{{ safeText(step.latencyMs, '—') }} ms</span>
           </article>
         </div>

@@ -2,7 +2,7 @@
 
 > 后端当前处于 T0 契约冻结 + T1 入站边界 + T2 策略端口 + Phase 0-A 状态/授权加固阶段，并已补齐 OIDC/JWT Resource Server 与 staging 部署骨架：旧 `/api/...` 路径、状态词汇和证据链保持兼容，REST 入口已通过入站应用端口隔离旧工作流服务，工作流已通过 `ReviewPolicy` 隔离复核策略，状态和写权限分别由集中策略约束；后续完整模块化迁移按照 [Backend T0 API 契约冻结](design/BACKEND_T0_API_CONTRACT.md)、[Backend T1 模块边界](design/BACKEND_T1_MODULE_BOUNDARIES.md)、[Backend T2 工作流策略端口](design/BACKEND_T2_WORKFLOW_PORTS.md)、[Phase 0-A 状态与授权说明](design/TICKET_WORKFLOW_STATE_AND_AUTHORIZATION.md) 和 [后端下一阶段设计](design/BACKEND_NEXT_PHASE_DESIGN.md) 逐步进行。真实认证、Provider 和部署参数见 [真实认证、Provider 与部署说明](REAL_AUTH_PROVIDER_DEPLOYMENT.md)。
 
-Enterprise Ticket RAG Copilot 是一个面向企业内部员工、IT 支持、运维和业务支持团队的工单辅助处理与知识库工作台。Copilot 在本项目中表示辅助处理工作台，不代表生产级自动客服。当前默认链路使用本地规则、关键词匹配和模板生成；配置临时环境变量后可走 OpenAI-compatible Provider `/chat/completions` 代码路径，失败或未配置 Key 时自动回退到 local-rule fallback。所有建议必须经过人工确认后进入状态流转或知识沉淀。
+Enterprise Ticket RAG Copilot 是一个面向企业内部员工、IT 支持、运维和业务支持团队的工单辅助处理与知识库工作台。Copilot 在本项目中表示辅助处理工作台，不代表生产级自动客服。当前默认链路使用本地规则、关键词匹配和模板生成；只有显式开启 `TICKET_AI_CLASSIFICATION_ENABLED=true` 并完成 Provider 配置后，分类才会额外调用 OpenAI-compatible `/chat/completions`。模型输出经白名单和内容校验，失败回退本地规则。答案生成 Provider 仍是独立链路。所有建议必须经过人工确认后进入状态流转或知识沉淀。
 
 ## 前后端架构图
 
@@ -21,10 +21,13 @@ flowchart LR
     workflow --> legacy["LegacyTicketWorkflowFacade<br/>transitional adapter"]
     legacy --> service["TicketWorkflowService<br/>legacy implementation"]
     api --> auth["AuthController + Demo JWT/RBAC or OIDC/JWT"]
-    service --> classifier["RuleClassificationService"]
+    service --> classifier["AiClassificationFacade"]
+    classifier --> ruleClassifier["RuleClassificationService"]
+    classifier --> llmClassifier["LlmClassificationService<br/>opt-in"]
     service --> matcher["KnowledgeMatchingService"]
     service --> template["RecommendationTemplateService"]
     service --> provider["AiProviderService<br/>OpenAI-compatible or local-rule fallback"]
+    llmClassifier --> provider
     service --> mapper["MyBatis-Plus Mapper"]
   end
 
@@ -49,7 +52,7 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> PENDING_CLASSIFICATION: 员工提交工单
-  PENDING_CLASSIFICATION --> PENDING_PROCESS: 本地规则分类 + 知识匹配
+  PENDING_CLASSIFICATION --> PENDING_PROCESS: 规则分类或显式开启的模型分类 + 知识匹配
   PENDING_PROCESS --> IN_PROGRESS: 支持人员人工接手
   IN_PROGRESS --> RESOLVED: 人工确认已解决
   RESOLVED --> KNOWLEDGE_BASED: 生成草稿并人工确认入库
@@ -67,7 +70,7 @@ RESOLVED --> IN_PROGRESS: 复核发现仍需处理
 
 ```mermaid
 flowchart TD
-  intake["提交工单：标题、描述、系统、日志、紧急程度"] --> classify["本地规则分类<br/>账号 / 权限 / 系统故障 / 数据 / 流程咨询"]
+  intake["提交工单：标题、描述、系统、日志、紧急程度"] --> classify["默认本地规则分类<br/>可显式启用 LLM，异常回退规则"]
   classify --> match["知识库关键词匹配"]
   match --> recommend["模板生成排查步骤、回复建议、风险提示"]
   recommend --> pending["写入 ticket_ai_analysis<br/>confirmation_state = 待人工确认"]
@@ -95,8 +98,8 @@ flowchart TD
 
 | 聚合来源 | 用途 | 字段示例 |
 | --- | --- | --- |
-| `ticket_ai_analysis` | 最近一次规则引擎辅助分析 | `analysisId`、`classification`、`confidence`、`confirmationState`、`createdAt` |
-| `generation_record` | 记录规则或模板输出摘要 | `recordId`、`sourceType`、`latencyMs`、`status`、`promptSummary`、`responseSummary`、`createdAt` |
+| `ticket_ai_analysis` | 最近一次规则或模型分类辅助分析 | `analysisId`、`classification`、`confidence`、`confirmationState`、`createdAt` |
+| `generation_record` | 记录分类来源、检索、Provider 或模板步骤的安全摘要 | `recordId`、`sourceType`、`latencyMs`、`status`、`promptSummary`、`responseSummary`、`createdAt` |
 | `ticket_status_history` | 记录人工确认后的状态变化 | `fromStatus`、`toStatus`、`actor`、`note`、`occurredAt` |
 | `knowledge_article` | 提供关键词知识引用 | `knowledgeTitle`、`sourcePath`、`snippet`、`sourceTicketId` |
 
@@ -137,6 +140,9 @@ keyword 模式继续直接复用 `scripts/evaluate_rag_demo.py` 的 `retrieve(..
 - `humanReview` 从状态历史中的人工 actor 推导，不是独立审核任务系统。
 
 ## 边界约束
+
+- 模型分类默认关闭；启用前必须理解工单字段会发送到配置的 Provider。分类 Trace 只记录安全摘要，不持久化原始工单文本或原始模型响应。
+- 新主干分类集成通过现有 HTTP Provider 实现，没有引入 Spring AI；`java-ai-upgrade` 分支中的向量检索与 MCP 仍是独立实验实现。
 
 - 默认不连接真实 LLM；只有显式配置 `TICKET_AI_*` 临时环境变量时才尝试 OpenAI-compatible Provider，且本轮没有真实 Key 验证记录。
 - 不自动执行授权、回滚、重启、通知、爬虫或外部系统操作。

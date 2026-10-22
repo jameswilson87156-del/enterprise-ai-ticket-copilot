@@ -82,6 +82,28 @@ export function safeText(value?: string | number | null, fallback = '未返回')
   return String(value)
 }
 
+export function generationSourceLabel(source?: string | null) {
+  switch (source) {
+    case 'RULE_ENGINE':
+      return '本地规则分类'
+    case 'RULE_ENGINE_FALLBACK':
+      return '模型失败后回退规则'
+    case 'LLM_CLASSIFIER':
+      return '大模型辅助分类'
+    case 'KEYWORD_MATCHER':
+      return '关键词检索'
+    case 'TEMPLATE_ENGINE':
+    case 'RULE_TEMPLATE':
+      return '规则模板'
+    case 'OPENAI_COMPATIBLE':
+      return 'OpenAI 兼容模型'
+    case 'LOCAL_RULE_FALLBACK':
+      return '本地规则降级'
+    default:
+      return safeText(source)
+  }
+}
+
 export function displayDateTime(value?: string | null) {
   if (!value) {
     return '未返回'

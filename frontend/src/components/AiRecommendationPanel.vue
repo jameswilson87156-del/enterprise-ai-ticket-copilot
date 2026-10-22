@@ -33,7 +33,7 @@ const emit = defineEmits<{
     <div class="ai-panel__top">
       <div>
         <p class="eyebrow">模板化建议草稿</p>
-        <h2>规则引擎辅助分析</h2>
+        <h2>工单分类辅助分析</h2>
       </div>
       <span class="human-lock" role="status" aria-live="polite">{{ confirmationLabel }}</span>
     </div>
@@ -43,10 +43,10 @@ const emit = defineEmits<{
         <span>问题分类</span>
         <strong>{{ analysis.classification }}</strong>
         <p class="reason-line">{{ analysis.classificationReason }}</p>
-        <div class="confidence-bar" aria-label="规则置信度">
+        <div class="confidence-bar" aria-label="分类置信度">
           <span :style="{ width: `${analysis.confidence}%` }"></span>
         </div>
-        <small>置信度 {{ analysis.confidence }}%，本阶段不调用真实 LLM，仅供人工确认前参考</small>
+        <small>置信度 {{ analysis.confidence }}%，分类来源见上方判断说明；建议仅供人工确认前参考</small>
       </section>
 
       <section class="ai-block">

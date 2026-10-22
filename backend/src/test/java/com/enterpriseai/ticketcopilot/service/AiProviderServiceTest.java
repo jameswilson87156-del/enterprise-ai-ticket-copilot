@@ -65,6 +65,54 @@ class AiProviderServiceTest {
     }
 
     @Test
+    void classificationIsDisabledByDefaultAndDoesNotCallProvider() {
+        AiProviderService service = classificationService(false);
+
+        assertThat(service.classificationEnabled()).isFalse();
+        assertThat(requestCount).hasValue(0);
+    }
+
+    @Test
+    void classificationUsesLocalStubOnlyWhenExplicitlyEnabled() {
+        server.removeContext("/v1/chat/completions");
+        server.createContext("/v1/chat/completions", exchange -> {
+            requestCount.incrementAndGet();
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            send(exchange, 200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"category\\\":\\\"系统故障\\\",\\\"confidence\\\":0.9,\\\"reason\\\":\\\"本地 stub 测试\\\"}\"}}]}");
+        });
+        AiProviderService service = classificationService(true);
+
+        assertThat(service.classificationEnabled()).isTrue();
+        assertThat(service.classify("synthetic ticket prompt")).contains("系统故障");
+        assertThat(requestCount).hasValue(1);
+        assertThat(requestBody.get()).contains("synthetic ticket prompt");
+    }
+
+    @Test
+    void localStubExercisesTheFullOptionalClassificationPath() {
+        server.removeContext("/v1/chat/completions");
+        server.createContext("/v1/chat/completions", exchange -> {
+            requestCount.incrementAndGet();
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            send(exchange, 200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"category\\\":\\\"系统故障\\\",\\\"confidence\\\":0.9,\\\"reason\\\":\\\"本地 stub 分类验证\\\"}\"}}]}");
+        });
+        AiProviderService provider = classificationService(true);
+        RuleClassificationService rules = new RuleClassificationService();
+        AiClassificationFacade facade = new AiClassificationFacade(
+            provider,
+            new LlmClassificationService(provider, rules, new ObjectMapper()),
+            rules
+        );
+
+        RuleClassificationResult result = facade.classify(ticket());
+
+        assertThat(result.category()).isEqualTo("系统故障");
+        assertThat(result.source()).isEqualTo(RuleClassificationResult.SOURCE_LLM);
+        assertThat(requestCount).hasValue(1);
+        assertThat(requestBody.get()).contains("synthetic description");
+    }
+
+    @Test
     void bothProtocolUsesChatCompletionsAdapterAgainstLocalStubOnly() {
         AiProviderResult result = service("openai-compatible", "both", true).complete(
             ticket(), "SYSTEM_FAILURE", retrievalHits(), draft()
@@ -252,6 +300,17 @@ class AiProviderServiceTest {
             .withProperty("ticket.ai.model", "unit-test-model")
             .withProperty("ticket.ai.api-key", "placeholder-token")
             .withProperty("ticket.ai.fallback-to-local", Boolean.toString(fallbackToLocal));
+        return new AiProviderService(environment, new ObjectMapper());
+    }
+
+    private AiProviderService classificationService(boolean enabled) {
+        MockEnvironment environment = new MockEnvironment()
+            .withProperty("ticket.ai.provider", "openai-compatible")
+            .withProperty("ticket.ai.protocol", "chat-completions")
+            .withProperty("ticket.ai.base-url", "http://127.0.0.1:" + server.getAddress().getPort())
+            .withProperty("ticket.ai.model", "unit-test-model")
+            .withProperty("ticket.ai.api-key", "placeholder-token")
+            .withProperty("ticket.ai.classification.enabled", Boolean.toString(enabled));
         return new AiProviderService(environment, new ObjectMapper());
     }
 

@@ -96,7 +96,7 @@ public class TicketWorkflowService {
     private final CopilotResultCitationMapper copilotResultCitationMapper;
     private final RetrievalHitMapper retrievalHitMapper;
     private final ReviewRecordMapper reviewRecordMapper;
-    private final RuleClassificationService classificationService;
+    private final AiClassificationFacade classificationFacade;
     private final KnowledgeMatchingService knowledgeMatchingService;
     private final RecommendationTemplateService recommendationTemplateService;
     private final AiProviderService aiProviderService;
@@ -119,7 +119,7 @@ public class TicketWorkflowService {
         CopilotResultCitationMapper copilotResultCitationMapper,
         RetrievalHitMapper retrievalHitMapper,
         ReviewRecordMapper reviewRecordMapper,
-        RuleClassificationService classificationService,
+        AiClassificationFacade classificationFacade,
         KnowledgeMatchingService knowledgeMatchingService,
         RecommendationTemplateService recommendationTemplateService,
         AiProviderService aiProviderService,
@@ -141,7 +141,7 @@ public class TicketWorkflowService {
         this.copilotResultCitationMapper = copilotResultCitationMapper;
         this.retrievalHitMapper = retrievalHitMapper;
         this.reviewRecordMapper = reviewRecordMapper;
-        this.classificationService = classificationService;
+        this.classificationFacade = classificationFacade;
         this.knowledgeMatchingService = knowledgeMatchingService;
         this.recommendationTemplateService = recommendationTemplateService;
         this.aiProviderService = aiProviderService;
@@ -293,11 +293,11 @@ public class TicketWorkflowService {
         ticket.setCreatedAt(now);
         ticket.setUpdatedAt(now);
         supportTicketMapper.insert(ticket);
-        appendHistory(ticket.getId(), null, STATUS_PENDING_CLASSIFICATION, "System", "工单已提交，进入本地规则分类。");
+        appendHistory(ticket.getId(), null, STATUS_PENDING_CLASSIFICATION, "System", "工单已提交，等待分类建议。");
 
         long started = System.currentTimeMillis();
-        RuleClassificationResult classification = classificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
-        saveGeneration(ticket.getId(), "CLASSIFICATION", "RULE_ENGINE", summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
+        RuleClassificationResult classification = classificationFacade.classify(ticket);
+        saveClassificationGeneration(ticket.getId(), classification, started);
 
         started = System.currentTimeMillis();
         List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
@@ -334,7 +334,9 @@ public class TicketWorkflowService {
         ticket.setStatus(STATUS_PENDING_PROCESS);
         ticket.setUpdatedAt(LocalDateTime.now());
         supportTicketMapper.updateById(ticket);
-        appendHistory(ticket.getId(), STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, "Rule Engine", "完成规则分类、知识库匹配和建议草案生成，等待人工确认。");
+        appendHistory(ticket.getId(), STATUS_PENDING_CLASSIFICATION, STATUS_PENDING_PROCESS, classificationActor(classification),
+            "完成" + (RuleClassificationResult.SOURCE_LLM.equals(classification.source()) ? "模型辅助分类" : "规则分类")
+                + "、知识库匹配和建议草案生成，等待人工确认。");
         return toDetail(ticket);
     }
 
@@ -354,8 +356,8 @@ public class TicketWorkflowService {
         long runStarted = System.currentTimeMillis();
         CopilotRun run = startCopilotRun(ticket, aiProviderService.runtimeSettings());
         long started = System.currentTimeMillis();
-        RuleClassificationResult classification = classificationService.classify(ticket.getTitle(), ticket.getDescription(), ticket.getErrorLog());
-        saveGeneration(ticket.getId(), "CLASSIFICATION", "RULE_ENGINE", summarize(ticket.getDescription()), classification.category(), started, "SUCCESS");
+        RuleClassificationResult classification = classificationFacade.classify(ticket);
+        saveClassificationGeneration(ticket.getId(), classification, started);
 
         started = System.currentTimeMillis();
         List<KnowledgeMatch> matches = knowledgeMatchingService.match(ticket, classification.category());
@@ -827,7 +829,7 @@ public class TicketWorkflowService {
             ticket.getDescription(),
             new SystemContext(ticket.getSystemName(), "internal", "corp", "-", affectedUsers(ticket.getUrgency())),
             lines(ticket.getErrorLog()),
-            List.of("本阶段使用本地规则分类与模板建议，不调用真实 LLM。", "所有处理建议均等待人工确认后执行。"),
+            List.of("分类默认使用本地规则；可按配置显式启用受控模型分类。", "所有处理建议均等待人工确认后执行。"),
             statusHistoryMapper.selectList(new LambdaQueryWrapper<TicketStatusHistory>()
                     .eq(TicketStatusHistory::getTicketId, ticket.getId())
                     .orderByAsc(TicketStatusHistory::getOccurredAt))
@@ -1124,13 +1126,15 @@ public class TicketWorkflowService {
             case STATUS_RESOLVED -> "可生成知识草稿，并由知识审核人确认发布。";
             case STATUS_REJECTED -> "建议草稿已拒绝，需要人工重新分析或补充上下文。";
             case STATUS_KNOWLEDGE_BASED -> "已完成知识沉淀；不执行无人值守自动关闭。";
-            default -> "等待本地规则分类和模板化建议草稿生成。";
+            default -> "等待分类建议和模板化处理草稿生成。";
         };
     }
 
     private String fallbackStrategy(String sourceType) {
         return switch (defaultText(sourceType, "")) {
             case "RULE_ENGINE" -> "keyword rule classification";
+            case "RULE_ENGINE_FALLBACK" -> "LLM classification fell back to local rules";
+            case "LLM_CLASSIFIER" -> "OpenAI-compatible LLM classification";
             case "KEYWORD_MATCHER" -> "keyword-based RAG reference";
             case "TEMPLATE_ENGINE", "RULE_TEMPLATE" -> "rule template draft";
             case "OPENAI_COMPATIBLE" -> "OpenAI-compatible provider";
@@ -1652,9 +1656,65 @@ public class TicketWorkflowService {
 
     private String classificationReason(SupportTicket ticket, RuleClassificationResult classification, List<KnowledgeMatch> matches) {
         String knowledge = matches.isEmpty() ? "未命中已发布知识库条目" : "命中 " + matches.size() + " 条知识库条目";
+        if (RuleClassificationResult.SOURCE_LLM.equals(classification.source())) {
+            String reason = classification.reason() == null || classification.reason().isBlank()
+                ? "模型根据工单字段给出分类建议"
+                : summarize(classification.reason(), 180);
+            return "模型辅助分类为「" + classification.category() + "」，置信度 " + classification.confidence()
+                + "%；" + reason + "；" + knowledge + "。该结论仅作为人工确认前的建议。";
+        }
+        if (RuleClassificationResult.SOURCE_RULE_FALLBACK.equals(classification.source())) {
+            return defaultText(classification.reason(), "LLM 分类不可用，已回退本地规则") + "；本地规则分类为「"
+                + classification.category() + "」，置信度 " + classification.confidence() + "%；" + knowledge
+                + "。该结论仅作为人工确认前的建议。";
+        }
         return "本地规则在标题、描述、系统名和错误日志中识别到与「" + classification.category()
             + "」相关的关键词，置信度 " + classification.confidence()
             + "%；" + knowledge + "。该结论仅作为人工确认前的建议。";
+    }
+
+    private void saveClassificationGeneration(Long ticketId, RuleClassificationResult classification, long startedAt) {
+        boolean modelUsed = RuleClassificationResult.SOURCE_LLM.equals(classification.source());
+        boolean fallbackUsed = RuleClassificationResult.SOURCE_RULE_FALLBACK.equals(classification.source());
+        AiProviderService.ProviderRuntimeSettings provider = aiProviderService.runtimeSettings();
+        String providerName = modelUsed || fallbackUsed ? provider.requestedProvider() : "local-rule";
+        String modelName = modelUsed || fallbackUsed ? provider.requestedModel() : "N/A (no LLM)";
+        String fallbackReason = fallbackUsed
+            ? (classification.reason() != null && classification.reason().contains("配置不完整")
+                ? "CLASSIFICATION_CONFIG_INCOMPLETE"
+                : "CLASSIFICATION_PROVIDER_OR_OUTPUT_FAILURE")
+            : null;
+        saveGeneration(
+            ticketId,
+            "CLASSIFICATION",
+            classificationEngine(classification),
+            "sanitizedTicketFields=true; rawTicketTextPersisted=false",
+            classification.category(),
+            System.currentTimeMillis() - startedAt,
+            fallbackUsed ? "FALLBACK" : "SUCCESS",
+            providerName,
+            modelName,
+            fallbackUsed,
+            fallbackReason,
+            null
+        );
+    }
+
+    private String classificationEngine(RuleClassificationResult classification) {
+        if (RuleClassificationResult.SOURCE_LLM.equals(classification.source())) {
+            return "LLM_CLASSIFIER";
+        }
+        return RuleClassificationResult.SOURCE_RULE_FALLBACK.equals(classification.source())
+            ? "RULE_ENGINE_FALLBACK"
+            : "RULE_ENGINE";
+    }
+
+    private String classificationActor(RuleClassificationResult classification) {
+        return RuleClassificationResult.SOURCE_LLM.equals(classification.source())
+            ? "LLM Classifier"
+            : RuleClassificationResult.SOURCE_RULE_FALLBACK.equals(classification.source())
+                ? "Rule Engine Fallback"
+                : "Rule Engine";
     }
 
     private String toJson(List<String> values) {

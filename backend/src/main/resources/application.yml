@@ -10,6 +10,8 @@ ticket:
     api-key: ${TICKET_AI_API_KEY:${PORTFOLIO_AI_API_KEY:}}
     protocol: ${TICKET_AI_PROTOCOL:${PORTFOLIO_AI_PROTOCOL:chat-completions}}
     fallback-to-local: ${TICKET_AI_FALLBACK_TO_LOCAL:${PORTFOLIO_AI_FALLBACK_ENABLED:true}}
+    classification:
+      enabled: ${TICKET_AI_CLASSIFICATION_ENABLED:false}
     rate-limit:
       enabled: ${TICKET_AI_RATE_LIMIT_ENABLED:false}
       limit: ${TICKET_AI_RATE_LIMIT_LIMIT:6}

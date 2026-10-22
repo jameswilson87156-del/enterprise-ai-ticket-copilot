@@ -442,3 +442,42 @@ mvn test
 实际结果：`Tests run: 94, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。新增的 2 个工作流端口结构测试、原有 6 个 ReviewGate 策略测试、T0/T1 合同和边界测试，以及工作流/Provider/Citation/结构化输出/H2 集成测试均通过。
 
 本轮只完成一个可替换的策略端口，没有实现完整模块迁移、`AiProviderPort`、`RetrievalPort`、`AuditRecorder`、真实身份/RBAC、真实 Provider、Outbox、数据库迁移或公网部署。企业工单后端 T0-T2 范围已完成，后续进入独立电商 E0 或另立生产化任务。
+
+## 2026-10-22 MAIN_OPTIONAL_LLM_CLASSIFICATION_INTEGRATION
+
+### 实现范围
+
+- 将升级线的分类安全能力接入现有主干工作流：新增 `AiClassificationFacade` 与 `LlmClassificationService`，保留本地规则默认路径；`TICKET_AI_CLASSIFICATION_ENABLED` 默认为 `false`，只有显式开启且 Provider 配置完整时才发分类请求。
+- 分类输入规范化并移除识别到的显式注入句；模型输出校验五类白名单、0–1 置信度、注入指令与 canary 回显。Provider 失败、坏 JSON 或非法输出回退规则引擎。
+- 分类 Trace 只保存安全摘要，区分 `RULE_ENGINE`、`LLM_CLASSIFIER` 与 `RULE_ENGINE_FALLBACK` 的来源、模型与 fallback 元数据，不保存原始工单文本或模型响应。
+- 更新 Trace 来源中文标签，并修复前端依赖审计发现的高危依赖；未加入 Spring AI 或新生产依赖。
+
+### 实际验证
+
+```text
+cd backend
+mvn -B test
+```
+
+结果：`Tests run: 328, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。新增分类链路通过 localhost HTTP stub；本次没有发送真实 DeepSeek 或其他外部 Provider 请求。
+
+```text
+cd frontend
+npm ci
+npm test
+npm audit --omit=dev --audit-level=high
+npm run build
+```
+
+结果：7 项测试通过；生产依赖审计报告 0 vulnerabilities；Vue 类型检查与 Vite 6.4.5 构建通过。
+
+```text
+cd python-ai-service
+py -3 -B -m pytest -q
+```
+
+结果：8 passed。另运行两个离线 synthetic retrieval evaluator，既有准确率指标保持不变；生成报告中的本机耗时变化没有覆盖仓库原指标快照。
+
+### 范围边界
+
+本轮没有把 `java-ai-upgrade` 的 Spring AI `SimpleVectorStore` 与 MCP Server 接入主干运行链路；该分支和完整 Vue/RAG/Human Review 主干技术架构不同，MCP 暴露与现有认证/数据边界也需单独设计。当前主干继续使用关键词检索与自有 HTTP Provider，未声称具备 Spring AI、向量数据库或 MCP Runtime。
