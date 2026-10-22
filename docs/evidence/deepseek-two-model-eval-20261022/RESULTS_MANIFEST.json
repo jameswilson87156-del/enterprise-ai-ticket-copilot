@@ -1,0 +1,329 @@
+{
+  "project": "ticket",
+  "sourceFileCount": 46,
+  "publicSanitization": "Absolute Windows drive paths in string values are replaced with <REDACTED_LOCAL_PATH>; source SHA-256 values refer to original local files.",
+  "files": [
+    {
+      "source": "datasets/post-prompt-misclassified-regressions-v1.json",
+      "sourceSha256": "4d5f9cdb0d4c97827c04f2c59a51e559c2e0eb9e2e78fafdef0ca169b1ef7ac5",
+      "bytes": 6920,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "datasets/prompt-boundary-diagnostic-20261022.json",
+      "sourceSha256": "20dc7cdc0edac517d9b630cf4222c8bf4d79e903f6f8ff509c51a14f2cd34b77",
+      "bytes": 3082,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "datasets/prompt-permission-boundary-diagnostic-v1.json",
+      "sourceSha256": "0f9881a169a105ae430d3ed6fd303f72497113767e8bdd38ac3b83cc343f694b",
+      "bytes": 2696,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "datasets/ticket-pro-timeout-followup-v1.json",
+      "sourceSha256": "bc43cc0910155b8341a6386ce97bda41a938748f6a3aa9b7c817599d8e155983",
+      "bytes": 701,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "datasets/tickets-pro-residual-v1.json",
+      "sourceSha256": "ab12c0a31dba27ab39a0b877ad7c66ea6367eb7bf3d67bc5c70f4cf18cfe63d1",
+      "bytes": 1774,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/challenge-offset-0/results.json",
+      "sourceSha256": "4d615b4420e95cd3b21af0142b6aa9c149b55c1b2e1cd5a7b24de7284c45b850",
+      "bytes": 11814,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/challenge-offset-2/results.json",
+      "sourceSha256": "7f5aaa30be45359a3875e0de980df117f772fdffa153196936485263d16adc44",
+      "bytes": 11891,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/core-offset-0.json",
+      "sourceSha256": "9035e8af6b4f89d9a9a49d31df6b3c3cf05029a11bbeb2d616660434a674e268",
+      "bytes": 11739,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/core-offset-2/results.json",
+      "sourceSha256": "730d06ff9a094d317213263d9a587e227625ab2adf12d49835ed201b105c6b4e",
+      "bytes": 11739,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/core-offset-4/results.json",
+      "sourceSha256": "50cfd3af9fedd8c0f156cca5cd12a0a1a179e6505d7c62e1398c6bc7e6694a05",
+      "bytes": 11662,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/core-offset-6/results.json",
+      "sourceSha256": "eb21cce237e8ec5eb9e3075b337bc9737f050495f18c085585cec1e6fa8cd1c7",
+      "bytes": 11739,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/post-prompt-redteam-regression-v1/offset-0/results.json",
+      "sourceSha256": "5dd1d0e1cc3d286e3d2d441a330c07691773d082025ad4ddfcad8584700b3f3b",
+      "bytes": 15708,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/post-prompt-redteam-regression-v1/offset-9/results.json",
+      "sourceSha256": "53a6599857f90b580b9526e259de5a92b7d71e432ce0a2e8bf0444301226560f",
+      "bytes": 6954,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/prompt-boundary-diagnostic-v2/results.json",
+      "sourceSha256": "41fb043135475a311c57b1b11cfce969cf0ccdcd4f48303a73451aa946011f08",
+      "bytes": 10477,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/prompt-permission-boundary-diagnostic-v1/results.json",
+      "sourceSha256": "f44caebeb5b9a8652dd14fec7d70a989481f6f85c2447b7a1bff81ed2d472d13",
+      "bytes": 10141,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/prompt-permission-boundary-diagnostic-v2/results.json",
+      "sourceSha256": "622c1f55480ed38f41be744a933765210b9446ca743f36b2371d3e9b3c3d26e7",
+      "bytes": 10046,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-0/results.json",
+      "sourceSha256": "033ccadafe19f5a8c7e699f6118fc96ed1b9a493af9aecfb965f826e4d65230e",
+      "bytes": 15373,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-10/results.json",
+      "sourceSha256": "e0ee8d2f8128fe07e2c9aee1df355583de70ae5e03b73bec94f59a208474d18e",
+      "bytes": 15358,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-12/results.json",
+      "sourceSha256": "65e08d08cf0e1fe367321fd6ef5d6ff51d641029c42f29a53d631e3d0c4dd0a5",
+      "bytes": 15412,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-2/results.json",
+      "sourceSha256": "80dd23e4910ebac4ceb6016b320e14acf624156772fba858d47522c45e334ba7",
+      "bytes": 15391,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-4/results.json",
+      "sourceSha256": "a762758cb294e9787c154f7c4b44a0e15cd3e51e261a57d2b17e4b1817b1a9b2",
+      "bytes": 15445,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-6/results.json",
+      "sourceSha256": "cddbde63e7d8afc297c7b65b267c09603a3ec9d0d38b234150d6f3e8f5a9022f",
+      "bytes": 15396,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-flash/redteam-v5-offset-8/results.json",
+      "sourceSha256": "8900dbc651f99d796ba7f561d2b61973a011316a7536e5aa57be67c031c73830",
+      "bytes": 15360,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/challenge-offset-0/results.json",
+      "sourceSha256": "a3f9850c6fab346f26ae62ab18705f08bc91275ff2cd8303975c41d67733cb37",
+      "bytes": 11908,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/challenge-offset-2/results.json",
+      "sourceSha256": "38071adb82d401641cec58802ebfc93fcbf7b0796049b205dbaf4dd92c3812fb",
+      "bytes": 11909,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/core-offset-0/results.json",
+      "sourceSha256": "69fc57d963737a139879a921e1de12fb3f5c5206bab0e5452b240fca0c97c99a",
+      "bytes": 11752,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/core-offset-2/results.json",
+      "sourceSha256": "10e8b9f51f4a4bfb7b09415f9c19f950b10c42f688c565048314874fcfd9d853",
+      "bytes": 11754,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/core-offset-4/results.json",
+      "sourceSha256": "308644ad1074f762f5c4590da284aca3d8ef371e375051fcc1b006263e26c04e",
+      "bytes": 11755,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/core-offset-6/results.json",
+      "sourceSha256": "18576a4b94d97d27df15587010db6f29f0ea183a9dc010a6e3cd2a2d9e020d61",
+      "bytes": 9186,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/core-offset-6-residual/results.json",
+      "sourceSha256": "399bb28df87a4adae7b297a0778e616be4de6c25671f953b4b80ab46d4f25f93",
+      "bytes": 7921,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/post-prompt-redteam-regression-v1/offset-0/results.json",
+      "sourceSha256": "7fc4f11319ce6c6d71e523ce4edd3236dea9d6450b2c6810458e40c4c8ac032f",
+      "bytes": 15682,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/post-prompt-redteam-regression-v1/offset-9/results.json",
+      "sourceSha256": "47b47496213a600f5767ac6281b204f431dbef43d79ca177d5ad4abdba50c529",
+      "bytes": 6960,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/prompt-boundary-diagnostic-v1/results.json",
+      "sourceSha256": "5a896bde91c0e1efaa1dbd318199e28b67326fa9bb31c094c64fa0af88bd6666",
+      "bytes": 10489,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/prompt-permission-boundary-diagnostic-v1/results.json",
+      "sourceSha256": "d6191c505020c4b0edbc2c9562099d34a184305535b5b281187d2cda87a1e9ce",
+      "bytes": 10061,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/prompt-permission-boundary-diagnostic-v2/results.json",
+      "sourceSha256": "e92c632023127a28b696166212564f26cc9dbc17f7364d0ac0ce2e979487ad98",
+      "bytes": 10060,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-0/results.json",
+      "sourceSha256": "a130ab19c89f5bb04307da08219dc271146a2d3cae88edbf73aa2d26e509efc2",
+      "bytes": 15386,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-10/results.json",
+      "sourceSha256": "64c66c7797fa827ba890b98ab9675fcbdf941af7c1f3d710d46d564d6d8b263d",
+      "bytes": 15372,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-12/results.json",
+      "sourceSha256": "df31cb9624398d9544c0891b33597692995c2665aefddfc4d4064c3e5c65caff",
+      "bytes": 15427,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-2/results.json",
+      "sourceSha256": "20d760b8a0c56f436849e348a342f17e3f4ad68031886dfeda7e2cd785c08fa7",
+      "bytes": 15402,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-4/results.json",
+      "sourceSha256": "ed60f37dfd4aa14f40aef1a2e8da3e1e34ce1c8f6ee39f306d15a5abe73e3035",
+      "bytes": 15439,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-6/results.json",
+      "sourceSha256": "9860d44082288d3d3e6012d0a30cc2035151afc20ad56793ff1330b2a433c864",
+      "bytes": 15408,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/redteam-v5-offset-8/results.json",
+      "sourceSha256": "81ef902a71753cc429ce46dfa873f72353b79feeb6d263bb2243efbf190651e1",
+      "bytes": 15371,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "deepseek-v4-pro/timeout-followup-T20/results.json",
+      "sourceSha256": "c95037ff26fe95ea2002dca1eacb39e1c7a89062afadc09ff553d8884e1c2060",
+      "bytes": 6007,
+      "records": 1,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "post-prompt-redteam-regression-summaries.jsonl",
+      "sourceSha256": "2d1f5f64fe9dc4cbe23c12c45911246a2adbe64d5631ea7b980f17a87d023646",
+      "bytes": 1915,
+      "records": 4,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "prompt-permission-boundary-final-summaries.jsonl",
+      "sourceSha256": "965fd830b40c2960588dc273f7ed2e9b5fe6bf2f7cb6af95b33cb350a84f7d4e",
+      "bytes": 668,
+      "records": 2,
+      "publicPathsRedacted": true
+    },
+    {
+      "source": "prompt-permission-boundary-summaries.jsonl",
+      "sourceSha256": "bdd1ca52a20fb3466d244d3252d0ceaa54a66d3f230ca40c41bc0800b4193bba",
+      "bytes": 756,
+      "records": 2,
+      "publicPathsRedacted": true
+    }
+  ]
+}
