@@ -1,8 +1,3 @@
-InvalidOperation: 
-Line |
-   2 |  … ding]::UTF8); [Console]::OutputEncoding=[System.UTF8Encoding]::new($f …
-     |                                            ~~~~~~~~~~~~~~~~~~~~~
-     | Unable to find type [System.UTF8Encoding].
 <!-- Public copy: local paths and credential-environment details removed. Synthetic evaluation data only. -->
 
 # Enterprise AI Ticket Copilot｜DeepSeek 双模型评测报告
