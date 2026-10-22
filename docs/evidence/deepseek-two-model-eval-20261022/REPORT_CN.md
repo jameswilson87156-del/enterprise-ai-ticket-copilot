@@ -1,3 +1,8 @@
+InvalidOperation: 
+Line |
+   2 |  … ding]::UTF8); [Console]::OutputEncoding=[System.UTF8Encoding]::new($f …
+     |                                            ~~~~~~~~~~~~~~~~~~~~~
+     | Unable to find type [System.UTF8Encoding].
 <!-- Public copy: local paths and credential-environment details removed. Synthetic evaluation data only. -->
 
 # Enterprise AI Ticket Copilot｜DeepSeek 双模型评测报告
@@ -90,4 +95,3 @@ Ticket Copilot 的主评测及提示词诊断共计 Flash 161 次、Pro 162 次�
 本地工作区在开始时已有大量未提交修改与未跟踪评测数据。当前仍为 dirty；没有 reset、clean、提交、推送或部署。本轮只在现有工作树中修改上述服务与测试文件，并在交付目录写入报告和日志。
 
 当前执行环境检查到 DEEPSEEK_API_KEY 未配置。API Key 不在源码、JSON 结果或新日志中；但该凭据曾被发在聊天中，且历史一次进程参数暴露过。应立即在 DeepSeek 控制台撤销并轮换，再由本人通过本机私密环境变量配置新 Key。
-
